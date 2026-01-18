@@ -1,5 +1,6 @@
 package com.xunyu.codenexus.backend.controller;
-import com.xunyu.codenexus.backend.model.dto.ExecuteCodeRequest;
+
+import com.xunyu.codenexus.backend.model.dto.request.excuteCode.ExecuteCodeRequest;
 import com.xunyu.codenexus.backend.utils.SimpleDockerUtil;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +13,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/code")
 @CrossOrigin(origins = "*")
 public class CodeController {
-    
+
     @PostMapping("/run")
-    public String runCode (@RequestBody ExecuteCodeRequest request) {
+    public String runCode(@RequestBody ExecuteCodeRequest request) {
         try {
             // 调用刚才写的简易 Docker 工具
             return SimpleDockerUtil.runCode(request.getCode());
