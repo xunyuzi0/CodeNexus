@@ -8,8 +8,6 @@
         <id property="id" column="id"/>
         <result property="userAccount" column="user_account"/>
         <result property="userPassword" column="user_password"/>
-        <result property="unionId" column="union_id"/>
-        <result property="mpOpenId" column="mp_open_id"/>
         <result property="userName" column="user_name"/>
         <result property="userAvatar" column="user_avatar"/>
         <result property="userProfile" column="user_profile"/>
@@ -20,6 +18,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, user_account, user_password, union_id, mp_open_id, user_name, user_avatar, user_profile, user_role, create_time, update_time, is_delete
+        id, user_account, user_password, user_name, user_avatar, user_profile, user_role,
+        create_time, update_time, is_delete
     </sql>
 </mapper>

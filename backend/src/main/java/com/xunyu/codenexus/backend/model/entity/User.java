@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import lombok.Data;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -15,11 +13,7 @@ import java.time.LocalDateTime;
  */
 @TableName(value = "user")
 @Data
-public class User implements Serializable {
-
-    @Serial
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+public class User {
 
     /**
      * id
@@ -37,16 +31,6 @@ public class User implements Serializable {
      * 密码
      */
     private String userPassword;
-
-    /**
-     * 微信开放平台id
-     */
-    private String unionId;
-
-    /**
-     * 公众号openId
-     */
-    private String mpOpenId;
 
     /**
      * 用户昵称

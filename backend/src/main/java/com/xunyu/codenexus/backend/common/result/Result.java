@@ -2,9 +2,6 @@ package com.xunyu.codenexus.backend.common.result;
 
 import lombok.Data;
 
-import java.io.Serial;
-import java.io.Serializable;
-
 /**
  * 所有 Controller 接口的返回类型都应为此类的实例。
  *
@@ -15,10 +12,7 @@ import java.io.Serializable;
  */
 
 @Data
-public class Result<T> implements Serializable {
-
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class Result<T> {
 
     /**
      * 状态码

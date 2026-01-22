@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -17,10 +15,7 @@ import java.time.LocalDateTime;
  * @description: 查询请求参数基类
  */
 @Data
-public class BaseQueryRequest implements Serializable {
-
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class BaseQueryRequest {
 
     /**
      * 当前页码

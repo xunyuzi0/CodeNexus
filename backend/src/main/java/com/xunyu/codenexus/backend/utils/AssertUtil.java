@@ -21,8 +21,15 @@ import java.util.Objects;
 public class AssertUtil {
 
     /**
+     * 私有构造函数,防止工具类被实例化
+     */
+    private AssertUtil() {
+        throw new IllegalStateException("Utility class");
+    }
+
+    /**
      * 断言对象不为空
-     * 如果对象为 null，则抛出异常
+     * 如果对象为 null,则抛出异常
      *
      * @param object  待验证的对象
      * @param message 异常提示信息
