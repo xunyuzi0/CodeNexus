@@ -6,8 +6,8 @@ import com.xunyu.codenexus.backend.model.dto.request.user.UserRegisterRequest;
 import com.xunyu.codenexus.backend.model.dto.response.UserLoginVO;
 import com.xunyu.codenexus.backend.model.entity.User;
 import com.xunyu.codenexus.backend.service.UserService;
+import com.xunyu.codenexus.backend.utils.AssertUtil;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,9 +28,7 @@ public class UserController {
      */
     @PostMapping("/register")
     public Result<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
-        if (userRegisterRequest == null) {
-            return Result.error("请求参数为空");
-        }
+        AssertUtil.notNull(userRegisterRequest, "请求参数不能为空");
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
@@ -42,13 +40,11 @@ public class UserController {
      * 用户登录
      */
     @PostMapping("/login")
-    public Result<UserLoginVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
-        if (userLoginRequest == null) {
-            return Result.error("请求参数为空");
-        }
+    public Result<UserLoginVO> userLogin(@RequestBody UserLoginRequest userLoginRequest) {
+        AssertUtil.notNull(userLoginRequest, "请求参数不能为空");
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        UserLoginVO userLoginVO = userService.userLogin(userAccount, userPassword, request);
+        UserLoginVO userLoginVO = userService.userLogin(userAccount, userPassword);
         return Result.success(userLoginVO);
     }
 
@@ -56,8 +52,8 @@ public class UserController {
      * 获取当前登录用户
      */
     @GetMapping("/get/login")
-    public Result<UserLoginVO> getLoginUser(HttpServletRequest request) {
-        User user = userService.getLoginUser(request);
+    public Result<UserLoginVO> getLoginUser() {
+        User user = userService.getLoginUser();
         UserLoginVO userLoginVO = new UserLoginVO();
         BeanUtils.copyProperties(user, userLoginVO);
         userLoginVO.setUserRole(user.getUserRole().getValue());

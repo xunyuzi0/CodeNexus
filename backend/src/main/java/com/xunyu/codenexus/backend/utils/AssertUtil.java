@@ -11,54 +11,106 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 用于在业务层验证参数或逻辑是否符合预期。如果不符合，则抛出 BusinessException。
- * 核心逻辑：所有的断言失败，默认抛出 "400 参数校验失败" 类型的异常，而非 500 系统异常。
+ * 业务断言工具类
+ * 规范：
+ * 1. notNull: 校验对象引用不为 null (适用于 POJO, Integer 等)
+ * 2. notEmpty: 校验容器/字符串不为 null 且内容也不为null (适用于 List, Map, String, Array)
  *
  * @author xunyu
- * @date 2026/1/11 1:24
- * @description: 断言工具类
  */
 public class AssertUtil {
 
-    /**
-     * 私有构造函数,防止工具类被实例化
-     */
     private AssertUtil() {
         throw new IllegalStateException("Utility class");
     }
 
+    // ========================================================================
+    //  核心异常抛出逻辑
+    // ========================================================================
+
     /**
-     * 断言对象不为空
-     * 如果对象为 null,则抛出异常
+     * 默认抛出参数校验失败异常
      *
-     * @param object  待验证的对象
-     * @param message 异常提示信息
+     * @param message 异常信息
      */
+    private static void throwException(String message) {
+        throw new BusinessException(ResultCode.VALIDATE_FAILED.getCode(), message);
+    }
+
+    /**
+     * 自定义异常类型抛出
+     *
+     * @param resultCode 结果码枚举
+     * @param message    异常信息
+     */
+    private static void throwException(ResultCode resultCode, String message) {
+        throw new BusinessException(resultCode.getCode(), message);
+    }
+
+    // ========================================================================
+    //  1. 逻辑断言 (True/False)
+    // ========================================================================
+
+    public static void isTrue(boolean expression, String message) {
+        if (!expression) {
+            throwException(message);
+        }
+    }
+
+    public static void isTrue(boolean expression, ResultCode resultCode, String message) {
+        if (!expression) {
+            throwException(resultCode, message);
+        }
+    }
+
+    public static void isFalse(boolean expression, String message) {
+        if (expression) {
+            throwException(message);
+        }
+    }
+
+    public static void isFalse(boolean expression, ResultCode resultCode, String message) {
+        if (expression) {
+            throwException(resultCode, message);
+        }
+    }
+
+    // ========================================================================
+    //  2. 非空断言 (NotNull - 仅校验引用)
+    //  适用于：User, Order, Integer 等普通对象
+    // ========================================================================
+
     public static void notNull(Object object, String message) {
         if (object == null) {
             throwException(message);
         }
     }
 
-    /**
-     * 断言对象必须为空
-     * 如果对象不为 null，则抛出异常
-     *
-     * @param object  待验证的对象
-     * @param message 异常提示信息
-     */
+    public static void notNull(Object object, ResultCode resultCode, String message) {
+        if (object == null) {
+            throwException(resultCode, message);
+        }
+    }
+
     public static void isNull(Object object, String message) {
         if (object != null) {
             throwException(message);
         }
     }
 
+    public static void isNull(Object object, ResultCode resultCode, String message) {
+        if (object != null) {
+            throwException(resultCode, message);
+        }
+    }
+
+    // ========================================================================
+    //  3. 内容非空断言 (NotEmpty - 校验引用 + 内容)
+    //  适用于：String, Collection, Map, Array
+    // ========================================================================
+
     /**
-     * 断言字符串不为空
-     * 包含对 null、空字符串 "" 以及纯空格 "   " 的校验
-     *
-     * @param text    待验证的字符串
-     * @param message 异常提示信息
+     * 校验字符串 (不仅不能为null，也不能是空字符串或纯空格)
      */
     public static void notEmpty(String text, String message) {
         if (!StringUtils.hasText(text)) {
@@ -67,10 +119,7 @@ public class AssertUtil {
     }
 
     /**
-     * 断言集合不为空
-     *
-     * @param collection 待验证的集合 (List, Set 等)
-     * @param message    异常提示信息
+     * 校验集合 (List, Set)
      */
     public static void notEmpty(Collection<?> collection, String message) {
         if (CollectionUtils.isEmpty(collection)) {
@@ -79,11 +128,7 @@ public class AssertUtil {
     }
 
     /**
-     * 断言 Map 不为空
-     * 优化：Map 应该使用 CollectionUtils.isEmpty(map) 重载方法，或者 ObjectUtils
-     *
-     * @param map     待验证的 Map
-     * @param message 异常提示信息
+     * 校验 Map
      */
     public static void notEmpty(Map<?, ?> map, String message) {
         if (CollectionUtils.isEmpty(map)) {
@@ -92,7 +137,7 @@ public class AssertUtil {
     }
 
     /**
-     * 断言数组不为空
+     * 校验数组
      */
     public static void notEmpty(Object[] array, String message) {
         if (ObjectUtils.isEmpty(array)) {
@@ -100,108 +145,38 @@ public class AssertUtil {
         }
     }
 
-    /**
-     * 断言字符串长度不超过指定值
-     *
-     * @param text    待验证字符串
-     * @param max     最大长度
-     * @param message 报错信息
-     */
-    public static void maxLen(String text, int max, String message) {
-        if (text != null && text.length() > max) {
-            throwException(message);
-        }
-    }
+    // ========================================================================
+    //  4. 其他常用校验
+    // ========================================================================
 
-    /**
-     * 断言字符串长度不小于指定值 (比如密码至少6位)
-     */
-    public static void minLen(String text, int min, String message) {
-        if (text == null || text.length() < min) {
-            throwException(message);
-        }
-    }
-
-    /**
-     * 断言布尔表达式为真 (True)
-     * 如果表达式为 false，则抛出异常
-     *
-     * @param expression 布尔表达式
-     * @param message    异常提示信息
-     */
-    public static void isTrue(boolean expression, String message) {
-        if (!expression) {
-            throwException(message);
-        }
-    }
-
-    /**
-     * 断言布尔表达式为假 (False)
-     * 如果表达式为 true，则抛出异常
-     *
-     * @param expression 布尔表达式
-     * @param message    异常提示信息
-     */
-    public static void isFalse(boolean expression, String message) {
-        if (expression) {
-            throwException(message);
-        }
-    }
-
-    /**
-     * 断言两个对象不相等
-     * 如果两个对象相等 (equals 为 true)，则抛出异常
-     *
-     * @param obj1    对象1
-     * @param obj2    对象2
-     * @param message 异常提示信息
-     */
     public static void notEquals(Object obj1, Object obj2, String message) {
         if (Objects.equals(obj1, obj2)) {
             throwException(message);
         }
     }
 
-    /**
-     * 断言两个对象必须相等
-     * 如果两个对象不相等，则抛出异常
-     *
-     * @param obj1    对象1
-     * @param obj2    对象2
-     * @param message 异常提示信息
-     */
+    public static void notEquals(Object obj1, Object obj2, ResultCode resultCode, String message) {
+        if (Objects.equals(obj1, obj2)) {
+            throwException(resultCode, message);
+        }
+    }
+
     public static void equals(Object obj1, Object obj2, String message) {
         if (!Objects.equals(obj1, obj2)) {
             throwException(message);
         }
     }
 
-    /**
-     * 断言数字必须大于 0 (常用于校验 ID)
-     */
-    public static void isPositive(Long number, String message) {
-        if (number == null || number <= 0) {
+    public static void minLen(String text, int min, String message) {
+        if (text == null || text.length() < min) {
             throwException(message);
         }
     }
 
-    /**
-     * 断言数字必须在范围内 (常用于校验状态码、类型等)
-     */
-    public static void range(Integer number, int min, int max, String message) {
-        if (number == null || number < min || number > max) {
+    public static void maxLen(String text, int max, String message) {
+        if (text != null && text.length() > max) {
             throwException(message);
         }
     }
 
-    /**
-     * 抛出业务异常
-     * 关键点：这里显式传入 ResultCode.VALIDATE_FAILED.getCode() (即 400)。
-     * 这样前端收到的就是 400 错误，而不是 500 系统错误。
-     *
-     * @param message 错误信息
-     */
-    private static void throwException(String message) {
-        throw new BusinessException(ResultCode.VALIDATE_FAILED.getCode(), message);
-    }
 }

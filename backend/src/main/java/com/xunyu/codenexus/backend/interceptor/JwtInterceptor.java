@@ -1,8 +1,8 @@
 package com.xunyu.codenexus.backend.interceptor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xunyu.codenexus.backend.common.context.UserContext;
-import com.xunyu.codenexus.backend.common.result.Result;
+import com.xunyu.codenexus.backend.common.result.ResultCode;
+import com.xunyu.codenexus.backend.utils.AssertUtil;
 import com.xunyu.codenexus.backend.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,9 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-
 /**
  * JWT 身份拦截器
  *
@@ -27,25 +24,23 @@ import java.io.PrintWriter;
 public class JwtInterceptor implements HandlerInterceptor {
 
     private static final String TOKEN_HEADER = "Authorization";
-    // 注意Bearer的后面有个空格,且必须保留
+    // 注意Bearer的后面有个空格,格式所需,必须保留
     private static final String TOKEN_PREFIX = "Bearer ";
 
-    private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
 
     /**
      * 构造器注入
-     * Spring 会自动将容器中的 ObjectMapper 和 JwtUtil 实例传进来
+     * Spring 会自动将容器中的 JwtUtil 实例传进来
      */
-    public JwtInterceptor(ObjectMapper objectMapper, JwtUtil jwtUtil) {
-        this.objectMapper = objectMapper;
+    public JwtInterceptor(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
 
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request,
                              @NonNull HttpServletResponse response,
-                             @NonNull Object handler) throws Exception {
+                             @NonNull Object handler) {
 
         // 放行 OPTIONS 请求
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
@@ -55,40 +50,38 @@ public class JwtInterceptor implements HandlerInterceptor {
         // 获取 Token
         String token = request.getHeader(TOKEN_HEADER);
 
-        // 处理 Bearer 前缀标准
-        if (StringUtils.hasText(token) && token.startsWith(TOKEN_PREFIX)) {
-            token = token.substring(TOKEN_PREFIX.length());
-        } else {
-            // 如果没有 Bearer 前缀或者为空，视为未登录
-            token = null;
-        }
+        // 1. 校验 Token 格式并提取
+        // 如果 token 为空或者不以 Bearer 开头，视为未登录
+        boolean isValidFormat = StringUtils.hasText(token) && token.startsWith(TOKEN_PREFIX);
 
-        if (!StringUtils.hasText(token)) {
-            return returnJsonError(response, "未提供身份令牌 (Token)，请先登录");
-        }
+        // 使用 AssertUtil 断言：如果格式不对，抛出 401 未授权异常
+        AssertUtil.isTrue(isValidFormat, ResultCode.UNAUTHORIZED, "未提供有效的身份令牌");
 
+        // 截取 Token
+        token = token.substring(TOKEN_PREFIX.length());
+
+        // 2. 解析 Token
         Claims claims = null;
         try {
-            // 改动点：调用实例方法 jwtUtil.parseToken
+            // 调用实例方法 jwtUtil.parseToken
             claims = jwtUtil.parseToken(token);
         } catch (Exception e) {
             log.warn("JWT 解析失败: {}", e.getMessage());
             // 捕获解析过程中的异常（如过期、签名错误），统一返回 401
         }
 
-        if (claims == null) {
-            return returnJsonError(response, "身份令牌无效或已过期，请重新登录");
-        }
+        // 3. 断言 Token 有效性
+        // 如果 claims 为 null，抛出 401 异常
+        AssertUtil.notNull(claims, ResultCode.UNAUTHORIZED, "身份令牌无效或已过期");
 
         // 提取信息
-        Long userId = claims.get("userId", Long.class);
-        String userRole = claims.get("userRole", String.class);
+        Long userId = claims != null ? claims.get("userId", Long.class) : null;
+        String userRole = claims != null ? claims.get("userRole", String.class) : null;
 
-        if (userId == null) {
-            return returnJsonError(response, "无效的 Token 载荷");
-        }
+        // 这里的 userId 为空属于 Token 数据损坏，也可以报 401
+        AssertUtil.notNull(userId, ResultCode.UNAUTHORIZED, "无效的 Token 载荷");
 
-        // 存入上下文
+        // 5. 存入上下文
         UserContext.set(userId, userRole);
 
         return true;
@@ -101,15 +94,5 @@ public class JwtInterceptor implements HandlerInterceptor {
                                 @Nullable Exception ex) {
         // 清理 ThreadLocal
         UserContext.remove();
-    }
-
-    private boolean returnJsonError(HttpServletResponse response, String msg) throws IOException {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json; charset=utf-8");
-        Result<?> errorResult = Result.error(401, msg);
-        try (PrintWriter writer = response.getWriter()) {
-            writer.print(objectMapper.writeValueAsString(errorResult));
-        }
-        return false;
     }
 }

@@ -3,7 +3,6 @@ package com.xunyu.codenexus.backend.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xunyu.codenexus.backend.model.dto.response.UserLoginVO;
 import com.xunyu.codenexus.backend.model.entity.User;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 用户业务逻辑接口
@@ -14,9 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 public interface UserService extends IService<User> {
     long userRegister(String userAccount, String userPassword, String checkPassword);
 
-    UserLoginVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
+    UserLoginVO userLogin(String userAccount, String userPassword);
 
-    User getLoginUser(HttpServletRequest request);
+    User getLoginUser();
 
     boolean isAdmin(User user);
 }

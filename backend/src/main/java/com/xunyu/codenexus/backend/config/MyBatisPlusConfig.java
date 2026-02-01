@@ -40,7 +40,7 @@ public class MyBatisPlusConfig implements MetaObjectHandler {
 
     /**
      * 更新时的填充策略
-     * mapper.updateById()
+     * 调用 mapper.updateById() 时自动触发
      */
     @Override
     public void updateFill(MetaObject metaObject) {

@@ -14,29 +14,26 @@ import lombok.Getter;
 public enum ResultCode {
 
     /**
-     * 操作成功
+     * 成功状态
      */
     SUCCESS(200, "操作成功"),
 
     /**
-     * 业务异常 (通用错误)
+     * 错误状态
      */
     FAILED(500, "系统内部异常"),
-
-    /**
-     * 参数校验错误
-     */
     VALIDATE_FAILED(400, "参数检验失败"),
 
     /**
-     * 未登录或 Token 过期
+     * 权限
      */
     UNAUTHORIZED(401, "暂未登录或 Token 已经过期"),
+    FORBIDDEN(403, "没有相关权限"),
 
-    /**
-     * 没有权限访问该资源
-     */
-    FORBIDDEN(403, "没有相关权限");
+    /* 具体的业务场景错误 (推荐添加) */
+    USER_LOGIN_ERROR(400, "账号或密码错误"),
+    USER_ACCOUNT_FORBIDDEN(403, "账号已被封禁"),
+    NOT_FOUND(404, "资源不存在");
 
     /**
      * 状态码

@@ -3,8 +3,6 @@ package com.xunyu.codenexus.backend.exception;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
 import lombok.Getter;
 
-import java.io.Serial;
-
 /**
  * 自定义业务逻辑异常类
  *
@@ -12,9 +10,6 @@ import java.io.Serial;
  */
 @Getter
 public class BusinessException extends RuntimeException {
-
-    @Serial
-    private static final long serialVersionUID = 1L;
 
     /**
      * 异常状态码

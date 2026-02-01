@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xunyu.codenexus.backend.common.context.UserContext;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
-import com.xunyu.codenexus.backend.exception.BusinessException;
 import com.xunyu.codenexus.backend.mapper.UserMapper;
 import com.xunyu.codenexus.backend.model.dto.response.UserLoginVO;
 import com.xunyu.codenexus.backend.model.entity.User;
@@ -13,7 +12,6 @@ import com.xunyu.codenexus.backend.service.UserService;
 import com.xunyu.codenexus.backend.utils.AssertUtil;
 import com.xunyu.codenexus.backend.utils.JwtUtil;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -62,13 +60,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserRole(UserRoleEnum.USER);
 
         boolean saveResult = this.save(user);
-        AssertUtil.isTrue(saveResult, "注册失败，数据库错误");
+        AssertUtil.isTrue(saveResult, ResultCode.FAILED, "注册失败，数据库错误");
 
         return user.getId();
     }
 
     @Override
-    public UserLoginVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public UserLoginVO userLogin(String userAccount, String userPassword) {
         // 1. 校验
         AssertUtil.notEmpty(userAccount, "账号不能为空");
         AssertUtil.notEmpty(userPassword, "密码不能为空");
@@ -83,15 +81,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = this.getOne(queryWrapper);
 
         // 用户不存在
-        if (user == null) {
-            log.info("user login failed, account cannot match password");
-            throw new BusinessException(ResultCode.VALIDATE_FAILED.getCode(), "账号或密码错误");
-        }
+        AssertUtil.notNull(user, ResultCode.USER_LOGIN_ERROR, ResultCode.USER_LOGIN_ERROR.getMessage());
 
         // 校验封号
-        if (user.getUserRole() == UserRoleEnum.BAN) {
-            throw new BusinessException(ResultCode.FORBIDDEN.getCode(), "该账号已被封禁");
-        }
+        AssertUtil.notEquals(user.getUserRole(), UserRoleEnum.BAN, ResultCode.USER_ACCOUNT_FORBIDDEN,
+                ResultCode.USER_ACCOUNT_FORBIDDEN.getMessage());
 
         // 3. 生成 Token
         String token = jwtUtil.createToken(user.getId(), user.getUserRole().getValue());
@@ -105,16 +99,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return userLoginVO;
     }
 
+    /**
+     * 获取当前登录用户,注意此方法返回的是全部的用户信息,包括敏感信息
+     *
+     * @return User 当前登录用户
+     */
     @Override
-    public User getLoginUser(HttpServletRequest request) {
+    public User getLoginUser() {
         Long userId = UserContext.getUserId();
-        if (userId == null) {
-            throw new BusinessException(ResultCode.UNAUTHORIZED);
-        }
+        // 校验登录状态
+        AssertUtil.notNull(userId, ResultCode.UNAUTHORIZED, ResultCode.UNAUTHORIZED.getMessage());
         User user = this.getById(userId);
-        if (user == null) {
-            throw new BusinessException(ResultCode.UNAUTHORIZED);
-        }
+        AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, ResultCode.UNAUTHORIZED.getMessage());
         return user;
     }
 

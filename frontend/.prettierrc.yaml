@@ -1,4 +1,0 @@
-semi: false # 结尾不加分号
-singleQuote: true # 使用单引号
-printWidth: 80 # 单行最大长度
-tabWidth: 2
