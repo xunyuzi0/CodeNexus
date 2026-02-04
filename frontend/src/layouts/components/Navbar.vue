@@ -70,7 +70,7 @@
                   {{ userStore.nickname || 'Developer' }}
                 </p>
                 <p class="text-xs text-zinc-500 truncate">
-                  {{ userStore.userInfo?.username || 'user@codenexus.com' }}
+                  {{ userStore.userInfo?.userAccount || 'user@codenexus.com' }}
                 </p>
               </div>
 
@@ -85,6 +85,7 @@
               </button>
 
               <button
+                @click="((showSettings = true), (isDropdownOpen = false))"
                 class="w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors group"
               >
                 <Settings
@@ -107,6 +108,8 @@
         </Transition>
       </div>
     </div>
+
+    <GlobalSettingsDialog v-model="showSettings" />
   </header>
 </template>
 
@@ -116,6 +119,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { Sun, Moon, User, LogOut, Settings } from 'lucide-vue-next'
 import { toggleTheme, isDark } from '@/composables/useTheme'
 import { useUserStore } from '@/stores/user'
+// [Changed] 引入新的 GlobalSettingsDialog
+import GlobalSettingsDialog from './GlobalSettingsDialog.vue'
+
+const showSettings = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -125,33 +132,27 @@ const isDropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
 
-// 切换下拉菜单
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value
 }
 
-// 点击外部关闭菜单 (模拟 onClickOutside)
 const closeDropdown = (e: MouseEvent) => {
   if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
     isDropdownOpen.value = false
   }
 }
 
-// 个人档案
 const handleProfile = () => {
   isDropdownOpen.value = false
   router.push('/profile')
 }
 
-// 退出登录
 const handleLogout = async () => {
   isDropdownOpen.value = false
-  // 可以在这里加一个确认弹窗，或者直接退出
   await userStore.logout()
   router.push('/login')
 }
 
-// 监听全局点击
 onMounted(() => {
   document.addEventListener('click', closeDropdown)
 })

@@ -17,10 +17,19 @@ export const useUserStore = defineStore('user', () => {
 
   // --- Getters ---
   const isLogin = computed(() => !!token.value)
-  const avatar = computed(() => userInfo.value?.avatar || '')
-  const nickname = computed(() => userInfo.value?.nickname || userInfo.value?.username || '')
+
+  const avatar = computed(() => {
+    return userInfo.value?.userAvatar || ''
+  })
+
+  const nickname = computed(() => {
+    const info = userInfo.value
+    if (!info) return '访客指挥官'
+    return info.userName || info.userAccount || 'Nexus Commander'
+  })
 
   // --- Actions ---
+
   function setToken(newToken: string) {
     token.value = newToken
     storage.setToken(newToken)
@@ -31,15 +40,10 @@ export const useUserStore = defineStore('user', () => {
       const data = await getUserInfoApi()
       userInfo.value = data
 
-      // [修复] 角色兜底逻辑
-      // 如果后端没返回 role，赋予默认权限，防止路由死循环
-      if (data.role) {
-        roles.value = [data.role]
-      } else if (data.roles && data.roles.length > 0) {
-        roles.value = data.roles
+      if (data.userRole) {
+        roles.value = [data.userRole]
       } else {
-        // 默认给予基础权限
-        roles.value = ['DEVELOPER']
+        roles.value = ['user']
       }
 
       return data
@@ -49,15 +53,11 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // 登录 Action
   async function login(form: LoginForm) {
     try {
-      // 1. 调用登录接口
       const res = await loginApi(form)
-
-      // 假设后端直接返回 token 字符串，或者对象中包含 token
-      // 如果后端返回结构是 { id: 1, ... } 而 Token 在 header 里，需要改 request.ts
-      // 这里默认维持原架构假设：res 包含 token 字段
+      // 假设后端返回结构是 { token: '...' } 或直接是 token 字符串，视具体后端实现调整
+      // 这里根据之前的 auth.ts 定义，res 应该是 LoginResult
       const accessToken = res.token
 
       if (!accessToken) {
@@ -66,8 +66,7 @@ export const useUserStore = defineStore('user', () => {
 
       setToken(accessToken)
 
-      // 2. 并行获取用户信息
-      // 这里会自动调用更新后的 /user/get/login 接口
+      // 并行获取用户信息
       await fetchUserInfo()
 
       return res

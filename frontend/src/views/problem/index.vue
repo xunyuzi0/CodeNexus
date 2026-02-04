@@ -119,6 +119,7 @@
         <div
           v-for="(item, index) in problemList"
           :key="item.id"
+          @click="handleEnterProblem(item.id)"
           class="group relative flex items-center justify-between p-4 pl-6 rounded-2xl border border-zinc-200 dark:border-white/5 bg-white dark:bg-[#0A0A0B]/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-lg hover:shadow-[#FF4C00]/5 hover:-translate-y-[2px]"
           v-motion
           :initial="{ opacity: 0, y: 20 }"
@@ -198,6 +199,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router' // [修复] 引入 useRouter
 import { useDebounceFn } from '@vueuse/core'
 import {
   Search,
@@ -214,6 +216,8 @@ import {
   type ProblemQuery,
   type ProblemDifficulty,
 } from '@/api/problem'
+
+const router = useRouter() // [修复] 初始化 router
 
 // --- State ---
 const loading = ref(false)
@@ -250,7 +254,6 @@ const difficultyOptions: { label: string; value: ProblemDifficulty | ''; activeC
   },
 ]
 
-// 优化文字颜色：在暗色背景下更清晰
 const difficultyColorMap: Record<ProblemDifficulty, string> = {
   EASY: 'text-emerald-600 dark:text-emerald-400',
   MEDIUM: 'text-amber-600 dark:text-amber-400',
@@ -286,6 +289,14 @@ const handleFilter = (difficulty: ProblemDifficulty | '') => {
   queryParams.difficulty = difficulty
   queryParams.pageNum = 1
   fetchData()
+}
+
+// [修复] 跳转逻辑
+const handleEnterProblem = (id: number) => {
+  router.push({
+    name: 'ProblemDetail',
+    params: { id: id.toString() },
+  })
 }
 
 // --- Lifecycle ---

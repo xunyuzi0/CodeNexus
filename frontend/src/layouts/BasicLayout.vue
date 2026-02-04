@@ -8,7 +8,10 @@
 
     <Sidebar />
 
-    <main class="flex-1 ml-[240px] relative z-10 flex flex-col h-full">
+    <main
+      class="flex-1 relative z-10 flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]"
+      :class="isSidebarCollapsed ? 'ml-0' : 'ml-[240px]'"
+    >
       <Navbar class="shrink-0" />
 
       <div
@@ -24,30 +27,58 @@
         </div>
       </div>
     </main>
+
+    <button
+      v-if="isSidebarCollapsed"
+      @click="uiStore.toggleSidebar()"
+      class="fixed bottom-6 left-6 z-50 p-3 rounded-full bg-zinc-900/80 border border-white/10 text-zinc-400 hover:text-[#FF4C00] hover:border-[#FF4C00]/50 transition-all duration-300 shadow-xl"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="w-5 h-5"
+      >
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+        <path d="M9 3v18" />
+      </svg>
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia' // [Added]
 import Lenis from 'lenis'
 import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
+import { useUiStore } from '@/stores/ui' // [Added]
 
 const scrollContainerRef = ref<HTMLElement | null>(null)
 let lenis: Lenis | null = null
 let rafId: number | null = null
 const router = useRouter()
 
+const uiStore = useUiStore() // [Added]
+const { isSidebarCollapsed } = storeToRefs(uiStore) // [Added]
+
+// ... (Lenis logic 保持不变) ...
+
 // 初始化全局阻尼滚动
 onMounted(() => {
   if (scrollContainerRef.value) {
     lenis = new Lenis({
-      wrapper: scrollContainerRef.value, // 接管此容器
-      content: scrollContainerRef.value.firstElementChild as HTMLElement, // 内容层
-      // [架构师调教] 极客手感参数
-      duration: 1.8, // 极高阻尼 (默认1.0)，制造"重力感"
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // 指数衰减
+      wrapper: scrollContainerRef.value,
+      content: scrollContainerRef.value.firstElementChild as HTMLElement,
+      duration: 1.8,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       touchMultiplier: 2,
     })
@@ -58,9 +89,7 @@ onMounted(() => {
     }
     rafId = requestAnimationFrame(raf)
 
-    // 路由切换时重置滚动位置
     router.afterEach(() => {
-      // 等待 Transition 动画开始后再重置，或立即重置
       nextTick(() => {
         lenis?.scrollTo(0, { immediate: true })
       })
@@ -75,7 +104,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 网格背景 */
+/* ... (Existing styles) ... */
 .bg-grid-pattern {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='currentColor'%3e%3cpath d='M0 .5H31.5V32' stroke-width='1' /%3e%3c/svg%3e");
   color: black;
@@ -83,8 +112,6 @@ onUnmounted(() => {
 .dark .bg-grid-pattern {
   color: white;
 }
-
-/* 页面切换动画 */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);

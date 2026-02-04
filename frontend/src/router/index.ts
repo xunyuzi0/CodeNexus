@@ -13,12 +13,36 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/dashboard/index.vue'),
         meta: { title: '控制台', icon: 'LayoutDashboard' },
       },
-      // [修复] 启用题库路由
       {
         path: 'problems',
         name: 'Problems',
         component: () => import('@/views/problem/index.vue'),
         meta: { title: '题库中心', icon: 'Code2' },
+      },
+      {
+        path: 'problems/:id',
+        name: 'ProblemDetail',
+        component: () => import('@/views/problem/Detail.vue'),
+        meta: { title: '题目详情', hidden: true },
+      },
+      // [REFACTORED] 竞技场入口现在位于 BasicLayout 内
+      {
+        path: 'arena',
+        name: 'ArenaIndex',
+        component: () => import('@/views/arena/index.vue'),
+        meta: { title: '竞技场', icon: 'Swords' },
+      },
+      {
+        path: 'rank',
+        name: 'Rank',
+        component: () => import('@/views/rank/index.vue'),
+        meta: { title: '算力天梯', icon: 'Trophy' },
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人档案', icon: 'User' },
       },
     ],
   },
@@ -32,6 +56,31 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     redirect: '/404',
     meta: { hidden: true },
+  },
+  // [REFACTORED] 沉浸式战斗布局，路径变更为 /battle
+  {
+    path: '/battle',
+    component: () => import('@/layouts/ArenaLayout.vue'),
+    children: [
+      {
+        path: 'matchmaking', // [NEW] 匹配界面
+        name: 'ArenaMatchmaking',
+        component: () => import('@/views/arena/Matchmaking.vue'),
+        meta: { title: '正在匹配...' },
+      },
+      {
+        path: 'lobby/:roomId',
+        name: 'ArenaLobby',
+        component: () => import('@/views/arena/Lobby.vue'),
+        meta: { title: '备战大厅' },
+      },
+      {
+        path: 'room/:roomId', // 修改 battle 路径名称以避免混淆
+        name: 'ArenaBattle',
+        component: () => import('@/views/arena/BattleRoom.vue'),
+        meta: { title: 'Code Battle' },
+      },
+    ],
   },
 ]
 

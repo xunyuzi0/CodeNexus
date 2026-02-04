@@ -1,0 +1,110 @@
+<template>
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="modelValue"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+        @click="close"
+      >
+        <div
+          class="w-full max-w-md p-8 rounded-3xl bg-[#09090b] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden"
+          v-motion
+          :initial="{ opacity: 0, scale: 0.95, y: 20 }"
+          :enter="{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: { type: 'spring', stiffness: 300, damping: 25 },
+          }"
+          @click.stop
+        >
+          <div
+            class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FF4C00] to-transparent opacity-50"
+          ></div>
+          <div
+            class="absolute -top-20 -right-20 w-40 h-40 bg-[#FF4C00]/10 blur-[50px] rounded-full pointer-events-none"
+          ></div>
+
+          <div class="relative z-10 mb-6 text-center">
+            <h3 class="text-2xl font-bold text-white mb-2">{{ title }}</h3>
+          </div>
+
+          <div class="relative z-10 mb-8">
+            <slot></slot>
+          </div>
+
+          <div class="relative z-10 flex items-center gap-4">
+            <button
+              @click="close"
+              class="flex-1 py-3 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+            >
+              取消
+            </button>
+            <button
+              @click="confirm"
+              :disabled="confirmDisabled"
+              class="flex-1 py-3 rounded-xl bg-[#FF4C00] text-white font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(255,76,0,0.3)] hover:bg-[#ff5f1f] hover:shadow-[0_0_30px_rgba(255,76,0,0.5)] transition-all transform active:scale-95 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              <span>{{ confirmText }}</span>
+              <slot name="icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </slot>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    title: string
+    confirmText?: string
+    confirmDisabled?: boolean
+  }>(),
+  {
+    confirmText: '确定',
+    confirmDisabled: false,
+  },
+)
+
+const emit = defineEmits(['update:modelValue', 'confirm'])
+
+const close = () => {
+  emit('update:modelValue', false)
+}
+
+const confirm = () => {
+  if (!props.confirmDisabled) {
+    emit('confirm')
+  }
+}
+</script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

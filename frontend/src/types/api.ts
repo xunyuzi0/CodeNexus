@@ -15,12 +15,18 @@ export interface ApiResponse<T = any> {
 // 2. 用户信息模型 (根据你的 user.ts 和后端实际返回调整)
 export interface UserInfo {
   id?: number | string
-  username: string
-  nickname?: string
-  avatar?: string
-  email?: string
-  role?: string // 单角色字符串 (如 'admin')
-  roles?: string[] // 多角色支持 (如 ['admin', 'editor'])
+
+  // --- 核心匹配字段 (对应后端 Entity) ---
+  userAccount: string // 账号
+  userName?: string // 用户昵称 (后端字段名为 userName)
+  userAvatar?: string // 用户头像
+  userProfile?: string // 用户简介 (后端字段名为 userProfile)
+  userRole?: string // 用户角色 (enum 序列化后通常为字符串 "user" 或 "admin")
+
+  // --- 扩展字段 (前端 Mock 或计算用) ---
+  rankScore?: number // 排位分 (后续补)
+  totalSolved?: number // 解题数 (后续补)
+  globalRank?: number // 全球排名
 }
 
 // 3. 登录接口返回的数据结构
