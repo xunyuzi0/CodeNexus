@@ -13,12 +13,13 @@ export default defineConfig({
   },
   // --- 核心修复代码 START ---
   server: {
-    port: 5173, // 前端端口
+    port: 3000,
+    strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080', // 👈 这里改成你后端的实际地址和端口 (比如 8080, 8100)
+        target: 'http://localhost:8080', // 后端的实际地址和端口
         changeOrigin: true, // 允许跨域
-        rewrite: (path) => path.replace(/^\/api/, ''), // 👈 关键！去掉路径前的 /api
+        rewrite: (path) => path.replace(/^\/api/, ''), // 关键！去掉路径前的 /api
       },
     },
   },

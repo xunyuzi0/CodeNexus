@@ -4,9 +4,9 @@
       class="fixed top-[-20%] left-1/2 -translate-x-1/2 w-[80%] h-[600px] bg-[#FF4C00]/10 blur-[120px] rounded-full pointer-events-none z-0"
     ></div>
 
-    <div class="sticky top-0 z-30 pt-1 pb-4">
+    <div class="sticky top-0 z-30 pt-1 pb-0.5">
       <div
-        class="relative bg-zinc-900/70 dark:bg-[#0A0A0B]/70 backdrop-blur-xl border border-zinc-200/50 dark:border-white/5 rounded-2xl p-6 shadow-2xl shadow-zinc-200/20 dark:shadow-black/20 flex items-end justify-between transition-all duration-300 group"
+        class="relative bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/50 dark:border-white/5 rounded-2xl p-5 shadow-2xl shadow-zinc-200/20 dark:shadow-black/20 flex items-center justify-between transition-all duration-300 group"
       >
         <div
           class="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"
@@ -16,18 +16,18 @@
           <h1
             class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3"
           >
+            <div
+              class="p-2 bg-zinc-100 dark:bg-white/5 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm"
+            >
+              <Code2 class="w-6 h-6 text-zinc-900 dark:text-white" />
+            </div>
             <span class="relative"> 题库中心 </span>
           </h1>
-          <p class="text-zinc-500 text-sm mt-2 font-medium tracking-wide">
-            CodeNexus Algorithm Intelligence
-          </p>
         </div>
 
         <div class="flex items-center gap-6">
           <div class="text-right hidden sm:block">
-            <p class="text-[10px] uppercase text-zinc-500 tracking-[0.2em] font-bold">
-              Total Problems
-            </p>
+            <p class="text-[10px] uppercase text-zinc-500 tracking-[0.2em] font-bold">收录题目</p>
             <div class="flex items-baseline justify-end gap-1">
               <span
                 class="text-3xl font-black text-zinc-900 dark:text-white font-mono tracking-tighter"
@@ -48,7 +48,7 @@
     </div>
 
     <div
-      class="sticky top-[136px] z-20 pb-4"
+      class="sticky top-[106px] z-20 pb-4"
       v-motion
       :initial="{ opacity: 0, y: -10 }"
       :enter="{ opacity: 1, y: 0, transition: { duration: 400 } }"
@@ -66,7 +66,7 @@
             v-model="queryParams.keyword"
             type="text"
             placeholder="搜索题目 ID、标题或算法标签..."
-            class="w-full bg-transparent border-none text-zinc-900 dark:text-zinc-100 pl-11 pr-4 py-3 focus:outline-none focus:ring-0 placeholder-zinc-400 text-sm font-medium transition-all"
+            class="w-full bg-transparent text-zinc-900 dark:text-zinc-100 pl-11 pr-4 py-3 !outline-none !ring-0 !border-none !shadow-none focus:ring-offset-0 placeholder-zinc-400 text-sm font-medium transition-all"
             @input="handleSearch"
           />
           <div
@@ -120,7 +120,7 @@
           v-for="(item, index) in problemList"
           :key="item.id"
           @click="handleEnterProblem(item.id)"
-          class="group relative flex items-center justify-between p-4 pl-6 rounded-2xl border border-zinc-200 dark:border-white/5 bg-white dark:bg-[#0A0A0B]/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-lg hover:shadow-[#FF4C00]/5 hover:-translate-y-[2px]"
+          class="group relative flex items-center justify-between p-4 pl-6 rounded-2xl border border-zinc-200 dark:border-white/5 bg-white dark:bg-[#0A0A0B]/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-lg hover:shadow-[#FF4C00]/5 hover:-translate-y-[2px] will-change-transform"
           v-motion
           :initial="{ opacity: 0, y: 20 }"
           :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: index * 50 } }"
@@ -199,7 +199,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router' // [修复] 引入 useRouter
+import { useRouter } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
 import {
   Search,
@@ -209,6 +209,7 @@ import {
   TrendingUp,
   Zap,
   MoreHorizontal,
+  Code2,
 } from 'lucide-vue-next'
 import {
   getProblemList,
@@ -217,7 +218,7 @@ import {
   type ProblemDifficulty,
 } from '@/api/problem'
 
-const router = useRouter() // [修复] 初始化 router
+const router = useRouter()
 
 // --- State ---
 const loading = ref(false)
@@ -291,7 +292,6 @@ const handleFilter = (difficulty: ProblemDifficulty | '') => {
   fetchData()
 }
 
-// [修复] 跳转逻辑
 const handleEnterProblem = (id: number) => {
   router.push({
     name: 'ProblemDetail',

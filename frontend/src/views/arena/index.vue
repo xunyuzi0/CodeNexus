@@ -13,7 +13,7 @@
       <h1
         class="text-4xl md:text-5xl font-black italic tracking-tighter text-zinc-900 dark:text-white mb-3"
       >
-        ARENA <span class="text-[#FF4C00]">ZERO</span>
+        零号竞技场 <span class="text-[#FF4C00]">ZERO</span>
       </h1>
       <p class="text-zinc-500 font-medium tracking-wide">打破孤岛 · 实时代码竞技场</p>
     </div>
@@ -53,7 +53,7 @@
       </div>
 
       <div v-else class="flex flex-col items-center">
-        <p class="text-zinc-500 text-xs mb-6 uppercase tracking-widest">Enter Access Code</p>
+        <p class="text-zinc-500 text-xs mb-6 uppercase tracking-widest">请输入通行密钥</p>
         <div class="flex justify-center gap-3">
           <input
             v-for="(digit, index) in 6"
@@ -78,19 +78,19 @@ import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Swords, Ticket, Zap, Maximize2, Radio } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
-// [FIX] 引入新组件
 import TiltCard from '@/components/arena/TiltCard.vue'
 
 const router = useRouter()
 
 // Cards Data
+// [修改点 2] 卡片数据中文化
 const cards = [
   {
     type: 'CREATE',
     title: '创建房间',
     desc: '生成专属邀请码<br />等待好友挑战',
     icon: Swords,
-    footerText: 'HOST SERVER',
+    footerText: '立即创建', // 修改: HOST SERVER -> 立即创建
     containerClass:
       'bg-gradient-to-b from-white/[0.03] to-transparent border-white/10 hover:border-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
     iconBgClass: '',
@@ -99,9 +99,9 @@ const cards = [
   {
     type: 'MATCH',
     title: '排位匹配',
-    desc: '寻找旗鼓相当的对手<br /><span class="font-mono text-purple-500/80">Elo System Active</span>',
+    desc: '寻找旗鼓相当的对手', // 修改: 删除了 <span class="font-mono text-purple-500/80">Elo System Active</span>
     icon: Zap,
-    footerText: 'FIND MATCH',
+    footerText: '开始匹配', // 修改: FIND MATCH -> 开始匹配
     containerClass:
       'bg-gradient-to-b from-purple-500/[0.05] to-transparent border-purple-500/30 hover:border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.1)] hover:shadow-[0_0_60px_rgba(168,85,247,0.4)]',
     iconBgClass: 'bg-purple-500/10 border-purple-500/20',
@@ -112,7 +112,7 @@ const cards = [
     title: '加入房间',
     desc: '输入 6 位邀请码<br />连接至现有对局',
     icon: Ticket,
-    footerText: 'CONNECTING...',
+    footerText: '立即加入', // 修改: CONNECTING... -> 立即加入
     containerClass:
       'bg-gradient-to-b from-white/[0.03] to-transparent border-white/10 hover:border-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
     iconBgClass: '',

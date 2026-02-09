@@ -46,21 +46,21 @@
         class="text-3xl font-black italic tracking-wider uppercase transition-colors duration-300"
         :class="found ? 'text-emerald-500 drop-shadow-[0_0_10px_#10b981]' : 'text-white'"
       >
-        {{ found ? 'MATCH FOUND' : 'SEARCHING...' }}
+        {{ found ? '匹配成功' : '搜索中...' }}
       </h2>
       <p class="text-zinc-500 font-mono text-xs tracking-[0.3em] h-4">
-        {{ found ? 'REDIRECTING TO SANDBOX...' : 'SCANNING ELO: 1450 ± 50' }}
+        {{ found ? '正在跳转到沙盒...' : '扫描中: 1450 ± 50' }}
       </p>
     </div>
 
     <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
       <div class="absolute top-1/4 left-1/4 text-[10px] text-purple-500 font-mono animate-bounce">
-        Calculating Latency...
+        计算延迟...
       </div>
       <div
         class="absolute bottom-1/3 right-1/4 text-[10px] text-purple-500 font-mono animate-pulse"
       >
-        Region: CN-North-1
+        区域: CN-North-1
       </div>
     </div>
 

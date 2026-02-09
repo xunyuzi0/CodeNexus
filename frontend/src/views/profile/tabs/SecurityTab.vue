@@ -1,102 +1,139 @@
 <template>
-  <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div class="bg-zinc-900/30 backdrop-blur-md border border-white/5 rounded-2xl p-6 md:p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="p-2 rounded-lg bg-zinc-800/50">
-          <KeyRound class="w-5 h-5 text-zinc-300" />
-        </div>
-        <div>
-          <h3 class="text-lg font-bold text-white">修改密码</h3>
-          <p class="text-xs text-zinc-500">定期更新密码以保护账号安全</p>
-        </div>
+  <div class="space-y-8" v-motion-slide-visible-bottom>
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-white flex items-center gap-2">
+        <Lock class="w-5 h-5 text-[#FF4C00]" /> 修改密码
+      </h3>
+      <div class="grid grid-cols-1 gap-4 max-w-lg">
+        <input
+          v-model="pwdForm.old"
+          type="password"
+          placeholder="当前密码"
+          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:border-[#FF4C00] outline-none transition-colors"
+        />
+        <input
+          v-model="pwdForm.new"
+          type="password"
+          placeholder="新密码"
+          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:border-[#FF4C00] outline-none transition-colors"
+        />
+        <input
+          v-model="pwdForm.confirm"
+          type="password"
+          placeholder="确认新密码"
+          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:border-[#FF4C00] outline-none transition-colors"
+        />
+        <button
+          @click="onUpdatePassword"
+          class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all border border-white/5"
+        >
+          更新密码
+        </button>
       </div>
-
-      <form @submit.prevent="handleUpdatePassword" class="max-w-md space-y-4">
-        <div class="space-y-2">
-          <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">当前密码</label>
-          <input
-            v-model="form.currentPassword"
-            type="password"
-            class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 transition-all"
-            placeholder="••••••••"
-          />
-        </div>
-        
-        <div class="space-y-2">
-          <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">新密码</label>
-          <input
-            v-model="form.newPassword"
-            type="password"
-            class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 transition-all"
-            placeholder="••••••••"
-          />
-        </div>
-
-        <div class="space-y-2">
-          <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">确认新密码</label>
-          <input
-            v-model="form.confirmPassword"
-            type="password"
-            class="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 transition-all"
-            placeholder="••••••••"
-          />
-        </div>
-
-        <div class="pt-4">
-          <button
-            type="submit"
-            :disabled="loading"
-            class="bg-[#FF4C00] hover:bg-[#ff5f1f] text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(255,76,0,0.3)] hover:shadow-[0_0_25px_rgba(255,76,0,0.5)] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            更新密码
-          </button>
-        </div>
-      </form>
     </div>
 
-    <div class="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-      <div>
-        <h3 class="text-lg font-bold text-red-500 mb-1 flex items-center gap-2">
-          <AlertTriangle class="w-5 h-5" /> 注销账号
-        </h3>
-        <p class="text-sm text-red-400/70">此操作不可逆，将永久删除您的账户及所有做题记录。</p>
-      </div>
-      
-      <button
-        class="px-5 py-2.5 rounded-lg border border-red-500/30 text-red-500 text-sm font-bold hover:bg-red-500/10 transition-colors whitespace-nowrap"
+    <div class="h-[1px] bg-white/5 w-full"></div>
+
+    <div class="space-y-4">
+      <h3 class="text-lg font-bold text-red-500 flex items-center gap-2">
+        <AlertTriangle class="w-5 h-5" /> 危险区域
+      </h3>
+      <div
+        class="flex items-center justify-between p-4 border border-red-500/20 bg-red-500/5 rounded-xl"
       >
-        永久注销
-      </button>
+        <div>
+          <p class="text-white font-bold">注销账号</p>
+          <p class="text-xs text-zinc-500 mt-1">一旦注销，您的所有数据将被永久删除，无法恢复。</p>
+        </div>
+        <button
+          @click="onDeleteAccount"
+          class="px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/50"
+        >
+          注销
+        </button>
+      </div>
     </div>
+
+    <ArenaDialog
+      v-model="dialogState.show"
+      :title="dialogState.title"
+      :confirm-text="dialogState.actionType === 'ALERT' ? '我知道了' : '确认执行'"
+      @confirm="handleConfirm"
+    >
+      <div v-html="dialogState.content" class="text-sm text-zinc-400 leading-relaxed"></div>
+    </ArenaDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { KeyRound, AlertTriangle } from 'lucide-vue-next'
+import { Lock, AlertTriangle } from 'lucide-vue-next'
+import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
-const loading = ref(false)
-const form = reactive({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: ''
+const pwdForm = reactive({
+  old: '',
+  new: '',
+  confirm: '',
 })
 
-const handleUpdatePassword = async () => {
-  if (!form.currentPassword || !form.newPassword) return
-  if (form.newPassword !== form.confirmPassword) {
-    alert("新密码输入不一致")
+// [修改点 2]: 扩展 actionType 定义，增加 'ALERT'
+const dialogState = reactive({
+  show: false,
+  title: '',
+  content: '',
+  actionType: '' as 'UPDATE_PWD' | 'DELETE_ACCOUNT' | 'ALERT',
+})
+
+// 点击更新密码
+const onUpdatePassword = () => {
+  // [修改点 3]: 移除原生 alert，改用 Dialog
+  if (!pwdForm.old || !pwdForm.new || !pwdForm.confirm) {
+    dialogState.title = '校验失败'
+    dialogState.content = '请完整填写当前密码、新密码及确认密码。'
+    dialogState.actionType = 'ALERT'
+    dialogState.show = true
     return
   }
-  
-  loading.value = true
-  // 模拟 API 请求
-  await new Promise(resolve => setTimeout(resolve, 1500))
-  loading.value = false
-  alert("密码已更新")
-  form.currentPassword = ''
-  form.newPassword = ''
-  form.confirmPassword = ''
+  if (pwdForm.new !== pwdForm.confirm) {
+    dialogState.title = '校验失败'
+    dialogState.content = '两次输入的新密码不一致，请重新输入。'
+    dialogState.actionType = 'ALERT'
+    dialogState.show = true
+    return
+  }
+
+  dialogState.title = '更新安全设置'
+  dialogState.content = '您正在修改账户密码。修改成功后，由于安全策略，您可能需要重新登录。'
+  dialogState.actionType = 'UPDATE_PWD'
+  dialogState.show = true
+}
+
+// 点击注销账号
+const onDeleteAccount = () => {
+  dialogState.title = '危险操作警告'
+  dialogState.content =
+    '<span class="text-red-500 font-bold">此操作不可恢复！</span><br>您的账号、提交记录、积分排名等所有数据将被永久抹除。请再次确认。'
+  dialogState.actionType = 'DELETE_ACCOUNT'
+  dialogState.show = true
+}
+
+// 统一确认处理
+const handleConfirm = () => {
+  dialogState.show = false
+
+  // [修改点 4]: 仅处理实际业务逻辑，ALERT 类型仅关闭弹窗
+  if (dialogState.actionType === 'UPDATE_PWD') {
+    console.log('Password updating...')
+    // 模拟 API 成功
+    setTimeout(() => {
+      pwdForm.old = ''
+      pwdForm.new = ''
+      pwdForm.confirm = ''
+    }, 500)
+  } else if (dialogState.actionType === 'DELETE_ACCOUNT') {
+    console.log('Account deleting...')
+    // 模拟注销跳转
+    window.location.href = '/'
+  }
 }
 </script>

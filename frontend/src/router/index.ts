@@ -20,12 +20,23 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '题库中心', icon: 'Code2' },
       },
       {
+        path: 'favorites',
+        name: 'Favorites',
+        component: () => import('@/views/favorites/index.vue'),
+        meta: { title: '我的收藏', icon: 'Star' },
+      },
+      {
+        path: 'favorites/:id',
+        name: 'FavoritesDetail',
+        component: () => import('@/views/favorites/Detail.vue'),
+        meta: { title: '收藏详情', hidden: true }, // hidden: true 表示不显示在侧边栏自动生成的菜单中(如果有的话)
+      },
+      {
         path: 'problems/:id',
         name: 'ProblemDetail',
         component: () => import('@/views/problem/Detail.vue'),
         meta: { title: '题目详情', hidden: true },
       },
-      // [REFACTORED] 竞技场入口现在位于 BasicLayout 内
       {
         path: 'arena',
         name: 'ArenaIndex',

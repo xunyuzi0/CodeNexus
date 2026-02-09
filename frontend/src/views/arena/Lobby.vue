@@ -14,7 +14,7 @@
           @click="copyRoomId"
         >
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="text-zinc-400 text-xs font-bold tracking-wider">ROOM ID:</span>
+          <span class="text-zinc-400 text-xs font-bold tracking-wider">房间号:</span>
           <span
             class="text-white font-mono font-bold text-lg tracking-widest group-hover:text-[#FF4C00] transition-colors"
             >{{ roomId }}</span
@@ -47,12 +47,12 @@
               v-if="!isRankedMode"
               class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#FF4C00] text-black text-[10px] font-black px-3 py-0.5 rounded-sm uppercase tracking-widest shadow-lg"
             >
-              HOST
+              房主
             </div>
           </div>
         </div>
         <h2 class="mt-6 text-2xl font-bold text-white">{{ userStore.nickname || 'Commander' }}</h2>
-        <p class="text-[#FF4C00] font-mono text-sm tracking-widest mt-1">READY</p>
+        <p class="text-[#FF4C00] font-mono text-sm tracking-widest mt-1">准备就绪</p>
       </div>
 
       <div class="shrink-0 relative mx-12 md:mx-20 flex flex-col items-center min-w-[150px]">
@@ -77,7 +77,7 @@
             <div
               class="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-white/10 animate-[spin_4s_linear_infinite]"
             ></div>
-            <span class="text-zinc-600 font-mono text-xs z-10 animate-pulse">SCANNING...</span>
+            <span class="text-zinc-600 font-mono text-xs z-10 animate-pulse">扫描中...</span>
           </div>
           <h2 class="mt-6 text-xl font-bold text-zinc-600">等待加入...</h2>
         </div>
@@ -104,14 +104,15 @@
                 class="w-full h-full rounded-full object-cover bg-zinc-900 grayscale-[0.5]"
               />
               <div
+                v-if="!isRankedMode"
                 class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-zinc-200 text-black text-[10px] font-black px-3 py-0.5 rounded-sm uppercase tracking-widest shadow-lg"
               >
-                CHALLENGER
+                挑战者
               </div>
             </div>
           </div>
           <h2 class="mt-6 text-2xl font-bold text-white">{{ opponent.name }}</h2>
-          <p class="text-emerald-500 font-mono text-sm tracking-widest mt-1">CONNECTED</p>
+          <p class="text-emerald-500 font-mono text-sm tracking-widest mt-1">已连接</p>
         </div>
       </div>
     </div>
@@ -131,12 +132,12 @@
             class="relative z-10 font-black text-lg tracking-[0.2em] uppercase transition-colors group-hover:text-black"
             :class="opponent ? 'text-white' : 'text-zinc-600'"
           >
-            {{ opponent ? 'Start Battle' : 'Waiting...' }}
+            {{ opponent ? '开始对战' : '等待加入...' }}
           </span>
         </button>
       </div>
       <div v-else class="text-[#FF4C00] font-mono text-sm tracking-[0.5em] animate-pulse z-[60]">
-        INITIALIZING SANDBOX ENVIRONMENT...
+        初始化沙盒环境...
       </div>
     </div>
 

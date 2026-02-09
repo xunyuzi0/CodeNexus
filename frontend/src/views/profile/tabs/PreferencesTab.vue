@@ -1,82 +1,110 @@
 <template>
-  <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <section class="bg-zinc-900/30 backdrop-blur-md border border-white/5 rounded-2xl p-6 md:p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="p-2 rounded-lg bg-zinc-800/50">
-          <Palette class="w-5 h-5 text-zinc-300" />
-        </div>
-        <div>
-          <h3 class="text-lg font-bold text-white">编辑器主题</h3>
-          <p class="text-xs text-zinc-500">选择代码编辑器的配色风格</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          v-for="theme in themes" 
-          :key="theme.value"
-          @click="settingsStore.settings.editorTheme = theme.value"
-          class="cursor-pointer relative group"
+  <div class="space-y-8" v-motion-slide-visible-bottom>
+    <div class="space-y-4">
+      <h3 class="text-sm font-bold text-zinc-500 uppercase tracking-wider">编辑器主题</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div
+          v-for="theme in themes"
+          :key="theme.id"
+          @click="selectTheme(theme)"
+          class="relative group rounded-xl border p-3 cursor-pointer transition-all duration-300 overflow-hidden flex flex-col gap-3"
+          :class="[
+            currentTheme === theme.id
+              ? 'bg-[#FF4C00]/10 border-[#FF4C00] shadow-[0_0_20px_rgba(255,76,0,0.1)]'
+              : 'bg-zinc-900/50 border-white/5',
+            // [修改点 1]: 禁用状态使用透明度+灰度，移除遮罩层，提升视觉通透感
+            theme.disabled
+              ? 'opacity-30 grayscale cursor-not-allowed'
+              : 'hover:border-white/20 hover:scale-[1.02]',
+          ]"
         >
-          <div 
-            class="h-24 rounded-xl border-2 transition-all duration-300 flex items-center justify-center relative overflow-hidden"
-            :class="settingsStore.settings.editorTheme === theme.value ? 'border-[#FF4C00] bg-zinc-900' : 'border-zinc-800 bg-black/20 hover:border-zinc-600'"
+          <div
+            class="w-full aspect-[4/3] rounded-lg p-2 flex flex-col gap-2 shadow-inner"
+            :style="{ background: theme.color }"
           >
-            <div class="absolute inset-x-4 top-4 h-2 rounded-full" :class="theme.previewBg"></div>
-            <div class="absolute inset-x-4 top-8 h-2 w-2/3 rounded-full opacity-50" :class="theme.previewBg"></div>
-            
-            <div v-if="settingsStore.settings.editorTheme === theme.value" class="absolute right-2 bottom-2 text-[#FF4C00]">
-              <CheckCircle2 class="w-5 h-5" />
+            <div class="flex items-center gap-1.5 opacity-50">
+              <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+            </div>
+            <div class="space-y-1.5 mt-1 opacity-40">
+              <div class="h-1 w-1/2 bg-white/50 rounded-full"></div>
+              <div class="h-1 w-3/4 bg-white/30 rounded-full"></div>
+              <div class="h-1 w-2/3 bg-white/30 rounded-full"></div>
+              <div class="h-1 w-full bg-white/20 rounded-full"></div>
             </div>
           </div>
-          <p class="mt-2 text-center text-sm font-medium" :class="settingsStore.settings.editorTheme === theme.value ? 'text-white' : 'text-zinc-500'">{{ theme.label }}</p>
+
+          <p
+            class="text-xs font-bold text-center tracking-wide"
+            :class="currentTheme === theme.id ? 'text-[#FF4C00]' : 'text-zinc-400'"
+          >
+            {{ theme.name }}
+          </p>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="bg-zinc-900/30 backdrop-blur-md border border-white/5 rounded-2xl p-6 md:p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="p-2 rounded-lg bg-zinc-800/50">
-          <Code2 class="w-5 h-5 text-zinc-300" />
-        </div>
-        <div>
-          <h3 class="text-lg font-bold text-white">默认编程语言</h3>
-          <p class="text-xs text-zinc-500">进入题目时默认选中的语言</p>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-3">
+    <div class="space-y-4">
+      <h3 class="text-sm font-bold text-zinc-500 uppercase tracking-wider">偏好语言</h3>
+      <div class="grid grid-cols-3 gap-4">
         <button
           v-for="lang in languages"
-          :key="lang.value"
-          @click="settingsStore.settings.defaultLanguage = lang.value"
-          class="px-6 py-3 rounded-xl border transition-all duration-300 text-sm font-bold flex items-center gap-2"
-          :class="settingsStore.settings.defaultLanguage === lang.value 
-            ? 'bg-[#FF4C00] border-[#FF4C00] text-white shadow-[0_0_15px_rgba(255,76,0,0.3)]' 
-            : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:border-white/20 hover:text-white'"
+          :key="lang.id"
+          @click="selectLang(lang)"
+          class="relative py-4 px-6 rounded-xl font-mono font-bold border transition-all duration-300 overflow-hidden"
+          :class="[
+            currentLang === lang.id
+              ? 'bg-white text-zinc-900 border-white shadow-lg'
+              : 'bg-zinc-900/50 text-zinc-500 border-white/5',
+            // [修改点 3]: 语言选项同样应用新的禁用样式
+            lang.disabled
+              ? 'opacity-30 grayscale cursor-not-allowed'
+              : 'hover:bg-white/5 hover:text-zinc-300',
+          ]"
         >
-          {{ lang.label }}
+          {{ lang.name }}
         </button>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Palette, Code2, CheckCircle2 } from 'lucide-vue-next'
-import { useSettingsStore, type SettingsState } from '@/stores/settings'
+import { ref } from 'vue'
 
-const settingsStore = useSettingsStore()
+const currentTheme = ref('vs-dark')
+const currentLang = ref('java')
 
-const themes: { label: string, value: SettingsState['editorTheme'], previewBg: string }[] = [
-  { label: 'VS Dark', value: 'vs-dark', previewBg: 'bg-blue-500' },
-  { label: 'Dracula', value: 'dracula', previewBg: 'bg-purple-500' },
-  { label: 'One Dark', value: 'one-dark', previewBg: 'bg-emerald-500' },
+interface OptionItem {
+  id: string
+  name: string
+  color?: string
+  disabled: boolean
+}
+
+// 主题选项
+const themes: OptionItem[] = [
+  { id: 'vs-dark', name: 'VS Dark', color: '#1e1e1e', disabled: false },
+  { id: 'monokai', name: 'Monokai', color: '#272822', disabled: true },
+  { id: 'github-light', name: 'Github Light', color: '#e1e1e1', disabled: true }, // 微调颜色以适应深色背景下的预览
+  { id: 'dracula', name: 'Dracula', color: '#282a36', disabled: true },
 ]
 
-const languages: { label: string, value: SettingsState['defaultLanguage'] }[] = [
-  { label: 'Java', value: 'java' },
-  { label: 'Python', value: 'python' },
-  { label: 'C++', value: 'cpp' },
+// 语言选项
+const languages: OptionItem[] = [
+  { id: 'java', name: 'Java', disabled: false },
+  { id: 'python', name: 'Python', disabled: true },
+  { id: 'cpp', name: 'C++', disabled: true },
 ]
+
+const selectTheme = (theme: OptionItem) => {
+  if (theme.disabled) return
+  currentTheme.value = theme.id
+}
+
+const selectLang = (lang: OptionItem) => {
+  if (lang.disabled) return
+  currentLang.value = lang.id
+}
 </script>

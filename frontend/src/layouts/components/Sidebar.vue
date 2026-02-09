@@ -2,11 +2,9 @@
   <aside
     class="fixed top-1/2 -translate-y-1/2 z-50 h-[95vh] bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col items-center py-8 shadow-2xl shadow-black/50 overflow-hidden"
     :class="[
-      // 动态布局类
       isSidebarCollapsed
         ? 'w-0 left-0 opacity-0 -translate-x-full pointer-events-none'
         : 'w-[240px] left-4 opacity-100 translate-x-0',
-      // 极氪美学动效：自定义贝塞尔曲线实现高级阻尼感
       'transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]',
     ]"
   >
@@ -56,16 +54,19 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { LayoutDashboard, Code2, Swords, Trophy, User } from 'lucide-vue-next'
-import { useUiStore } from '@/stores/ui' // [Added]
+// [修改]: 引入 Star 图标
+import { LayoutDashboard, Code2, Swords, Trophy, User, Star } from 'lucide-vue-next'
+import { useUiStore } from '@/stores/ui'
 
 const route = useRoute()
-const uiStore = useUiStore() // [Added]
-const { isSidebarCollapsed } = storeToRefs(uiStore) // [Added] 保持响应性
+const uiStore = useUiStore()
+const { isSidebarCollapsed } = storeToRefs(uiStore)
 
+// [修改]: 调整菜单顺序
 const menuItems = [
-  { name: '控制台', path: '/dashboard', icon: LayoutDashboard },
+  { name: '仪表盘', path: '/dashboard', icon: LayoutDashboard },
   { name: '题库中心', path: '/problems', icon: Code2 },
+  { name: '我的收藏', path: '/favorites', icon: Star }, // 插入此处
   { name: '竞技场', path: '/arena', icon: Swords },
   { name: '排行榜', path: '/rank', icon: Trophy },
   { name: '个人档案', path: '/profile', icon: User },
