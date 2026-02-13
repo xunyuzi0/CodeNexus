@@ -31,22 +31,30 @@
       v-model="showDialog"
       :title="dialogConfig.title"
       :confirm-text="dialogConfig.btnText"
-      :confirm-disabled="currentAction === 'JOIN' && otpString.length !== 6"
+      :confirm-disabled="currentAction === 'JOIN' && otpString.length !== 6 && !isErrorAlert"
       @confirm="handleConfirm"
     >
-      <div v-if="currentAction !== 'JOIN'" class="text-center">
+      <div v-if="currentAction !== 'JOIN' || isErrorAlert" class="text-center">
         <div
           class="w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-6 border"
           :class="
-            currentAction === 'MATCH'
-              ? 'bg-purple-500/10 border-purple-500/20'
-              : 'bg-[#FF4C00]/10 border-[#FF4C00]/20'
+            isErrorAlert
+              ? 'bg-red-500/10 border-red-500/20'
+              : currentAction === 'MATCH'
+                ? 'bg-purple-500/10 border-purple-500/20'
+                : 'bg-[#FF4C00]/10 border-[#FF4C00]/20'
           "
         >
           <component
             :is="dialogConfig.icon"
             class="w-6 h-6"
-            :class="currentAction === 'MATCH' ? 'text-purple-500' : 'text-[#FF4C00]'"
+            :class="
+              isErrorAlert
+                ? 'text-red-500'
+                : currentAction === 'MATCH'
+                  ? 'text-purple-500'
+                  : 'text-[#FF4C00]'
+            "
           />
         </div>
         <p class="text-zinc-400 text-sm leading-relaxed" v-html="dialogConfig.desc"></p>
@@ -74,23 +82,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, nextTick, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Swords, Ticket, Zap, Maximize2, Radio } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 import TiltCard from '@/components/arena/TiltCard.vue'
+import { AlertCircle, XCircle, Info } from 'lucide-vue-next'
+// [Updated] 引入封装后的 storage 工具
+import { storage } from '@/utils/storage'
 
 const router = useRouter()
+const route = useRoute()
 
 // Cards Data
-// [修改点 2] 卡片数据中文化
 const cards = [
   {
     type: 'CREATE',
     title: '创建房间',
     desc: '生成专属邀请码<br />等待好友挑战',
     icon: Swords,
-    footerText: '立即创建', // 修改: HOST SERVER -> 立即创建
+    footerText: '立即创建',
     containerClass:
       'bg-gradient-to-b from-white/[0.03] to-transparent border-white/10 hover:border-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
     iconBgClass: '',
@@ -99,9 +110,9 @@ const cards = [
   {
     type: 'MATCH',
     title: '排位匹配',
-    desc: '寻找旗鼓相当的对手', // 修改: 删除了 <span class="font-mono text-purple-500/80">Elo System Active</span>
+    desc: '寻找旗鼓相当的对手',
     icon: Zap,
-    footerText: '开始匹配', // 修改: FIND MATCH -> 开始匹配
+    footerText: '开始匹配',
     containerClass:
       'bg-gradient-to-b from-purple-500/[0.05] to-transparent border-purple-500/30 hover:border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.1)] hover:shadow-[0_0_60px_rgba(168,85,247,0.4)]',
     iconBgClass: 'bg-purple-500/10 border-purple-500/20',
@@ -112,7 +123,7 @@ const cards = [
     title: '加入房间',
     desc: '输入 6 位邀请码<br />连接至现有对局',
     icon: Ticket,
-    footerText: '立即加入', // 修改: CONNECTING... -> 立即加入
+    footerText: '立即加入',
     containerClass:
       'bg-gradient-to-b from-white/[0.03] to-transparent border-white/10 hover:border-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
     iconBgClass: '',
@@ -129,7 +140,15 @@ const otpCode = ref<string[]>(new Array(6).fill(''))
 const otpInputs = ref<HTMLInputElement[]>([])
 const otpString = computed(() => otpCode.value.join(''))
 
+// 错误状态存储
+const isErrorAlert = ref(false)
+const currentErrorData = ref<{ title: string; desc: string; icon: any } | null>(null)
+
 const triggerAction = (type: ActionType) => {
+  // 每次手动触发操作时，重置错误状态
+  isErrorAlert.value = false
+  currentErrorData.value = null
+
   currentAction.value = type
   if (type === 'CREATE')
     pendingRoomId.value = Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -143,6 +162,17 @@ const triggerAction = (type: ActionType) => {
 }
 
 const dialogConfig = computed(() => {
+  // 1. 优先级最高：如果有错误，显示错误信息
+  if (isErrorAlert.value && currentErrorData.value) {
+    return {
+      title: currentErrorData.value.title,
+      desc: currentErrorData.value.desc,
+      btnText: '我知道了',
+      icon: currentErrorData.value.icon,
+    }
+  }
+
+  // 2. 正常业务逻辑
   if (currentAction.value === 'MATCH')
     return {
       title: '排位匹配确认',
@@ -162,8 +192,19 @@ const dialogConfig = computed(() => {
 })
 
 const handleConfirm = () => {
-  if (currentAction.value === 'MATCH') router.push('/battle/matchmaking')
-  else if (currentAction.value === 'JOIN') {
+  // 错误弹窗逻辑：点击仅关闭
+  if (isErrorAlert.value) {
+    showDialog.value = false
+    isErrorAlert.value = false
+    return
+  }
+
+  if (currentAction.value === 'MATCH') {
+    // [Updated] 使用工具类设置匹配凭证 (使用 session 模式)
+    storage.set('MATCH_PENDING', 'true', 'session')
+
+    router.push('/battle/matchmaking')
+  } else if (currentAction.value === 'JOIN') {
     if (otpString.value.length === 6) router.push(`/battle/lobby/${otpString.value}`)
   } else router.push(`/battle/lobby/${pendingRoomId.value}`)
 }
@@ -185,6 +226,38 @@ const handlePaste = (e: ClipboardEvent) => {
   })
   if (chars.length === 6) otpInputs.value[5]?.focus()
 }
+
+// --- 路由错误反馈逻辑 ---
+const errorMap: Record<string, { title: string; desc: string; icon: any }> = {
+  MATCH_INVALID: {
+    title: '匹配会话失效',
+    desc: '系统未找到有效的匹配请求，或当前匹配因超时已自动取消。',
+    icon: XCircle,
+  },
+  ROOM_INVALID: {
+    title: '无法加入房间',
+    desc: '目标房间已解散、已开始游戏，或者您输入的房间号有误。',
+    icon: AlertCircle,
+  },
+  BATTLE_ENDED: {
+    title: '对战已结束',
+    desc: '本次对战记录已归档，为了保证竞赛公平性，无法通过历史链接重新连接。',
+    icon: Info,
+  },
+}
+
+onMounted(() => {
+  const error = route.query.error as string
+
+  if (error && errorMap[error]) {
+    currentErrorData.value = errorMap[error]
+    isErrorAlert.value = true
+    showDialog.value = true
+
+    // 清除 URL 参数
+    router.replace({ path: '/arena', query: {} })
+  }
+})
 </script>
 
 <style scoped>

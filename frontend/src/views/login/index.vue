@@ -416,7 +416,7 @@ const handleSubmit = async () => {
     } else if (mode.value === 'login') {
       await userStore.login({ userAccount: form.username, userPassword: form.password })
       const redirect = (route.query.redirect as string) || '/'
-      router.push(redirect)
+      router.replace(redirect)
     } else if (mode.value === 'reset') {
       await new Promise((resolve) => setTimeout(resolve, 1500)) // 模拟 API
       alert(`重置链接已发送至 ${form.username}，请查收邮件`)

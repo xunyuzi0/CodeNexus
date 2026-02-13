@@ -74,7 +74,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/ArenaLayout.vue'),
     children: [
       {
-        path: 'matchmaking', // [NEW] 匹配界面
+        path: 'matchmaking', //  匹配界面
         name: 'ArenaMatchmaking',
         component: () => import('@/views/arena/Matchmaking.vue'),
         meta: { title: '正在匹配...' },

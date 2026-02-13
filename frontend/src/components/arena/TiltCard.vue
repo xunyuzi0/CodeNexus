@@ -1,7 +1,7 @@
 <template>
   <div
     ref="cardRef"
-    class="will-change-transform group relative h-80 rounded-3xl backdrop-blur-md border transition-colors duration-500 cursor-pointer flex flex-col items-center justify-center text-center p-6 overflow-hidden"
+    class="will-change-transform transform-gpu group relative h-80 rounded-3xl backdrop-blur-md border transition-colors duration-500 cursor-pointer flex flex-col items-center justify-center text-center p-6 overflow-hidden"
     :class="containerClass"
     @click="$emit('click')"
   >
@@ -15,7 +15,7 @@
     ></div>
 
     <div
-      class="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border transition-transform duration-500 group-hover:scale-110"
+      class="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border transition-transform duration-500 group-hover:scale-110 transform-gpu"
       :class="[
         iconBgClass,
         type === 'MATCH'
@@ -43,6 +43,7 @@
     >
       {{ title }}
     </h3>
+
     <p
       class="text-xs text-zinc-500 leading-relaxed transition-colors"
       :class="type !== 'MATCH' ? 'group-hover:text-zinc-400' : ''"
@@ -54,8 +55,9 @@
       v-if="type === 'MATCH'"
       class="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-purple-500/50 blur-[2px] opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"
     ></div>
+
     <div
-      class="absolute bottom-6 text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity tracking-widest translate-y-2 group-hover:translate-y-0 duration-300"
+      class="absolute bottom-6 text-xs font-bold font-mono opacity-0 group-hover:opacity-100 transition-all tracking-widest translate-y-2 group-hover:translate-y-0 duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]"
       :class="type === 'MATCH' ? 'text-purple-500' : 'text-[#FF4C00]'"
     >
       {{ footerText }}
@@ -105,6 +107,7 @@ useRafFn(() => {
   currentRotation.y += (targetY - currentRotation.y) * DAMPING_FACTOR
 
   // 应用变换
+  // Optimization: 保持 scale3d(1,1,1) 以启用 3D 加速
   el.style.transform = `perspective(1000px) rotateX(${-currentRotation.x}deg) rotateY(${currentRotation.y}deg) scale3d(1, 1, 1)`
 })
 </script>
@@ -113,5 +116,6 @@ useRafFn(() => {
 .will-change-transform {
   will-change: transform;
   transform-style: preserve-3d;
+  backface-visibility: hidden; /* 防止旋转时的闪烁 */
 }
 </style>

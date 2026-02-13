@@ -15,23 +15,22 @@
     ></div>
 
     <div
-      class="relative z-10 shrink-0 max-w-7xl mx-auto w-full mb-6 flex items-center gap-3 opacity-0"
+      class="relative z-10 shrink-0 max-w-7xl mx-auto w-full mb-8 flex flex-col justify-center gap-1 opacity-0"
       v-motion
       :initial="{ opacity: 0, x: -20 }"
       :enter="{ opacity: 1, x: 0, transition: { duration: 400 } }"
     >
-      <div
-        class="p-2 bg-zinc-100 dark:bg-white/5 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm"
-      >
-        <LayoutDashboard class="w-6 h-6 text-zinc-900 dark:text-white" />
-      </div>
-      <div>
-        <h1
-          class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3"
+      <div class="flex items-center gap-3 mb-1">
+        <div
+          class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
         >
-          仪表盘
-        </h1>
+          <LayoutDashboard class="w-6 h-6 text-[#FF4C00]" />
+        </div>
+        <h1 class="text-3xl font-black tracking-tight text-white">仪表盘</h1>
       </div>
+      <p class="text-zinc-500 text-sm font-medium tracking-wide pl-1">
+        实时监控您的编程活动、算力指标与成长轨迹
+      </p>
     </div>
 
     <div

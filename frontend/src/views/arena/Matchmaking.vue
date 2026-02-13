@@ -14,29 +14,32 @@
       <div
         class="absolute w-[400px] h-[400px] border border-white/10 rounded-full animate-ping [animation-duration:3s] [animation-delay:0.5s]"
       ></div>
+
       <div class="absolute inset-[-200px] animate-[spin_4s_linear_infinite] opacity-30">
         <div
-          class="w-full h-full bg-gradient-to-t from-transparent via-purple-500/10 to-transparent w-[2px] mx-auto"
+          class="w-full h-full bg-gradient-to-t from-transparent via-[#FF4C00]/20 to-transparent w-[2px] mx-auto"
         ></div>
       </div>
+
       <div
-        class="relative z-10 w-32 h-32 rounded-full p-1"
+        class="relative z-10 w-32 h-32 rounded-full p-1 transition-all duration-500"
         :class="
           found
-            ? 'bg-emerald-500 shadow-[0_0_50px_#10b981]'
-            : 'bg-zinc-800 shadow-[0_0_30px_rgba(168,85,247,0.4)]'
+            ? 'bg-emerald-500 shadow-[0_0_50px_#10b981]' // 成功保持绿色
+            : 'bg-zinc-800 shadow-[0_0_30px_rgba(255,76,0,0.4)]' // 搜索中为橙色光晕
         "
       >
-        <div class="w-full h-full rounded-full overflow-hidden relative">
+        <div class="w-full h-full rounded-full overflow-hidden relative bg-zinc-900">
           <img
             :src="userStore.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'"
             class="w-full h-full object-cover"
           />
-          <div class="absolute inset-0 bg-purple-500/20 mix-blend-overlay" v-if="!found"></div>
+          <div class="absolute inset-0 bg-[#FF4C00]/10 mix-blend-overlay" v-if="!found"></div>
         </div>
+
         <div
           v-if="!found"
-          class="absolute -inset-4 rounded-full border border-purple-500/30 animate-pulse"
+          class="absolute -inset-4 rounded-full border border-[#FF4C00]/30 animate-pulse"
         ></div>
       </div>
     </div>
@@ -46,21 +49,19 @@
         class="text-3xl font-black italic tracking-wider uppercase transition-colors duration-300"
         :class="found ? 'text-emerald-500 drop-shadow-[0_0_10px_#10b981]' : 'text-white'"
       >
-        {{ found ? '匹配成功' : '搜索中...' }}
+        {{ found ? 'MATCH FOUND' : 'SEARCHING...' }}
       </h2>
-      <p class="text-zinc-500 font-mono text-xs tracking-[0.3em] h-4">
-        {{ found ? '正在跳转到沙盒...' : '扫描中: 1450 ± 50' }}
+      <p class="text-zinc-500 font-mono text-xs tracking-[0.3em] h-4 uppercase">
+        {{ found ? 'Redirecting to Lobby...' : 'Scanning Neural Network...' }}
       </p>
     </div>
 
-    <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
-      <div class="absolute top-1/4 left-1/4 text-[10px] text-purple-500 font-mono animate-bounce">
-        计算延迟...
+    <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
+      <div class="absolute top-1/4 left-1/4 text-[10px] text-[#FF4C00] font-mono animate-bounce">
+        Ping: 14ms
       </div>
-      <div
-        class="absolute bottom-1/3 right-1/4 text-[10px] text-purple-500 font-mono animate-pulse"
-      >
-        区域: CN-North-1
+      <div class="absolute bottom-1/3 right-1/4 text-[10px] text-[#FF4C00] font-mono animate-pulse">
+        Zone: CN-Deep-1
       </div>
     </div>
 
@@ -82,6 +83,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { X } from 'lucide-vue-next'
+// [Updated] 引入封装后的 storage 工具
+import { storage } from '@/utils/storage'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -89,16 +92,47 @@ const userStore = useUserStore()
 const found = ref(false)
 const isCanceled = ref(false)
 
+// 使用 number 类型以兼容浏览器环境的 setTimeout
 let matchTimer: number | null = null
 let redirectTimer: number | null = null
 
+// [新增] 检查匹配会话有效性 (验票逻辑)
+const checkMatchSession = (): boolean => {
+  // 1. [Updated] 使用工具类检查是否存在凭证
+  const hasTicket = storage.get<string>('MATCH_PENDING', 'session') === 'true'
+
+  if (!hasTicket) {
+    // 2. 如果没有凭证，说明是直接 URL 访问，踢回并报错
+    router.replace({
+      path: '/arena',
+      query: { error: 'MATCH_INVALID' },
+    })
+    return false
+  }
+
+  // 3. 验票通过，[Updated] 使用工具类立即销毁凭证
+  storage.remove('MATCH_PENDING', 'session')
+  return true
+}
+
 onMounted(() => {
+  // 优先执行安全检查
+  if (!checkMatchSession()) {
+    return
+  }
+
+  // 模拟匹配过程：3.5秒后匹配成功
   matchTimer = window.setTimeout(() => {
     if (isCanceled.value) return
     found.value = true
+
+    // 匹配成功后，1.5秒跳转到大厅
     redirectTimer = window.setTimeout(() => {
       if (isCanceled.value) return
+
       const roomId = 'MATCH_' + Math.random().toString(36).substring(2, 6).toUpperCase()
+
+      // [Security]: 使用 replace 销毁"正在匹配"的历史记录
       router.replace({
         name: 'ArenaLobby',
         params: { roomId },
@@ -112,12 +146,20 @@ const cancelMatch = () => {
   isCanceled.value = true
   if (matchTimer) clearTimeout(matchTimer)
   if (redirectTimer) clearTimeout(redirectTimer)
-  router.back()
+
+  // [Updated] 手动取消，使用工具类清理 session
+  storage.remove('MATCH_PENDING', 'session')
+
+  // [Security]: 取消匹配也使用 replace
+  router.replace('/arena')
 }
 
 onUnmounted(() => {
   isCanceled.value = true
   if (matchTimer) clearTimeout(matchTimer)
   if (redirectTimer) clearTimeout(redirectTimer)
+
+  // [Updated] 组件销毁时兜底清理
+  storage.remove('MATCH_PENDING', 'session')
 })
 </script>

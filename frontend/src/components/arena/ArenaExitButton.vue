@@ -85,7 +85,7 @@ const confirmExit = () => {
 
 const goBack = () => {
   // 统一返回竞技场入口，而不是 Dashboard
-  router.push('/arena')
+  router.replace('/arena')
 }
 </script>
 

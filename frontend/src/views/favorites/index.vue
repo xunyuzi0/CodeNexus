@@ -5,12 +5,16 @@
       class="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#FF4C00]/5 blur-[120px] rounded-full pointer-events-none"
     ></div>
 
-    <div class="relative z-10 mb-12" v-motion-slide-visible-top>
-      <h1 class="text-3xl font-black text-white mb-2 tracking-tight flex items-center gap-3">
-        <FolderOpen class="w-8 h-8 text-[#FF4C00]" />
-        我的收藏空间
-      </h1>
-      <p class="text-zinc-500 text-sm font-medium tracking-wide">
+    <div class="relative z-10 mb-12 flex flex-col justify-center gap-1" v-motion-slide-visible-top>
+      <div class="flex items-center gap-3 mb-1">
+        <div
+          class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+        >
+          <Star class="w-6 h-6 text-[#FF4C00]" />
+        </div>
+        <h1 class="text-3xl font-black tracking-tight text-white">我的收藏</h1>
+      </div>
+      <p class="text-zinc-500 text-sm font-medium tracking-wide pl-1">
         管理您的算法知识库，构建专属技能树
       </p>
     </div>
@@ -111,7 +115,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Folder, FolderOpen, Plus, Trash2 } from 'lucide-vue-next'
+import { Folder, Star, Plus, Trash2 } from 'lucide-vue-next' // Updated Icon: Star
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 import { getFolders, createFolder, deleteFolder, type FavoriteFolder } from '@/api/favorites'
 
@@ -168,3 +172,7 @@ onMounted(() => {
   initData()
 })
 </script>
+
+<style scoped>
+/* 保持原有样式，如有特殊过渡动画可在此定义 */
+</style>
