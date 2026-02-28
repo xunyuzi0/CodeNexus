@@ -30,7 +30,7 @@
     ></div>
 
     <div class="w-full relative z-20 h-20 flex items-center px-6 justify-between">
-      <ArenaExitButton :needs-confirm="isSelfReady" />
+      <ArenaExitButton @click="showExitDialog = true" />
 
       <div v-if="mode === 'CUSTOM'" class="absolute left-1/2 -translate-x-1/2">
         <div
@@ -263,18 +263,31 @@
         <p class="text-zinc-400">双方未能在规定时间内完成准备，房间已自动解散。</p>
       </div>
     </ArenaDialog>
+
+    <ArenaDialog
+      v-model="showExitDialog"
+      title="确认离开房间？"
+      confirm-text="确认离开"
+      @confirm="confirmManualExit"
+    >
+      <div class="text-center space-y-4">
+        <p class="text-zinc-400">
+          当前位置将<span class="text-red-500 font-bold">不被保留</span>，您需要重新匹配。
+        </p>
+      </div>
+    </ArenaDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useClipboard } from '@vueuse/core'
 import { useUserStore } from '@/stores/user'
 import { Copy, CheckCircle2, Timer, Loader2 } from 'lucide-vue-next'
 import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
-import { checkRoomValidity } from '@/api/arena' //  引入 API
+import { checkRoomValidity } from '@/api/arena'
 
 // --- 类型定义 ---
 interface Opponent {
@@ -290,23 +303,27 @@ const userStore = useUserStore()
 const { copy } = useClipboard()
 
 const roomId = route.params.roomId as string
-// 模式判定：RANKED (排位) | CUSTOM (自建)
 const mode = computed(() => (route.query.mode === 'RANKED' ? 'RANKED' : 'CUSTOM'))
 
 // --- 状态数据 ---
-const isVerifying = ref(true) //  安全检查 Loading 状态
+const isVerifying = ref(true)
 const isSelfReady = ref(false)
-const opponent = ref<Opponent | null>(null) // 初始为 null，表示空位
+const opponent = ref<Opponent | null>(null)
 const isLaunching = ref(false)
 const countdown = ref(mode.value === 'RANKED' ? 20 : 120)
 const showTimeoutDialog = ref(false)
+
+// [新增]: 退出相关状态
+const showExitDialog = ref(false)
+const isManualExit = ref(false) // 用户确认退出标志
+const isSystemExit = ref(false) // 系统强制跳转标志 (如超时、校验失败)
 
 // 定时器引用
 let mainTimer: number | null = null
 let simEntryTimer: number | null = null
 let simReadyTimer: number | null = null
 
-// 格式化时间 mm:ss
+// 格式化时间
 const formattedTime = computed(() => {
   const m = Math.floor(countdown.value / 60)
     .toString()
@@ -315,11 +332,24 @@ const formattedTime = computed(() => {
   return `${m}:${s}`
 })
 
+// --- [核心]: 路由守卫 ---
+onBeforeRouteLeave((to, from, next) => {
+  // 放行条件: 游戏开始 / 系统强制退出 / 用户确认退出
+  if (isLaunching.value || isSystemExit.value || isManualExit.value) {
+    next()
+  } else {
+    // 拦截其他情况 (如浏览器返回、侧键)
+    next(false)
+    showExitDialog.value = true
+  }
+})
+
 // --- 核心业务逻辑 ---
 
-//  房间安全检查
 const initializeRoom = async () => {
   if (!roomId) {
+    // 标记为系统退出，避免被守卫拦截
+    isSystemExit.value = true
     router.replace('/arena')
     return
   }
@@ -328,24 +358,25 @@ const initializeRoom = async () => {
     const isValid = await checkRoomValidity(roomId)
     if (!isValid) {
       console.warn('[Arena Security] Room is invalid or expired:', roomId)
-      // [CRITICAL]: 校验失败，强制 replace 销毁当前历史，踢回大厅
+      // 标记为系统退出
+      isSystemExit.value = true
       router.replace({
         path: '/arena',
         query: { error: 'ROOM_INVALID' },
       })
     } else {
       isVerifying.value = false
-      // 只有通过校验才开始倒计时和模拟
       startTimer()
       initSimulation()
     }
   } catch (error) {
     console.error('Room check failed:', error)
+    isSystemExit.value = true
     router.replace('/arena')
   }
 }
 
-// 1. 初始化模拟数据
+// 初始化模拟数据
 const initSimulation = () => {
   if (mode.value === 'RANKED') {
     opponent.value = {
@@ -357,7 +388,7 @@ const initSimulation = () => {
   } else {
     opponent.value = null
     const entryDelay = Math.random() * 6000 + 2000
-    simEntryTimer = setTimeout(() => {
+    simEntryTimer = window.setTimeout(() => {
       opponent.value = {
         name: 'AlgorithmMaster_99',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
@@ -370,16 +401,15 @@ const initSimulation = () => {
 
 const simulateOpponentReady = (min: number, max: number) => {
   const delay = Math.random() * (max - min) + min
-  simReadyTimer = setTimeout(() => {
+  simReadyTimer = window.setTimeout(() => {
     if (opponent.value) {
       opponent.value.isReady = true
     }
   }, delay)
 }
 
-// 2. 倒计时逻辑
 const startTimer = () => {
-  mainTimer = setInterval(() => {
+  mainTimer = window.setInterval(() => {
     countdown.value--
     if (countdown.value <= 0) {
       handleTimeout()
@@ -387,29 +417,24 @@ const startTimer = () => {
   }, 1000)
 }
 
-// 3. 用户点击准备
 const handleSelfReady = () => {
   if (isSelfReady.value || !opponent.value) return
   isSelfReady.value = true
 }
 
-// 4. 超时处理
 const handleTimeout = () => {
   clearAllTimers()
   if (isSelfReady.value && opponent.value?.isReady) return
-
   showTimeoutDialog.value = true
 }
 
-// 5. 监听游戏开始
+// 监听游戏开始
 watchEffect(() => {
   if (isSelfReady.value && opponent.value?.isReady && !isLaunching.value) {
     clearAllTimers()
-    isLaunching.value = true
+    isLaunching.value = true // 设置为 true 后，路由守卫会自动放行
 
-    // 播放转场动画 1.5秒后跳转
     setTimeout(() => {
-      // [CRITICAL]: 战斗开始，销毁 Lobby 历史，防止回退
       router.replace({
         name: 'ArenaBattle',
         params: { roomId },
@@ -419,18 +444,28 @@ watchEffect(() => {
   }
 })
 
-// 工具函数
 const copyRoomId = () => copy(roomId)
-const exitLobby = () => router.replace('/arena') // [CRITICAL]: 超时退出使用 replace
+
+// 超时退出
+const exitLobby = () => {
+  isSystemExit.value = true
+  router.replace('/arena')
+}
+
+// [新增]: 确认手动离开
+const confirmManualExit = () => {
+  isManualExit.value = true
+  showExitDialog.value = false
+  router.replace('/arena')
+}
+
 const clearAllTimers = () => {
   if (mainTimer) clearInterval(mainTimer)
   if (simEntryTimer) clearTimeout(simEntryTimer)
   if (simReadyTimer) clearTimeout(simReadyTimer)
 }
 
-// 生命周期
 onMounted(() => {
-  // 替换原有的直接 startTimer，改为先校验
   initializeRoom()
 })
 

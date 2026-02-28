@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="editorWrapperRef"
     class="flex flex-col w-full h-full rounded-xl overflow-hidden bg-zinc-950/50 backdrop-blur-xl border border-white/5 transition-colors duration-300"
     :class="{ 'ring-1 ring-[#FF4C00]/50': isFocused }"
   >
@@ -23,11 +24,18 @@
           <div
             v-for="lang in availableLanguages"
             :key="lang"
-            @click="selectLanguage(lang)"
-            class="px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer flex items-center justify-between group"
+            @click="lang === 'java' ? selectLanguage(lang) : null"
+            class="px-3 py-2 text-xs flex items-center justify-between group transition-colors"
+            :class="
+              lang === 'java' 
+                ? 'text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer' 
+                : 'text-zinc-600 cursor-not-allowed bg-zinc-950/30'
+            "
           >
-            <span class="font-mono">{{ lang }}</span>
+            <span class="font-mono" :class="{ 'opacity-50': lang !== 'java' }">{{ lang }}</span>
+            
             <Check v-if="currentLanguage === lang" class="w-3 h-3 text-[#FF4C00]" />
+            <Lock v-else-if="lang !== 'java'" class="w-3 h-3 text-zinc-700 group-hover:text-zinc-600 transition-colors" />
           </div>
         </div>
       </div>
@@ -48,11 +56,14 @@
         >
           <Copy class="w-4 h-4" />
         </button>
+        
         <button
+          @click="$emit('toggle-maximize')"
           class="p-1.5 text-zinc-500 hover:text-white hover:bg-white/5 rounded transition-colors"
-          title="设置"
+          :title="isMaximized ? '退出最大化' : '最大化代码区'"
         >
-          <Settings class="w-4 h-4" />
+          <Minimize2 v-if="isMaximized" class="w-4 h-4" />
+          <Maximize2 v-else class="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -87,18 +98,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, toRaw } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as monaco from 'monaco-editor'
-import { useSettingsStore } from '@/stores/settings' // 假设你有这个 Store
-import { Copy, Settings, ChevronDown, Check, Loader2, Lock } from 'lucide-vue-next'
+import { useSettingsStore } from '@/stores/settings'
+import { Copy, ChevronDown, Check, Loader2, Lock, Maximize2, Minimize2 } from 'lucide-vue-next'
 import { useClipboard, onClickOutside } from '@vueuse/core'
 
-// --- Props & Emits ---
 interface Props {
   modelValue: string
   language?: string
   readOnly?: boolean
   loading?: boolean
+  isMaximized?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -106,11 +117,11 @@ const props = withDefaults(defineProps<Props>(), {
   language: 'java',
   readOnly: false,
   loading: false,
+  isMaximized: false
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'change', 'toggle-maximize'])
 
-// --- State ---
 const settingsStore = useSettingsStore()
 const editorContainer = ref<HTMLElement | null>(null)
 let editorInstance: monaco.editor.IStandaloneCodeEditor | null = null
@@ -120,40 +131,36 @@ const cursorPosition = ref({ lineNumber: 1, column: 1 })
 const currentLanguage = ref(props.language)
 const { copy } = useClipboard()
 
-// 语言下拉控制
 const isLangOpen = ref(false)
 const langDropdownRef = ref(null)
 const availableLanguages = ['java', 'python', 'cpp', 'javascript', 'go']
 
 onClickOutside(langDropdownRef, () => (isLangOpen.value = false))
 
-// --- Monaco Initialization ---
 onMounted(() => {
   if (!editorContainer.value) return
 
-  // 1. 定义 Zeekr Dark 主题
   monaco.editor.defineTheme('zeekr-dark', {
     base: 'vs-dark',
     inherit: true,
     rules: [
       { token: 'comment', foreground: '606060', fontStyle: 'italic' },
       { token: 'keyword', foreground: 'FF4C00', fontStyle: 'bold' },
-      { token: 'string', foreground: '10B981' }, // emerald-500
+      { token: 'string', foreground: '10B981' }, 
       { token: 'number', foreground: '3B82F6' },
     ],
     colors: {
-      'editor.background': '#00000000', // 透明背景，透出父容器的磨砂
-      'editor.foreground': '#D4D4D8', // zinc-300
+      'editor.background': '#00000000', 
+      'editor.foreground': '#D4D4D8', 
       'editor.lineHighlightBackground': '#FFFFFF05',
       'editorCursor.foreground': '#FF4C00',
-      'editorLineNumber.foreground': '#52525b', // zinc-600
-      'editor.selectionBackground': '#FF4C0033', // 橙色透明
+      'editorLineNumber.foreground': '#52525b', 
+      'editor.selectionBackground': '#FF4C0033', 
       'editorIndentGuide.background': '#27272a',
       'editorIndentGuide.activeBackground': '#52525b',
     },
   })
 
-  // 2. 创建实例
   editorInstance = monaco.editor.create(editorContainer.value, {
     value: props.modelValue,
     language: props.language,
@@ -161,9 +168,9 @@ onMounted(() => {
     readOnly: props.readOnly,
     fontSize: settingsStore.editorFontSize || 14,
     fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
-    automaticLayout: true, // 自动响应容器大小变化
+    automaticLayout: true,
     scrollBeyondLastLine: false,
-    minimap: { enabled: false }, // 极简模式，关闭 minimap
+    minimap: { enabled: false }, 
     lineNumbersMinChars: 3,
     padding: { top: 16, bottom: 16 },
     cursorBlinking: 'smooth',
@@ -175,12 +182,11 @@ onMounted(() => {
       horizontal: 'visible',
       verticalScrollbarSize: 10,
       horizontalScrollbarSize: 10,
-      verticalSliderSize: 6, // 细滚动条
+      verticalSliderSize: 6, 
       horizontalSliderSize: 6,
     },
   })
 
-  // 3. 事件监听
   editorInstance.onDidChangeModelContent(() => {
     const value = editorInstance?.getValue() || ''
     emit('update:modelValue', value)
@@ -198,78 +204,53 @@ onMounted(() => {
   editorInstance.onDidBlurEditorText(() => (isFocused.value = false))
 })
 
-// --- Watchers ---
+watch(() => props.modelValue, (newValue) => {
+  if (editorInstance && newValue !== editorInstance.getValue()) {
+    editorInstance.setValue(newValue)
+  }
+})
 
-// 双向绑定同步：外部修改 modelValue 时更新编辑器
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    if (editorInstance && newValue !== editorInstance.getValue()) {
-      editorInstance.setValue(newValue)
-    }
-  },
-)
+watch(() => settingsStore.editorFontSize, (newSize) => {
+  editorInstance?.updateOptions({ fontSize: newSize })
+})
 
-// 监听 Store 设置变化
-watch(
-  () => settingsStore.editorFontSize,
-  (newSize) => {
-    editorInstance?.updateOptions({ fontSize: newSize })
-  },
-)
+watch(() => props.language, (newLang) => {
+  if (editorInstance && newLang) {
+    monaco.editor.setModelLanguage(editorInstance.getModel()!, newLang)
+    currentLanguage.value = newLang
+  }
+})
 
-// 监听 Props 变化
-watch(
-  () => props.language,
-  (newLang) => {
-    if (editorInstance && newLang) {
-      monaco.editor.setModelLanguage(editorInstance.getModel()!, newLang)
-      currentLanguage.value = newLang
-    }
-  },
-)
+watch(() => props.readOnly, (val) => {
+  editorInstance?.updateOptions({ readOnly: val })
+})
 
-watch(
-  () => props.readOnly,
-  (val) => {
-    editorInstance?.updateOptions({ readOnly: val })
-  },
-)
-
-// --- Methods ---
 const toggleLangDropdown = () => (isLangOpen.value = !isLangOpen.value)
 
 const selectLanguage = (lang: string) => {
   currentLanguage.value = lang
   monaco.editor.setModelLanguage(editorInstance!.getModel()!, lang)
   isLangOpen.value = false
-  // 这里可能需要向上抛出事件通知父组件语言改变
 }
 
 const copyCode = () => {
   copy(props.modelValue)
-  // 这里可以加一个 Toast 提示
 }
 
-// 销毁
 onUnmounted(() => {
-  if (editorInstance) {
-    editorInstance.dispose()
-  }
+  if (editorInstance) editorInstance.dispose()
 })
 </script>
 
 <style>
-/* 覆盖 Monaco 内部默认样式以匹配 Tailwind */
 .monaco-editor .scroll-decoration {
   box-shadow: none !important;
 }
-/* 自定义滚动条颜色 */
 .monaco-editor .slider {
-  background: #3f3f46 !important; /* zinc-700 */
+  background: #3f3f46 !important; 
   border-radius: 9999px !important;
 }
 .monaco-editor .slider:hover {
-  background: #52525b !important; /* zinc-600 */
+  background: #52525b !important; 
 }
 </style>

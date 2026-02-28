@@ -1,0 +1,527 @@
+<template>
+  <div class="flex flex-col h-full w-full bg-[#1e1e1e] relative group/workspace overflow-hidden">
+    <div class="flex-1 min-h-0 relative z-0">
+      <splitpanes class="default-theme zeekr-theme" horizontal @resize="handleResize">
+        <pane
+          :size="paneSizes.editor"
+          :min-size="isConsoleOpen ? 10 : 100"
+          class="flex flex-col min-h-0 relative transition-[height] duration-300 ease-in-out"
+        >
+          <div class="flex-1 relative overflow-hidden">
+            <CodeEditor
+              v-model="modelValue"
+              language="java"
+              class="h-full w-full"
+              :is-maximized="isMaximized"
+              @toggle-maximize="$emit('toggle-maximize')"
+            />
+          </div>
+        </pane>
+
+        <pane
+          v-if="isConsoleOpen"
+          :size="paneSizes.console"
+          class="bg-zinc-900 flex flex-col min-h-0 border-t border-white/5 relative transition-[height] duration-300 ease-in-out z-10"
+        >
+          <div
+            class="h-9 shrink-0 flex items-center justify-between px-2 bg-zinc-950 border-b border-white/5 select-none"
+          >
+            <div class="flex items-center h-full gap-1">
+              <button
+                v-for="tab in ['testcase', 'result'] as const"
+                :key="tab"
+                @click="activeConsoleTab = tab"
+                class="h-full px-4 text-xs font-medium relative transition-colors flex items-center gap-2 group"
+                :class="
+                  activeConsoleTab === tab ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                "
+              >
+                <component :is="tab === 'testcase' ? FlaskConical : Terminal" class="w-3.5 h-3.5" />
+                {{ tab === 'testcase' ? '测试用例' : '执行结果' }}
+
+                <div
+                  v-if="activeConsoleTab === tab"
+                  class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF4C00] shadow-[0_-2px_6px_rgba(255,76,0,0.4)]"
+                ></div>
+              </button>
+            </div>
+
+            <button
+              @click="toggleConsole"
+              class="mr-2 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
+              title="收起控制台"
+            >
+              <ChevronDown class="w-4 h-4" />
+            </button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto custom-scrollbar p-4 bg-zinc-900/50">
+            <div
+              v-show="activeConsoleTab === 'testcase'"
+              class="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col"
+            >
+              <div class="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+                <div v-for="(c, index) in testCases" :key="index" class="flex items-center">
+                  <button
+                    @click="activeCaseIndex = index"
+                    class="px-3 py-1.5 rounded-lg text-xs font-mono transition-all border flex items-center gap-1.5 group/tab"
+                    :class="
+                      activeCaseIndex === index
+                        ? 'bg-zinc-800 text-white border-white/10 shadow-sm'
+                        : 'border-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300'
+                    "
+                  >
+                    Case {{ index + 1 }}
+                    <X
+                      v-if="activeCaseIndex === index && testCases.length > 1"
+                      @click.stop="handleRemoveTestCase(index)"
+                      class="w-3 h-3 text-zinc-500 hover:text-red-500 cursor-pointer transition-colors"
+                    />
+                  </button>
+                </div>
+                <button
+                  @click="handleAddTestCase"
+                  class="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-colors border border-dashed border-zinc-700"
+                  title="添加测试用例"
+                >
+                  <Plus class="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div class="space-y-4 flex-1 overflow-y-auto pr-2">
+                <template v-if="testCases[activeCaseIndex]">
+                  <div
+                    v-for="(_, key) in testCases[activeCaseIndex].inputs"
+                    :key="key"
+                    class="space-y-2"
+                  >
+                    <label
+                      class="block text-xs font-medium text-zinc-500 uppercase tracking-wider font-mono pl-1"
+                      >{{ key }} =</label
+                    >
+                    <input
+                      type="text"
+                      v-model="testCases[activeCaseIndex].inputs[key]"
+                      class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm text-zinc-300 placeholder-zinc-700 focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 outline-none transition-all"
+                      spellcheck="false"
+                    />
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div v-show="activeConsoleTab === 'result'" class="h-full">
+              <div
+                v-if="isRunning && !showJudgePanel"
+                class="h-full flex flex-col items-center justify-center space-y-4"
+              >
+                <Loader2 class="w-8 h-8 text-[#FF4C00] animate-spin" />
+                <p class="text-xs text-zinc-500 font-mono animate-pulse">
+                  Running code in Sandbox...
+                </p>
+              </div>
+              <div
+                v-else-if="runResults.length === 0"
+                class="h-full flex flex-col items-center justify-center text-zinc-600 space-y-3"
+              >
+                <div class="w-12 h-12 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
+                  <Terminal class="w-6 h-6 opacity-40" />
+                </div>
+                <p class="text-xs font-medium">请点击“运行”以执行自测代码</p>
+              </div>
+              <div
+                v-else
+                class="animate-in fade-in slide-in-from-bottom-2 flex flex-col h-full gap-4"
+              >
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+                  <button
+                    v-for="(res, idx) in runResults"
+                    :key="idx"
+                    @click="activeResultIndex = idx"
+                    class="px-3 py-1.5 rounded-lg text-xs font-mono transition-all border flex items-center gap-2"
+                    :class="[
+                      activeResultIndex === idx
+                        ? res.status === 'AC'
+                          ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-sm'
+                          : 'bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-sm'
+                        : 'border-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300',
+                    ]"
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="
+                        res.status === 'AC'
+                          ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                          : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
+                      "
+                    ></span>
+                    Case {{ idx + 1 }}
+                  </button>
+                </div>
+
+                <div v-if="runResults[activeResultIndex]" class="flex-1 overflow-y-auto pr-2 pb-2">
+                  <div
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl border mb-4"
+                    :class="
+                      runResults[activeResultIndex].status === 'AC'
+                        ? 'bg-emerald-500/10 border-emerald-500/20'
+                        : 'bg-rose-500/10 border-rose-500/20'
+                    "
+                  >
+                    <span
+                      class="text-sm font-bold uppercase tracking-wider"
+                      :class="
+                        runResults[activeResultIndex].status === 'AC'
+                          ? 'text-emerald-500'
+                          : 'text-rose-500'
+                      "
+                      >{{ getStatusText(runResults[activeResultIndex].status) }}</span
+                    >
+                    <span
+                      class="w-[1px] h-3"
+                      :class="
+                        runResults[activeResultIndex].status === 'AC'
+                          ? 'bg-emerald-500/20'
+                          : 'bg-rose-500/20'
+                      "
+                    ></span>
+                    <span
+                      class="text-xs font-mono"
+                      :class="
+                        runResults[activeResultIndex].status === 'AC'
+                          ? 'text-emerald-400/80'
+                          : 'text-rose-400/80'
+                      "
+                      >Runtime: {{ runResults[activeResultIndex].runtime }}</span
+                    >
+                  </div>
+
+                  <div
+                    class="bg-black/30 border border-white/10 rounded-xl p-4 font-mono text-xs space-y-4 shadow-inner"
+                  >
+                    <div class="space-y-1.5">
+                      <span
+                        class="text-zinc-500 block uppercase tracking-wider scale-90 origin-left"
+                        >Input</span
+                      >
+                      <div
+                        class="text-zinc-300 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg whitespace-pre-wrap leading-relaxed"
+                      >
+                        {{ runResults[activeResultIndex].input }}
+                      </div>
+                    </div>
+                    <div class="space-y-1.5">
+                      <span
+                        class="text-zinc-500 block uppercase tracking-wider scale-90 origin-left"
+                        >Actual Output</span
+                      >
+                      <div
+                        class="bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg"
+                        :class="
+                          runResults[activeResultIndex].status === 'AC'
+                            ? 'text-emerald-500'
+                            : 'text-rose-500'
+                        "
+                      >
+                        {{ runResults[activeResultIndex].output }}
+                      </div>
+                    </div>
+                    <div class="space-y-1.5">
+                      <span
+                        class="text-zinc-500 block uppercase tracking-wider scale-90 origin-left"
+                        >Expected Output</span
+                      >
+                      <div
+                        class="text-emerald-500 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg"
+                      >
+                        {{ runResults[activeResultIndex].expected }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </pane>
+      </splitpanes>
+    </div>
+
+    <div
+      class="h-14 shrink-0 bg-zinc-950/80 backdrop-blur-xl border-t border-white/5 px-6 flex items-center justify-between z-30"
+    >
+      <div class="flex items-center gap-2">
+        <button
+          v-if="!isConsoleOpen"
+          @click="toggleConsole"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors text-xs font-medium active:scale-95 duration-200 group"
+        >
+          <div class="relative">
+            <SquareTerminal class="w-4 h-4 group-hover:text-[#FF4C00] transition-colors" />
+            <span class="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
+              <span
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4C00] opacity-75"
+              ></span>
+              <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#FF4C00]"></span>
+            </span>
+          </div>
+          <span>控制台</span>
+          <ChevronUp class="w-3 h-3 ml-1 opacity-50" />
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          @click="handleRun"
+          :disabled="isRunning || isSubmitting"
+          class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-200 border border-white/5 hover:bg-zinc-700 hover:text-white transition-all font-bold text-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+        >
+          <Play class="w-4 h-4 fill-zinc-400 group-hover:fill-white transition-colors" />
+          运行
+        </button>
+
+        <button
+          @click="handleSubmit"
+          :disabled="isRunning || isSubmitting"
+          class="px-8 py-2 rounded-lg bg-[#FF4C00] text-white font-bold text-sm flex items-center gap-2 shadow-[0_0_15px_rgba(255,76,0,0.3)] hover:shadow-[0_0_25px_rgba(255,76,0,0.5)] hover:bg-[#ff5f1f] transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+        >
+          <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+          <CloudUpload v-else class="w-4 h-4" />
+          {{ isSubmitting ? '提交中...' : '提交' }}
+        </button>
+      </div>
+    </div>
+
+    <JudgePanel
+      :show="showJudgePanel"
+      :status="judgeStatus"
+      :checkpoints="checkpoints"
+      mode="practice"
+      @close="showJudgePanel = false"
+      @to-problems="router.push('/problems')"
+      @next-problem="router.push('/problems/2')"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { Splitpanes, Pane } from 'splitpanes'
+import 'splitpanes/dist/splitpanes.css'
+import {
+  ChevronDown,
+  ChevronUp,
+  Play,
+  CloudUpload,
+  SquareTerminal,
+  Plus,
+  Terminal,
+  FlaskConical,
+  Loader2,
+  X,
+} from 'lucide-vue-next'
+import CodeEditor from '@/components/code/CodeEditor.vue'
+import JudgePanel from '@/components/code/JudgePanel.vue'
+
+// --- Interfaces & Types ---
+interface TestCase {
+  inputs: Record<string, string>
+}
+
+type RunStatus = 'AC' | 'WA' | 'ERROR'
+
+interface RunResult {
+  status: RunStatus
+  input: string
+  output: string
+  expected: string
+  runtime: string
+}
+
+type CheckpointStatus = 'pending' | 'running' | 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE'
+
+interface Checkpoint {
+  id: number
+  status: CheckpointStatus
+  time?: number
+}
+
+const router = useRouter()
+const modelValue = defineModel<string>({ required: true })
+
+defineProps<{
+  isMaximized?: boolean
+}>()
+
+const emit = defineEmits(['toggle-maximize', 'success'])
+
+// Console & Layout
+const isConsoleOpen = ref(true)
+const paneSizes = reactive({ editor: 70, console: 30 })
+const lastConsoleSize = ref(30)
+const activeConsoleTab = ref<'testcase' | 'result'>('testcase')
+
+// Test Cases
+const testCases = ref<TestCase[]>([
+  { inputs: { nums: '[2,7,11,15]', target: '9' } },
+  { inputs: { nums: '[3,2,4]', target: '6' } },
+  { inputs: { nums: '[3,3]', target: '6' } },
+])
+const activeCaseIndex = ref(0)
+
+// Execution Results
+const isRunning = ref(false)
+const isSubmitting = ref(false)
+const runResults = ref<RunResult[]>([])
+const activeResultIndex = ref(0)
+
+// Judge Panel State
+const showJudgePanel = ref(false)
+const judgeStatus = ref<'judging' | 'accepted' | 'rejected'>('judging')
+const checkpoints = ref<Checkpoint[]>([])
+
+// --- Actions ---
+const handleResize = (event: { min: number; max: number; size: number }[]) => {
+  if (event && event.length >= 2 && event[0] && event[1]) {
+    paneSizes.editor = event[0].size
+    paneSizes.console = event[1].size
+    if (paneSizes.console > 5) {
+      lastConsoleSize.value = paneSizes.console
+    } else {
+      toggleConsole()
+    }
+  }
+}
+
+const toggleConsole = () => {
+  if (isConsoleOpen.value) {
+    isConsoleOpen.value = false
+    paneSizes.editor = 100
+    paneSizes.console = 0
+  } else {
+    isConsoleOpen.value = true
+    const targetSize = lastConsoleSize.value < 10 ? 30 : lastConsoleSize.value
+    paneSizes.editor = 100 - targetSize
+    paneSizes.console = targetSize
+  }
+}
+
+const handleAddTestCase = () => {
+  const newInputs: Record<string, string> = {}
+  if (testCases.value.length > 0) {
+    Object.keys(testCases.value[0].inputs).forEach((key) => {
+      newInputs[key] = ''
+    })
+  } else {
+    newInputs['param'] = ''
+  }
+  testCases.value.push({ inputs: newInputs })
+  activeCaseIndex.value = testCases.value.length - 1
+}
+
+const handleRemoveTestCase = (index: number) => {
+  if (testCases.value.length <= 1) return
+  testCases.value.splice(index, 1)
+  if (activeCaseIndex.value >= testCases.value.length) {
+    activeCaseIndex.value = testCases.value.length - 1
+  } else if (activeCaseIndex.value > index) {
+    activeCaseIndex.value--
+  }
+}
+
+const handleRun = () => {
+  if (isRunning.value) return
+  if (!isConsoleOpen.value) toggleConsole()
+  activeConsoleTab.value = 'result'
+  isRunning.value = true
+  runResults.value = []
+  activeResultIndex.value = 0
+
+  setTimeout(() => {
+    isRunning.value = false
+    runResults.value = testCases.value.map((tc, idx) => {
+      let expected = '[0, 1]'
+      if (idx === 1) expected = '[1, 2]'
+      if (idx === 2) expected = '[0, 1]'
+      const isPass = Math.random() > 0.4
+      return {
+        status: isPass ? 'AC' : 'WA',
+        input: formatInput(tc.inputs),
+        output: isPass ? expected : '[0, 0]',
+        expected: expected,
+        runtime: `${Math.floor(Math.random() * 5) + 1}ms`,
+      }
+    })
+  }, 1200)
+}
+
+// === 核心: 提交并触发沉浸式雷达判题 ===
+const handleSubmit = async () => {
+  if (isSubmitting.value) return
+
+  showJudgePanel.value = true
+  judgeStatus.value = 'judging'
+  isSubmitting.value = true
+
+  // 初始化 20 个检查点
+  checkpoints.value = Array.from({ length: 20 }, (_, i) => ({
+    id: i + 1,
+    status: 'pending' as CheckpointStatus,
+  }))
+
+  let hasError = false
+
+  // 模拟流式判题过程
+  for (let i = 0; i < checkpoints.value.length; i++) {
+    checkpoints.value[i].status = 'running'
+    await new Promise((r) => setTimeout(r, 150)) // 模拟网络与执行耗时
+
+    const isPass = Math.random() > 0.15 // 85% 概率通过
+
+    if (isPass) {
+      checkpoints.value[i].status = 'AC'
+      checkpoints.value[i].time = Math.floor(Math.random() * 8) + 1
+    } else {
+      const errors: CheckpointStatus[] = ['WA', 'TLE', 'MLE', 'RE']
+      checkpoints.value[i].status = errors[Math.floor(Math.random() * errors.length)]
+      checkpoints.value[i].time = Math.floor(Math.random() * 40) + 10
+      hasError = true
+    }
+  }
+
+  isSubmitting.value = false
+  judgeStatus.value = hasError ? 'rejected' : 'accepted'
+
+  if (!hasError) {
+    emit('success') // 通知顶部停止计时
+  }
+}
+
+// --- Helpers ---
+const getStatusText = (status: RunStatus) => {
+  if (status === 'AC') return 'Accepted'
+  if (status === 'WA') return 'Wrong Answer'
+  return 'Runtime Error'
+}
+
+const formatInput = (inputs?: Record<string, string>) => {
+  if (!inputs) return 'N/A'
+  return Object.entries(inputs)
+    .map(([k, v]) => `${k} = ${v || 'null'}`)
+    .join('\n')
+}
+</script>
+
+<style scoped>
+:deep(.splitpanes__pane) {
+  overflow: hidden;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

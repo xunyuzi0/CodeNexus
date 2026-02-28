@@ -80,10 +80,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { X } from 'lucide-vue-next'
-// [Updated] 引入封装后的 storage 工具
 import { storage } from '@/utils/storage'
 
 const router = useRouter()
@@ -96,13 +95,35 @@ const isCanceled = ref(false)
 let matchTimer: number | null = null
 let redirectTimer: number | null = null
 
-// [新增] 检查匹配会话有效性 (验票逻辑)
+// [Refactor] 集中清理逻辑，防止幽灵跳转
+const cleanup = () => {
+  isCanceled.value = true
+
+  if (matchTimer) {
+    clearTimeout(matchTimer)
+    matchTimer = null
+  }
+
+  if (redirectTimer) {
+    clearTimeout(redirectTimer)
+    redirectTimer = null
+  }
+
+  // 确保离开页面时（无论是跳转大厅还是取消），匹配凭证都被销毁
+  storage.remove('MATCH_PENDING', 'session')
+}
+
+// [Refactor] 路由守卫：拦截所有离开行为
+// 无论是匹配成功跳转大厅，还是点击取消按钮，亦或是浏览器后退，都会触发此守卫
+onBeforeRouteLeave((to, from, next) => {
+  cleanup()
+  next()
+})
+
 const checkMatchSession = (): boolean => {
-  // 1. [Updated] 使用工具类检查是否存在凭证
   const hasTicket = storage.get<string>('MATCH_PENDING', 'session') === 'true'
 
   if (!hasTicket) {
-    // 2. 如果没有凭证，说明是直接 URL 访问，踢回并报错
     router.replace({
       path: '/arena',
       query: { error: 'MATCH_INVALID' },
@@ -110,7 +131,7 @@ const checkMatchSession = (): boolean => {
     return false
   }
 
-  // 3. 验票通过，[Updated] 使用工具类立即销毁凭证
+  // 验票通过。虽然 cleanup 会兜底清除，但为了逻辑严谨性，此处可先消费凭证
   storage.remove('MATCH_PENDING', 'session')
   return true
 }
@@ -132,7 +153,7 @@ onMounted(() => {
 
       const roomId = 'MATCH_' + Math.random().toString(36).substring(2, 6).toUpperCase()
 
-      // [Security]: 使用 replace 销毁"正在匹配"的历史记录
+      // [Security]: 跳转将触发 onBeforeRouteLeave，从而自动执行 cleanup
       router.replace({
         name: 'ArenaLobby',
         params: { roomId },
@@ -143,23 +164,12 @@ onMounted(() => {
 })
 
 const cancelMatch = () => {
-  isCanceled.value = true
-  if (matchTimer) clearTimeout(matchTimer)
-  if (redirectTimer) clearTimeout(redirectTimer)
-
-  // [Updated] 手动取消，使用工具类清理 session
-  storage.remove('MATCH_PENDING', 'session')
-
-  // [Security]: 取消匹配也使用 replace
+  // [Refactor] 简化逻辑：直接触发路由跳转，依赖路由守卫执行清理
   router.replace('/arena')
 }
 
 onUnmounted(() => {
-  isCanceled.value = true
-  if (matchTimer) clearTimeout(matchTimer)
-  if (redirectTimer) clearTimeout(redirectTimer)
-
-  // [Updated] 组件销毁时兜底清理
-  storage.remove('MATCH_PENDING', 'session')
+  // [Security] 兜底清理，防止路由守卫未覆盖的极端情况
+  cleanup()
 })
 </script>

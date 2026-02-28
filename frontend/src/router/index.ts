@@ -1,3 +1,5 @@
+// src/router/index.ts
+
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import BasicLayout from '@/layouts/BasicLayout.vue'
 
@@ -29,14 +31,9 @@ const routes: RouteRecordRaw[] = [
         path: 'favorites/:id',
         name: 'FavoritesDetail',
         component: () => import('@/views/favorites/Detail.vue'),
-        meta: { title: '收藏详情', hidden: true }, // hidden: true 表示不显示在侧边栏自动生成的菜单中(如果有的话)
+        meta: { title: '收藏详情', hidden: true },
       },
-      {
-        path: 'problems/:id',
-        name: 'ProblemDetail',
-        component: () => import('@/views/problem/Detail.vue'),
-        meta: { title: '题目详情', hidden: true },
-      },
+      // [REMOVED]: ProblemDetail moved to root level
       {
         path: 'arena',
         name: 'ArenaIndex',
@@ -57,6 +54,13 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // [NEW]: 独立的全屏刷题路由
+  {
+    path: '/problems/:id',
+    name: 'ProblemDetail',
+    component: () => import('@/views/problem/Detail.vue'),
+    meta: { title: '沉浸刷题', hidden: true },
+  },
   {
     path: '/login',
     name: 'Login',
@@ -68,13 +72,12 @@ const routes: RouteRecordRaw[] = [
     redirect: '/404',
     meta: { hidden: true },
   },
-  // [REFACTORED] 沉浸式战斗布局，路径变更为 /battle
   {
     path: '/battle',
     component: () => import('@/layouts/ArenaLayout.vue'),
     children: [
       {
-        path: 'matchmaking', //  匹配界面
+        path: 'matchmaking',
         name: 'ArenaMatchmaking',
         component: () => import('@/views/arena/Matchmaking.vue'),
         meta: { title: '正在匹配...' },
@@ -86,7 +89,7 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '备战大厅' },
       },
       {
-        path: 'room/:roomId', // 修改 battle 路径名称以避免混淆
+        path: 'room/:roomId',
         name: 'ArenaBattle',
         component: () => import('@/views/arena/BattleRoom.vue'),
         meta: { title: 'Code Battle' },
