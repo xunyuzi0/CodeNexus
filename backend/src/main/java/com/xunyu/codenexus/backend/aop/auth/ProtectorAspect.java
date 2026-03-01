@@ -41,13 +41,14 @@ public class ProtectorAspect {
         AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, "用户不存在");
 
         // 3. 校验用户是否被封号
-        AssertUtil.notEquals(user.getUserRole(), UserRoleEnum.BAN,
+        // 修复：剔除了错误混入的 UpdatePreferenceRequest 代码
+        AssertUtil.notEquals(user.getRole(), UserRoleEnum.BAN.getValue(),
                 ResultCode.USER_ACCOUNT_FORBIDDEN, "账号已被封禁");
 
         // 4. 校验权限等级
         // 如果需要 ADMIN，但当前用户不是 ADMIN
         UserRoleEnum requiredRole = protector.role();
-        boolean isForbidden = (requiredRole == UserRoleEnum.ADMIN && user.getUserRole() != UserRoleEnum.ADMIN);
+        boolean isForbidden = (requiredRole == UserRoleEnum.ADMIN && !UserRoleEnum.ADMIN.getValue().equals(user.getRole()));
         AssertUtil.isFalse(isForbidden, ResultCode.FORBIDDEN, "权限不足");
 
         // 5. 放行

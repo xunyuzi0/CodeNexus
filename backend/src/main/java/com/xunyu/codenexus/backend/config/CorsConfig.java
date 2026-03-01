@@ -23,7 +23,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 // 允许所有域名
                 .allowedOriginPatterns("*")
                 // 允许的方法
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 // 允许所有的请求头
                 .allowedHeaders("*")
                 // 允许所有的响应头

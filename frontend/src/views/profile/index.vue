@@ -16,10 +16,7 @@
             @click="showAvatarDialog = true"
           >
             <img
-              :src="
-                userStore.userInfo?.userAvatar ||
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
-              "
+              :src="userStore.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'"
               class="w-full h-full rounded-full object-cover"
             />
             <div
@@ -35,32 +32,32 @@
 
         <div class="text-center md:text-left flex-1 min-w-0">
           <h1 class="text-3xl font-black text-white mb-2 tracking-tight">
-            {{ userStore.userInfo?.userName || userStore.nickname }}
+            {{ userStore.nickname }}
           </h1>
           <div
             class="flex items-center justify-center md:justify-start gap-4 text-zinc-400 text-sm font-mono"
           >
             <span class="flex items-center gap-2">
               <span class="text-zinc-500 font-bold">ID:</span>
-              <span class="text-zinc-300">{{ userStore.userInfo?.userAccount || 'Guest' }}</span>
+              <span class="text-zinc-300">{{ displayAccount }}</span>
             </span>
             <span class="w-1 h-1 bg-zinc-600 rounded-full shrink-0"></span>
             <span
               class="truncate max-w-[200px] md:max-w-[500px] text-zinc-500 italic"
-              :title="userStore.userInfo?.userProfile"
+              :title="displayBio"
             >
-              {{ userStore.userInfo?.userProfile || '暂无个人简介' }}
+              {{ displayBio }}
             </span>
           </div>
         </div>
 
         <div class="flex gap-4 shrink-0">
           <div class="text-center px-6 py-2 bg-white/5 rounded-2xl border border-white/5">
-            <p class="text-2xl font-black text-[#FF4C00] font-mono">1,024</p>
+            <p class="text-2xl font-black text-[#FF4C00] font-mono">{{ displayRank }}</p>
             <p class="text-xs text-zinc-500 uppercase font-bold tracking-wider">排名</p>
           </div>
           <div class="text-center px-6 py-2 bg-white/5 rounded-2xl border border-white/5">
-            <p class="text-2xl font-black text-white font-mono">88%</p>
+            <p class="text-2xl font-black text-white font-mono">{{ displayWinRate }}</p>
             <p class="text-xs text-zinc-500 uppercase font-bold tracking-wider">胜率</p>
           </div>
         </div>
@@ -125,10 +122,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { User, Shield, Settings } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
-import ArenaDialog from '@/components/arena/ArenaDialog.vue' // 引入弹窗组件
+import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
 import ProfileTab from './tabs/ProfileTab.vue'
 import SecurityTab from './tabs/SecurityTab.vue'
@@ -143,11 +140,30 @@ const tabs = [
   { id: 'preferences', label: '偏好设置', icon: Settings },
 ]
 
+// --- 新增：兼容新老数据的计算属性 ---
+const displayAccount = computed(() => {
+  const info = userStore.userInfo as any
+  return info?.username || info?.userAccount || 'Guest'
+})
+
+const displayBio = computed(() => {
+  const info = userStore.userInfo as any
+  return info?.bio || info?.userProfile || '暂无个人简介'
+})
+
+const displayRank = computed(() => {
+  const info = userStore.userInfo as any
+  return info?.globalRank ? info.globalRank.toLocaleString() : '-'
+})
+
+const displayWinRate = computed(() => {
+  const info = userStore.userInfo as any
+  return info?.winRate ? `${info.winRate}%` : '-'
+})
+
 // --- Avatar Logic ---
 const showAvatarDialog = ref(false)
 const selectedAvatarSeed = ref('')
-
-// 预设头像种子
 const PRESET_AVATARS = [
   'Felix',
   'Aneka',
@@ -175,14 +191,12 @@ const getAvatarUrl = (seed: string) => `https://api.dicebear.com/7.x/avataaars/s
 
 const handleAvatarUpdate = () => {
   if (!selectedAvatarSeed.value) return
-
   const newAvatarUrl = getAvatarUrl(selectedAvatarSeed.value)
 
-  // Mock Update: 实际开发中应调用 API
+  // 目前仅在前端 mock 更新，实际需要调用 updateProfile API
   if (userStore.userInfo) {
-    userStore.userInfo.userAvatar = newAvatarUrl
+    ;(userStore.userInfo as any).avatarUrl = newAvatarUrl
   }
-
   showAvatarDialog.value = false
   selectedAvatarSeed.value = ''
 }
@@ -197,8 +211,6 @@ const handleAvatarUpdate = () => {
 .fade-leave-to {
   opacity: 0;
 }
-
-/* 自定义滚动条样式 */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

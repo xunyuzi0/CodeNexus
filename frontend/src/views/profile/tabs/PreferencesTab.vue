@@ -12,7 +12,6 @@
             currentTheme === theme.id
               ? 'bg-[#FF4C00]/10 border-[#FF4C00] shadow-[0_0_20px_rgba(255,76,0,0.1)]'
               : 'bg-zinc-900/50 border-white/5',
-            // [修改点 1]: 禁用状态使用透明度+灰度，移除遮罩层，提升视觉通透感
             theme.disabled
               ? 'opacity-30 grayscale cursor-not-allowed'
               : 'hover:border-white/20 hover:scale-[1.02]',
@@ -57,7 +56,6 @@
             currentLang === lang.id
               ? 'bg-white text-zinc-900 border-white shadow-lg'
               : 'bg-zinc-900/50 text-zinc-500 border-white/5',
-            // [修改点 3]: 语言选项同样应用新的禁用样式
             lang.disabled
               ? 'opacity-30 grayscale cursor-not-allowed'
               : 'hover:bg-white/5 hover:text-zinc-300',
@@ -67,11 +65,34 @@
         </button>
       </div>
     </div>
+
+    <div class="flex justify-end pt-4">
+      <button
+        @click="handleSave"
+        :disabled="saving"
+        class="flex items-center gap-2 px-8 py-3 bg-[#FF4C00] hover:bg-[#FF4C00]/90 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#FF4C00]/20 active:scale-95"
+      >
+        <Save v-if="!saving" class="w-5 h-5" />
+        <div
+          v-else
+          class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+        ></div>
+        <span>{{ saving ? '保存中...' : '保存配置' }}</span>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { Save } from 'lucide-vue-next'
+import { useUserStore } from '@/stores/user'
+import { useSettingsStore } from '@/stores/settings'
+import { updatePreferences } from '@/api/user'
+
+const userStore = useUserStore()
+const settingsStore = useSettingsStore()
+const saving = ref(false)
 
 const currentTheme = ref('vs-dark')
 const currentLang = ref('java')
@@ -83,20 +104,38 @@ interface OptionItem {
   disabled: boolean
 }
 
-// 主题选项
 const themes: OptionItem[] = [
   { id: 'vs-dark', name: 'VS Dark', color: '#1e1e1e', disabled: false },
   { id: 'monokai', name: 'Monokai', color: '#272822', disabled: true },
-  { id: 'github-light', name: 'Github Light', color: '#e1e1e1', disabled: true }, // 微调颜色以适应深色背景下的预览
+  { id: 'github-light', name: 'Github Light', color: '#e1e1e1', disabled: true },
   { id: 'dracula', name: 'Dracula', color: '#282a36', disabled: true },
 ]
 
-// 语言选项
 const languages: OptionItem[] = [
   { id: 'java', name: 'Java', disabled: false },
   { id: 'python', name: 'Python', disabled: true },
   { id: 'cpp', name: 'C++', disabled: true },
 ]
+
+// 数据回显逻辑
+onMounted(() => {
+  const prefs = (userStore.userInfo as any)?.preferences
+  if (prefs) {
+    currentTheme.value = prefs.editorTheme || 'vs-dark'
+    if (prefs.extraSettings) {
+      try {
+        const extra = JSON.parse(prefs.extraSettings)
+        if (extra.defaultLanguage) currentLang.value = extra.defaultLanguage
+      } catch (e) {
+        console.warn('Failed to parse extraSettings')
+      }
+    }
+  } else {
+    // 降级：如果云端没配过，取本地 settingsStore
+    currentTheme.value = settingsStore.settings.editorTheme || 'vs-dark'
+    currentLang.value = settingsStore.settings.defaultLanguage || 'java'
+  }
+})
 
 const selectTheme = (theme: OptionItem) => {
   if (theme.disabled) return
@@ -106,5 +145,29 @@ const selectTheme = (theme: OptionItem) => {
 const selectLang = (lang: OptionItem) => {
   if (lang.disabled) return
   currentLang.value = lang.id
+}
+
+// 提交云端并同步本地
+const handleSave = async () => {
+  saving.value = true
+  try {
+    await updatePreferences({
+      editorTheme: currentTheme.value,
+      fontSize: settingsStore.settings.editorFontSize || 14,
+      systemNotifications: 1, // 默认开启
+      extraSettings: JSON.stringify({ defaultLanguage: currentLang.value }),
+    })
+
+    // 同步到本地 Store (这会触发所有监听了 settingStore 的组件响应)
+    settingsStore.settings.editorTheme = currentTheme.value as any
+    settingsStore.settings.defaultLanguage = currentLang.value as any
+
+    // 刷新全量信息
+    await userStore.fetchUserProfile()
+  } catch (error) {
+    console.error('Update preferences failed:', error)
+  } finally {
+    saving.value = false
+  }
 }
 </script>

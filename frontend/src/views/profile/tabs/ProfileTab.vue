@@ -103,9 +103,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { User, Mail, Phone, FileText, Save } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
+import { updateProfile } from '@/api/user'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
 const userStore = useUserStore()
@@ -113,30 +114,48 @@ const saving = ref(false)
 const showDialog = ref(false)
 
 const formData = reactive({
-  userAccount: userStore.userInfo?.userAccount || '',
-  userName: userStore.userInfo?.userName || '',
-  email: (userStore.userInfo as any)?.email || '',
+  userAccount: '',
+  userName: '',
+  email: '',
   phone: '',
-  userProfile: userStore.userInfo?.userProfile || '', // 确保空字符串能显示 Placeholder
+  userProfile: '',
+})
+
+// 回显数据，兼容新老字段
+onMounted(() => {
+  const info = userStore.userInfo as any
+  if (info) {
+    formData.userAccount = info.userAccount || info.username || ''
+    formData.userName = info.nickname || info.userName || ''
+    formData.email = info.email || ''
+    formData.phone = info.phone || ''
+    formData.userProfile = info.bio || info.userProfile || ''
+  }
 })
 
 const handleSave = () => {
   showDialog.value = true
 }
 
-const confirmSave = () => {
+const confirmSave = async () => {
   showDialog.value = false
   saving.value = true
 
-  // Mock API Call
-  setTimeout(() => {
-    // 模拟更新 Store
-    if (userStore.userInfo) {
-      userStore.userInfo.userName = formData.userName
-      userStore.userInfo.userProfile = formData.userProfile
-    }
+  try {
+    // 映射表单字段到后端 DTO
+    await updateProfile({
+      nickname: formData.userName,
+      bio: formData.userProfile,
+      email: formData.email,
+      phone: formData.phone,
+    })
+
+    // 成功后重新拉取最新数据，刷新全局状态
+    await userStore.fetchUserProfile()
+  } catch (error) {
+    console.error('Update profile failed:', error)
+  } finally {
     saving.value = false
-    console.log('Profile Updated:', formData)
-  }, 1000)
+  }
 }
 </script>

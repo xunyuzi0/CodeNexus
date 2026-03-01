@@ -179,4 +179,11 @@ public class AssertUtil {
         }
     }
 
+
+    //补充
+    public static void equals(Object obj1, Object obj2, ResultCode resultCode, String message) {
+        if (!Objects.equals(obj1, obj2)) {
+            throwException(resultCode, message);
+        }
+    }
 }

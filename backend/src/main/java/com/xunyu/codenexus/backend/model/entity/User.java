@@ -1,78 +1,95 @@
 package com.xunyu.codenexus.backend.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
- * @author xunyu
- * @date 2026/1/11 19:53
- * @description: 用户表实体类
+ * 用户核心基础表实体类
+ *
+ * @author CodeNexusBuilder
  */
-@TableName(value = "user")
 @Data
+@TableName("user")
 public class User {
 
     /**
-     * id
-     * 使用 AUTO 自增策略，对应 MySQL 的 auto_increment
+     * 主键, 用户ID
      */
     @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
-     * 账号
+     * 登录账号
      */
-    private String userAccount;
+    private String username;
 
     /**
-     * 密码
+     * 密码哈希值 (绝对禁止明文)
      */
-    private String userPassword;
+    private String passwordHash;
+
+    /**
+     * 密码加密盐值
+     */
+    private String salt;
+
+    /**
+     * 角色权限 (USER/ADMIN)
+     */
+    private String role;
 
     /**
      * 用户昵称
      */
-    private String userName;
+    private String nickname;
 
     /**
-     * 用户头像
+     * 头像URL
      */
-    private String userAvatar;
+    private String avatarUrl;
 
     /**
-     * 用户简介
+     * 个人简介
      */
-    private String userProfile;
+    private String bio;
 
     /**
-     * 用户角色
-     * 使用枚举映射：数据库存 "user"/"admin"，Java代码直接用枚举
+     * 绑定邮箱
      */
-    private UserRoleEnum userRole;
+    private String email;
+
+    /**
+     * 绑定手机号
+     */
+    private String phone;
+
+    /**
+     * 全站全球排名
+     */
+    private Integer globalRank;
+
+    /**
+     * 对战胜率 (例如 88 代表 88%)
+     */
+    private Integer winRate;
 
     /**
      * 创建时间
-     * 对应数据库 datetime 类型
-     * fill = FieldFill.INSERT，插入时自动填充
      */
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     /**
      * 更新时间
-     * fill = FieldFill.INSERT_UPDATE，插入和更新时自动填充
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     /**
-     * 是否删除
-     * 逻辑删除：0-未删除，1-已删除
-     * 调用 deleteById 时，MyBatis Plus 会自动把该字段更新为 1
+     * 逻辑删除(0-未删除, 1-已删除)
      */
     @TableLogic
-    private Integer isDelete;
+    private Integer isDeleted;
 }

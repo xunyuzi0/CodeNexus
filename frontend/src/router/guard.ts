@@ -1,7 +1,7 @@
 /**
  * src/router/guard.ts
  * [修复版]
- * 优化了 NProgress 配置，解决刷新时的闪烁问题。
+ * 修复了刷新页面时调用的旧版 fetchUserInfo 方法名导致强行踢出的 Bug
  */
 
 import router from '@/router'
@@ -9,11 +9,6 @@ import { useUserStore } from '@/stores/user'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
-// [配置优化]
-// speed: 动画速度 (ms)
-// showSpinner: 不显示转圈
-// trickle: 设为 false 可以避免自动"慢慢走"，防止快速加载时的视觉跳动
-// minimum: 最小百分比
 NProgress.configure({
   showSpinner: false,
   speed: 400,
@@ -23,13 +18,11 @@ NProgress.configure({
 const whiteList = ['/login', '/register', '/404']
 
 router.beforeEach(async (to, from, next) => {
-  // 开启进度条
   NProgress.start()
 
   const userStore = useUserStore()
   const hasToken = userStore.token
 
-  // 动态标题
   const title = to.meta.title ? `${to.meta.title} - CodeNexus` : 'CodeNexus'
   document.title = title
 
@@ -42,9 +35,11 @@ router.beforeEach(async (to, from, next) => {
         next()
       } else {
         try {
-          await userStore.fetchUserInfo()
+          // 【修复点】：这里改为调用最新的 fetchUserProfile
+          await userStore.fetchUserProfile()
           next({ ...to, replace: true })
         } catch (error) {
+          console.error('[Router Guard] 获取用户信息失败，强制登出:', error)
           await userStore.logout()
           next(`/login?redirect=${to.path}`)
         }
@@ -60,6 +55,5 @@ router.beforeEach(async (to, from, next) => {
 })
 
 router.afterEach(() => {
-  // 结束进度条
   NProgress.done()
 })

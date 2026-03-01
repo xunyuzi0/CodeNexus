@@ -25,9 +25,14 @@
         />
         <button
           @click="onUpdatePassword"
-          class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all border border-white/5"
+          :disabled="isProcessing"
+          class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
         >
-          更新密码
+          <div
+            v-if="isProcessing && currentAction === 'UPDATE_PWD'"
+            class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+          ></div>
+          {{ isProcessing && currentAction === 'UPDATE_PWD' ? '处理中...' : '更新密码' }}
         </button>
       </div>
     </div>
@@ -47,9 +52,10 @@
         </div>
         <button
           @click="onDeleteAccount"
-          class="px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/50"
+          :disabled="isProcessing"
+          class="px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg text-sm font-bold transition-all border border-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          注销
+          {{ isProcessing && currentAction === 'DELETE_ACCOUNT' ? '注销中...' : '注销' }}
         </button>
       </div>
     </div>
@@ -67,8 +73,17 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { Lock, AlertTriangle } from 'lucide-vue-next'
+import { useUserStore } from '@/stores/user'
+import { updatePassword, deleteAccount } from '@/api/user'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
+
+const router = useRouter()
+const userStore = useUserStore()
+
+const isProcessing = ref(false)
+const currentAction = ref('')
 
 const pwdForm = reactive({
   old: '',
@@ -76,7 +91,6 @@ const pwdForm = reactive({
   confirm: '',
 })
 
-// [修改点 2]: 扩展 actionType 定义，增加 'ALERT'
 const dialogState = reactive({
   show: false,
   title: '',
@@ -86,7 +100,6 @@ const dialogState = reactive({
 
 // 点击更新密码
 const onUpdatePassword = () => {
-  // [修改点 3]: 移除原生 alert，改用 Dialog
   if (!pwdForm.old || !pwdForm.new || !pwdForm.confirm) {
     dialogState.title = '校验失败'
     dialogState.content = '请完整填写当前密码、新密码及确认密码。'
@@ -94,6 +107,16 @@ const onUpdatePassword = () => {
     dialogState.show = true
     return
   }
+
+  // 【新增】密码长度校验
+  if (pwdForm.new.length < 8) {
+    dialogState.title = '密码强度不足'
+    dialogState.content = '新密码长度必须至少为 8 个字符，请重新输入。'
+    dialogState.actionType = 'ALERT'
+    dialogState.show = true
+    return
+  }
+
   if (pwdForm.new !== pwdForm.confirm) {
     dialogState.title = '校验失败'
     dialogState.content = '两次输入的新密码不一致，请重新输入。'
@@ -103,7 +126,8 @@ const onUpdatePassword = () => {
   }
 
   dialogState.title = '更新安全设置'
-  dialogState.content = '您正在修改账户密码。修改成功后，由于安全策略，您可能需要重新登录。'
+  dialogState.content =
+    '您正在修改账户密码。修改成功后，系统将退出当前会话，您需要使用新密码重新登录。'
   dialogState.actionType = 'UPDATE_PWD'
   dialogState.show = true
 }
@@ -118,22 +142,39 @@ const onDeleteAccount = () => {
 }
 
 // 统一确认处理
-const handleConfirm = () => {
+const handleConfirm = async () => {
   dialogState.show = false
 
-  // [修改点 4]: 仅处理实际业务逻辑，ALERT 类型仅关闭弹窗
-  if (dialogState.actionType === 'UPDATE_PWD') {
-    console.log('Password updating...')
-    // 模拟 API 成功
-    setTimeout(() => {
-      pwdForm.old = ''
-      pwdForm.new = ''
-      pwdForm.confirm = ''
-    }, 500)
-  } else if (dialogState.actionType === 'DELETE_ACCOUNT') {
-    console.log('Account deleting...')
-    // 模拟注销跳转
-    window.location.href = '/'
+  if (dialogState.actionType === 'ALERT') {
+    return
+  }
+
+  isProcessing.value = true
+  currentAction.value = dialogState.actionType
+
+  try {
+    if (dialogState.actionType === 'UPDATE_PWD') {
+      await updatePassword({
+        oldPassword: pwdForm.old,
+        newPassword: pwdForm.new,
+      })
+      // 成功后强制登出
+      await userStore.logout()
+      router.push('/login')
+    } else if (dialogState.actionType === 'DELETE_ACCOUNT') {
+      await deleteAccount()
+      // 成功后强制登出
+      await userStore.logout()
+      router.push('/login')
+    }
+  } catch (error) {
+    console.error('Security action failed:', error)
+  } finally {
+    isProcessing.value = false
+    currentAction.value = ''
+    pwdForm.old = ''
+    pwdForm.new = ''
+    pwdForm.confirm = ''
   }
 }
 </script>
