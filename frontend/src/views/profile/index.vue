@@ -96,8 +96,8 @@
     <ArenaDialog
       v-model="showAvatarDialog"
       title="选择指挥官头像"
-      :confirm-text="selectedAvatarSeed ? '确认更换' : '请选择'"
-      :confirm-disabled="!selectedAvatarSeed"
+      :confirm-text="isUpdatingAvatar ? '更新中...' : selectedAvatarSeed ? '确认更换' : '请选择'"
+      :confirm-disabled="!selectedAvatarSeed || isUpdatingAvatar"
       @confirm="handleAvatarUpdate"
     >
       <div class="max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
@@ -125,6 +125,7 @@
 import { ref, computed } from 'vue'
 import { User, Shield, Settings } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
+import { updateProfile } from '@/api/user' // [新增] 引入真实接口
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
 import ProfileTab from './tabs/ProfileTab.vue'
@@ -140,7 +141,7 @@ const tabs = [
   { id: 'preferences', label: '偏好设置', icon: Settings },
 ]
 
-// --- 新增：兼容新老数据的计算属性 ---
+// --- 兼容新老数据的计算属性 ---
 const displayAccount = computed(() => {
   const info = userStore.userInfo as any
   return info?.username || info?.userAccount || 'Guest'
@@ -161,9 +162,11 @@ const displayWinRate = computed(() => {
   return info?.winRate ? `${info.winRate}%` : '-'
 })
 
-// --- Avatar Logic ---
+// --- 头像逻辑 (已接入真实后端) ---
 const showAvatarDialog = ref(false)
 const selectedAvatarSeed = ref('')
+const isUpdatingAvatar = ref(false) // [新增] 防止重复提交状态
+
 const PRESET_AVATARS = [
   'Felix',
   'Aneka',
@@ -189,16 +192,28 @@ const PRESET_AVATARS = [
 
 const getAvatarUrl = (seed: string) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
 
-const handleAvatarUpdate = () => {
+// [关键修改]: 将该函数改为异步请求并处理后端联调逻辑
+const handleAvatarUpdate = async () => {
   if (!selectedAvatarSeed.value) return
-  const newAvatarUrl = getAvatarUrl(selectedAvatarSeed.value)
 
-  // 目前仅在前端 mock 更新，实际需要调用 updateProfile API
-  if (userStore.userInfo) {
-    ;(userStore.userInfo as any).avatarUrl = newAvatarUrl
+  const newAvatarUrl = getAvatarUrl(selectedAvatarSeed.value)
+  isUpdatingAvatar.value = true
+
+  try {
+    // 1. 调用真实接口发送更新请求 (通过 PATCH 或 PUT 到后端)
+    await updateProfile({ avatarUrl: newAvatarUrl })
+
+    // 2. 更新成功后，必须重新拉取最新信息，以触发全局的头像同步刷新
+    await userStore.fetchUserProfile()
+
+    // 3. 关闭弹窗并重置状态
+    showAvatarDialog.value = false
+    selectedAvatarSeed.value = ''
+  } catch (error) {
+    console.error('[Nexus Profile] 更换头像失败:', error)
+  } finally {
+    isUpdatingAvatar.value = false
   }
-  showAvatarDialog.value = false
-  selectedAvatarSeed.value = ''
 }
 </script>
 

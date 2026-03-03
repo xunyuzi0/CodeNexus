@@ -66,6 +66,11 @@ public class User {
     private String phone;
 
     /**
+     * 战力积分/天梯分(默认1500)
+     */
+    private Integer ratingScore;
+
+    /**
      * 全站全球排名
      */
     private Integer globalRank;
