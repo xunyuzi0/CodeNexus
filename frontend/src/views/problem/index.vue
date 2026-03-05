@@ -226,92 +226,109 @@
       </button>
     </div>
 
-    <Transition name="fade">
-      <button
-        v-if="y > 300"
-        @click="scrollToTop"
-        class="fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full bg-[#FF4C00] shadow-[0_0_20px_#FF4C00] text-white flex items-center justify-center hover:bg-[#ff6b2b] hover:scale-110 active:scale-95 transition-all duration-300"
-      >
-        <ArrowUp class="w-6 h-6" />
-      </button>
-    </Transition>
-
     <ArenaDialog
       v-model="collectDialog.show"
-      :title="collectDialog.selectedFolder ? '收藏题目' : '移除收藏'"
-      :confirm-text="collectDialog.selectedFolder ? '确认收藏' : '确认移除'"
+      :title="collectDialog.selectedFolderId ? '收藏题目' : '移除收藏'"
+      :confirm-text="
+        collectDialog.selectedFolderId
+          ? isSubmitting
+            ? '处理中...'
+            : '确认收藏'
+          : isSubmitting
+            ? '处理中...'
+            : '确认移除'
+      "
       @confirm="confirmCollect"
     >
-      <div class="flex flex-col gap-4">
-        <p class="text-xs text-zinc-500">
-          {{ collectDialog.selectedFolder ? '已选择文件夹：' : '请选择目标文件夹：' }}
-        </p>
-
-        <div class="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+      <div class="flex flex-col gap-4 min-h-[150px]">
+        <div v-if="collectDialog.loading" class="flex-1 flex items-center justify-center">
           <div
-            v-for="folder in collectDialog.folders"
-            :key="folder"
-            @click="toggleFolderSelection(folder)"
-            class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all select-none group"
-            :class="
-              collectDialog.selectedFolder === folder
-                ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
-                : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/10'
-            "
-          >
-            <div class="flex items-center gap-3">
-              <Folder
-                class="w-4 h-4 transition-colors"
-                :class="
-                  collectDialog.selectedFolder === folder
-                    ? 'text-[#FF4C00]'
-                    : 'text-zinc-600 group-hover:text-zinc-400'
-                "
-              />
-              <span class="text-sm font-medium">{{ folder }}</span>
-            </div>
-
-            <div class="relative w-4 h-4 flex items-center justify-center">
-              <transition name="scale">
-                <div
-                  v-if="collectDialog.selectedFolder === folder"
-                  class="w-4 h-4 rounded-full bg-[#FF4C00] flex items-center justify-center"
-                >
-                  <Check class="w-2.5 h-2.5 text-white" />
-                </div>
-                <div
-                  v-else
-                  class="w-4 h-4 rounded-full border border-zinc-700 group-hover:border-zinc-500"
-                ></div>
-              </transition>
-            </div>
-          </div>
+            class="w-6 h-6 border-2 border-zinc-800 border-t-[#FF4C00] rounded-full animate-spin"
+          ></div>
         </div>
 
-        <div class="w-full h-[1px] bg-white/5 my-1"></div>
+        <template v-else>
+          <div class="flex justify-between items-end">
+            <p class="text-xs text-zinc-500">
+              {{
+                collectDialog.selectedFolderId
+                  ? '已选择文件夹：'
+                  : '请选择目标文件夹（取消勾选即为移除）：'
+              }}
+            </p>
+          </div>
 
-        <div class="space-y-2">
-          <p class="text-xs text-zinc-500">或新建文件夹：</p>
-          <div class="flex gap-2">
-            <div class="relative flex-1">
-              <Plus class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input
-                v-model="collectDialog.newFolderName"
-                type="text"
-                placeholder="例如：面试冲刺 (回车创建)"
-                class="w-full bg-zinc-900/50 border border-zinc-700 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-600"
-                @keyup.enter="handleCreateFolder"
-              />
-            </div>
-            <button
-              @click="handleCreateFolder"
-              :disabled="!collectDialog.newFolderName.trim()"
-              class="px-3 py-2 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-[#FF4C00] transition-all disabled:opacity-50 disabled:hover:bg-zinc-800 disabled:hover:text-zinc-400"
+          <p v-if="errorMessage" class="text-xs text-red-500 font-bold animate-pulse">
+            {{ errorMessage }}
+          </p>
+
+          <div class="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+            <div
+              v-for="folder in collectDialog.folders"
+              :key="folder.id"
+              @click="toggleFolderSelection(folder.id)"
+              class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all select-none group"
+              :class="
+                collectDialog.selectedFolderId === folder.id
+                  ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
+                  : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/10'
+              "
             >
-              创建
-            </button>
+              <div class="flex items-center gap-3">
+                <Folder
+                  class="w-4 h-4 transition-colors"
+                  :class="
+                    collectDialog.selectedFolderId === folder.id
+                      ? 'text-[#FF4C00]'
+                      : 'text-zinc-600 group-hover:text-zinc-400'
+                  "
+                />
+                <span class="text-sm font-medium">{{ folder.name }}</span>
+              </div>
+
+              <div class="relative w-4 h-4 flex items-center justify-center">
+                <transition name="scale">
+                  <div
+                    v-if="collectDialog.selectedFolderId === folder.id"
+                    class="w-4 h-4 rounded-full bg-[#FF4C00] flex items-center justify-center"
+                  >
+                    <Check class="w-2.5 h-2.5 text-white" />
+                  </div>
+                  <div
+                    v-else
+                    class="w-4 h-4 rounded-full border border-zinc-700 group-hover:border-zinc-500"
+                  ></div>
+                </transition>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <div class="w-full h-[1px] bg-white/5 my-1"></div>
+
+          <div class="space-y-2">
+            <p class="text-xs text-zinc-500">或新建文件夹：</p>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <Plus class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  v-model="collectDialog.newFolderName"
+                  type="text"
+                  :disabled="isSubmitting"
+                  placeholder="例如：面试冲刺 (回车创建)"
+                  class="w-full bg-zinc-900/50 border border-zinc-700 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-600 disabled:opacity-50"
+                  @keyup.enter="handleCreateFolder"
+                />
+              </div>
+              <button
+                @click="handleCreateFolder"
+                :disabled="!collectDialog.newFolderName.trim() || isSubmitting"
+                class="px-3 py-2 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-[#FF4C00] transition-all disabled:opacity-50 disabled:hover:bg-zinc-800 disabled:hover:text-zinc-400"
+              >
+                创建
+              </button>
+            </div>
+          </div>
+        </template>
       </div>
     </ArenaDialog>
   </div>
@@ -338,12 +355,22 @@ import {
   Check,
 } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
+
+// API 引入
 import {
   getProblemList,
   type Problem,
   type ProblemQuery,
   type ProblemDifficulty,
 } from '@/api/problem'
+import {
+  getFolders,
+  createFolder,
+  addFavoriteProblem,
+  removeFavoriteProblem,
+  getFolderDetail,
+  type FavoriteFolder,
+} from '@/api/favorites'
 
 const router = useRouter()
 
@@ -355,17 +382,17 @@ const { y } = useScroll(scrollContainer)
 const loading = ref(false)
 const problemList = ref<Problem[]>([])
 const totalProblems = ref(0)
-// [修改]: 使用 Map 存储 <ProblemId, FolderName>，解决回显问题
-const collectedMap = ref<Map<number, string>>(new Map())
+
+// 维护本地 UI 收藏状态
+const collectedMap = ref<Map<number, FavoriteFolder>>(new Map())
 
 const queryParams = reactive<ProblemQuery>({
   pageNum: 1,
-  pageSize: 10, // [修改]: 分页改为10条/页
+  pageSize: 10,
   keyword: '',
   difficulty: '',
 })
 
-// 计算 totalPages
 const totalPages = computed(() => {
   return Math.ceil(totalProblems.value / queryParams.pageSize) || 0
 })
@@ -373,11 +400,15 @@ const totalPages = computed(() => {
 // --- Collection Dialog State ---
 const collectDialog = reactive({
   show: false,
+  loading: false,
   currentProblemId: -1,
-  selectedFolder: null as string | null,
+  selectedFolderId: null as number | null,
   newFolderName: '',
-  folders: ['默认收藏夹', '动态规划精选', '面试冲刺 100 题', '每日一练'],
+  folders: [] as FavoriteFolder[],
 })
+
+const isSubmitting = ref(false)
+const errorMessage = ref('')
 
 // --- Configurations ---
 const difficultyOptions: { label: string; value: ProblemDifficulty | ''; activeClass: string }[] = [
@@ -430,6 +461,26 @@ const fetchData = async () => {
   }
 }
 
+const syncFavoriteStatus = async () => {
+  try {
+    const resFolders = await getFolders()
+    const map = new Map<number, FavoriteFolder>()
+
+    const promises = resFolders.map((folder) => getFolderDetail(folder.id))
+    const folderDetails = await Promise.all(promises)
+
+    folderDetails.forEach((detail) => {
+      detail.list.forEach((problem) => {
+        map.set(problem.id, detail.folder)
+      })
+    })
+
+    collectedMap.value = new Map(map) // 【强制替换响应式源】
+  } catch (error) {
+    console.warn('同步收藏状态失败', error)
+  }
+}
+
 const handleSearch = useDebounceFn(() => {
   queryParams.pageNum = 1
   fetchData()
@@ -442,13 +493,9 @@ const handleFilter = (difficulty: ProblemDifficulty | '') => {
 }
 
 const handleEnterProblem = (id: number) => {
-  router.push({
-    name: 'ProblemDetail',
-    params: { id: id.toString() },
-  })
+  router.push({ name: 'ProblemDetail', params: { id: id.toString() } })
 }
 
-// --- Pagination Logic ---
 const handlePageChange = (page: number) => {
   if (page < 1 || page > totalPages.value) return
   queryParams.pageNum = page
@@ -456,7 +503,6 @@ const handlePageChange = (page: number) => {
   scrollToTop()
 }
 
-// --- Back to Top Logic ---
 const scrollToTop = () => {
   if (scrollContainer.value) {
     scrollContainer.value.scrollTo({ top: 0, behavior: 'smooth' })
@@ -465,79 +511,112 @@ const scrollToTop = () => {
   }
 }
 
-// --- Collection Logic (Updated) ---
-
-// 判断是否收藏 (Map 检查)
 const isCollected = (id: number) => collectedMap.value.has(id)
 
-const openCollectDialog = (id: number) => {
+const openCollectDialog = async (id: number) => {
+  errorMessage.value = '' // 清除旧错误
   collectDialog.currentProblemId = id
-
-  // [修改]: 根据 Map 中存储的文件夹名称进行回显
-  // 如果 map 中有记录，则选中对应的文件夹；否则置空
-  if (collectedMap.value.has(id)) {
-    collectDialog.selectedFolder = collectedMap.value.get(id) || null
-  } else {
-    collectDialog.selectedFolder = null
-  }
-
   collectDialog.show = true
+  collectDialog.loading = true
   collectDialog.newFolderName = ''
-}
 
-// 切换选中状态
-const toggleFolderSelection = (folder: string) => {
-  if (collectDialog.selectedFolder === folder) {
-    collectDialog.selectedFolder = null // 取消选中
-  } else {
-    collectDialog.selectedFolder = folder // 选中
-  }
-}
+  try {
+    const resFolders = await getFolders()
+    collectDialog.folders = resFolders
 
-// 创建文件夹
-const handleCreateFolder = () => {
-  const name = collectDialog.newFolderName.trim()
-  if (!name) return
-
-  if (!collectDialog.folders.includes(name)) {
-    collectDialog.folders.push(name)
-  }
-
-  // 自动选中并清空输入
-  collectDialog.selectedFolder = name
-  collectDialog.newFolderName = ''
-}
-
-// 确认逻辑
-const confirmCollect = () => {
-  const targetId = collectDialog.currentProblemId
-  const folderName = collectDialog.selectedFolder
-
-  if (folderName) {
-    // 逻辑 A: 执行收藏 (或更新收藏夹)
-    // [修改]: 将关系存入 Map
-    console.log(`Adding problem ${targetId} to ${folderName}`)
-    setTimeout(() => {
-      collectedMap.value.set(targetId, folderName)
-      collectDialog.show = false
-    }, 200)
-  } else {
-    // 逻辑 B: 执行取消收藏
-    if (isCollected(targetId)) {
-      console.log(`Removing problem ${targetId} from favorites`)
-      setTimeout(() => {
-        collectedMap.value.delete(targetId)
-        collectDialog.show = false
-      }, 200)
+    if (collectedMap.value.has(id)) {
+      const folder = collectedMap.value.get(id)
+      collectDialog.selectedFolderId = folder ? folder.id : null
     } else {
-      collectDialog.show = false
+      collectDialog.selectedFolderId = null
     }
+  } catch (error) {
+    console.error('获取收藏夹失败', error)
+  } finally {
+    collectDialog.loading = false
+  }
+}
+
+const toggleFolderSelection = (folderId: number) => {
+  if (collectDialog.selectedFolderId === folderId) {
+    collectDialog.selectedFolderId = null
+  } else {
+    collectDialog.selectedFolderId = folderId
+  }
+}
+
+const handleCreateFolder = async () => {
+  const name = collectDialog.newFolderName.trim()
+  if (!name || isSubmitting.value) return
+
+  isSubmitting.value = true
+  errorMessage.value = ''
+
+  try {
+    const newFolder = await createFolder(name)
+    collectDialog.folders.push(newFolder)
+    collectDialog.selectedFolderId = newFolder.id
+    collectDialog.newFolderName = ''
+  } catch (error: any) {
+    console.error('新建文件夹失败', error)
+    errorMessage.value = error.message || '新建夹失败，请重试'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// 【修复核心】：加入了 isSubmitting 和强力响应式 Map 克隆
+const confirmCollect = async () => {
+  if (isSubmitting.value) return
+
+  const targetId = collectDialog.currentProblemId
+  const newFolderId = collectDialog.selectedFolderId
+  const oldFolder = collectedMap.value.get(targetId)
+
+  isSubmitting.value = true
+  errorMessage.value = ''
+
+  try {
+    if (newFolderId) {
+      if (oldFolder && oldFolder.id !== newFolderId) {
+        await removeFavoriteProblem(oldFolder.id, targetId)
+      }
+      if (!oldFolder || oldFolder.id !== newFolderId) {
+        await addFavoriteProblem(newFolderId, targetId)
+      }
+
+      const selectedFolderObj = collectDialog.folders.find((f) => f.id === newFolderId)
+      if (selectedFolderObj) {
+        // 【解决响应式丢失】：每次更新都创建新的 Map
+        const updatedMap = new Map(collectedMap.value)
+        updatedMap.set(targetId, selectedFolderObj)
+        collectedMap.value = updatedMap
+      }
+    } else {
+      if (oldFolder) {
+        await removeFavoriteProblem(oldFolder.id, targetId)
+        // 【解决响应式丢失】：每次更新都创建新的 Map
+        const updatedMap = new Map(collectedMap.value)
+        updatedMap.delete(targetId)
+        collectedMap.value = updatedMap
+      }
+    }
+
+    // 如果没有抛错，安全关闭弹窗
+    collectDialog.show = false
+  } catch (error: any) {
+    console.error('收藏操作失败', error)
+    // 动态暴露后端抛出的错误原因！
+    errorMessage.value = error.message || '操作失败，请按 F12 检查是否是后端抛错了！'
+  } finally {
+    isSubmitting.value = false
   }
 }
 
 // --- Lifecycle ---
 onMounted(() => {
   fetchData()
+  syncFavoriteStatus()
   nextTick(() => {
     scrollContainer.value = document.querySelector('.overflow-y-auto') as HTMLElement
   })
@@ -545,7 +624,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 滚动条隐藏 */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -553,8 +631,6 @@ onMounted(() => {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
-/* 自定义滚动条 for Dialog */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
@@ -568,7 +644,6 @@ onMounted(() => {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-
 .fade-enter-active,
 .fade-leave-active {
   transition:
@@ -580,7 +655,6 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(20px);
 }
-
 .scale-enter-active,
 .scale-leave-active {
   transition: all 0.2s ease;

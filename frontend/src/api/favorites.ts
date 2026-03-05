@@ -2,9 +2,10 @@
  * src/api/favorites.ts
  * 收藏夹模块 API 定义
  * -----------------
- * 基于文件夹的收藏管理系统
+ * 已根据后端 FavoriteController 真实接口规范全面重构
  */
 
+import request from '@/utils/request'
 import type { ProblemDifficulty } from './problem'
 
 export interface FavoriteFolder {
@@ -12,7 +13,7 @@ export interface FavoriteFolder {
   name: string
   count: number
   createTime: string
-  isDefault: boolean // 是否为默认收藏夹 (不可删除)
+  isDefault: boolean
 }
 
 export interface FavoriteProblem {
@@ -24,120 +25,104 @@ export interface FavoriteProblem {
   joinTime: string
 }
 
-// --- Mock Data ---
+const mapDifficultyToFront = (diff: number): ProblemDifficulty => {
+  if (diff === 1) return 'EASY'
+  if (diff === 2) return 'MEDIUM'
+  return 'HARD'
+}
 
-let MOCK_FOLDERS: FavoriteFolder[] = [
-  {
-    id: 1,
-    name: '默认收藏夹',
-    count: 12,
-    createTime: '2023-01-01',
-    isDefault: true,
-  },
-  {
-    id: 2,
-    name: '动态规划精选',
-    count: 5,
-    createTime: '2023-10-15',
+// 获取当前登录用户的收藏夹列表
+export async function getFolders(): Promise<FavoriteFolder[]> {
+  const res = await request<any[]>({
+    url: '/api/favorites/folders',
+    method: 'GET',
+  })
+
+  return (res || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    count: item.problemCount || 0,
+    createTime: item.createTime,
+    isDefault: item.isDefault === 1 || item.isDefault === true,
+  }))
+}
+
+// 创建一个新的收藏夹 (后端返回 Long 类型的 ID)
+export async function createFolder(name: string): Promise<FavoriteFolder> {
+  const folderId = await request<number>({
+    url: '/api/favorites/folders',
+    method: 'POST',
+    data: { name }, // 对应后端的 FavoriteFolderAddRequest
+  })
+
+  // 后端只返回了 ID，前端自行拼装完整的 Folder 对象用于 UI 渲染
+  const today = new Date().toISOString().split('T')[0]
+  return {
+    id: folderId,
+    name: name,
+    count: 0,
+    createTime: today,
     isDefault: false,
-  },
-  {
-    id: 3,
-    name: '大厂高频题 Top100',
-    count: 8,
-    createTime: '2023-11-20',
-    isDefault: false,
-  },
-]
+  }
+}
 
-const MOCK_PROBLEMS: FavoriteProblem[] = [
-  {
-    id: 101,
-    displayId: '1001',
-    title: '爬楼梯 (Climbing Stairs)',
-    difficulty: 'EASY',
-    tags: ['动态规划', '记忆化'],
-    joinTime: '2023-10-16',
-  },
-  {
-    id: 102,
-    displayId: '1049',
-    title: '最后一块石头的重量 II',
-    difficulty: 'MEDIUM',
-    tags: ['动态规划', '背包问题'],
-    joinTime: '2023-10-16',
-  },
-  {
-    id: 103,
-    displayId: '1143',
-    title: '最长公共子序列',
-    difficulty: 'MEDIUM',
-    tags: ['动态规划', '字符串'],
-    joinTime: '2023-10-17',
-  },
-  {
-    id: 104,
-    displayId: '1072',
-    title: '编辑距离',
-    difficulty: 'HARD',
-    tags: ['动态规划', '字符串'],
-    joinTime: '2023-10-18',
-  },
-]
-
-// --- API Functions ---
-
-/** 获取收藏夹列表 */
-export function getFolders(): Promise<FavoriteFolder[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve([...MOCK_FOLDERS]), 400)
+// 删除一个收藏夹
+export async function deleteFolder(id: number): Promise<void> {
+  await request({
+    url: `/api/favorites/folders/${id}`,
+    method: 'DELETE',
   })
 }
 
-/** 新建收藏夹 */
-export function createFolder(name: string): Promise<FavoriteFolder> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newFolder: FavoriteFolder = {
-        id: Date.now(),
-        name,
-        count: 0,
-        createTime: new Date().toISOString().split('T')[0],
-        isDefault: false,
-      }
-      MOCK_FOLDERS.push(newFolder)
-      resolve(newFolder)
-    }, 500)
-  })
-}
-
-/** 删除收藏夹 */
-export function deleteFolder(id: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      MOCK_FOLDERS = MOCK_FOLDERS.filter((f) => f.id !== id)
-      resolve()
-    }, 400)
-  })
-}
-
-/** 获取特定收藏夹详情 (包含题目列表) */
-export function getFolderDetail(
+// 获取单个收藏夹元数据及题目列表
+export async function getFolderDetail(
   id: number,
 ): Promise<{ folder: FavoriteFolder; list: FavoriteProblem[] }> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const folder = MOCK_FOLDERS.find((f) => f.id === Number(id)) || MOCK_FOLDERS[0]
-      // 简单模拟：如果是默认文件夹返回空，如果是动态规划返回特定列表，其他随机
-      const list = id === 2 ? [...MOCK_PROBLEMS] : []
-      resolve({ folder, list })
-    }, 400)
+  const [folderRes, problemsRes] = await Promise.all([
+    request<any>({ url: `/api/favorites/folders/${id}`, method: 'GET' }),
+    request<any>({
+      url: `/api/favorites/folders/${id}/problems`,
+      method: 'GET',
+      params: { current: 1, pageSize: 100 }, // 对应后端的 BaseQueryRequest
+    }),
+  ])
+
+  const folder: FavoriteFolder = folderRes
+    ? {
+        id: folderRes.id,
+        name: folderRes.name,
+        count: folderRes.problemCount || 0,
+        createTime: folderRes.createTime,
+        isDefault: folderRes.isDefault === 1 || folderRes.isDefault === true,
+      }
+    : { id, name: '未知收藏夹', count: 0, createTime: '', isDefault: false }
+
+  const list: FavoriteProblem[] = (problemsRes?.records || []).map((item: any) => ({
+    id: item.problemId || item.id,
+    displayId: item.displayId || `P-${item.id}`,
+    title: item.title,
+    difficulty: mapDifficultyToFront(item.difficulty),
+    tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags || [],
+    joinTime: item.addTime || item.createTime,
+  }))
+
+  return { folder, list }
+}
+
+// 将某道题加入指定收藏夹
+export async function addFavoriteProblem(folderId: number, problemId: number): Promise<void> {
+  await request({
+    url: '/api/favorites/add',
+    method: 'POST',
+    data: { folderId, problemId }, // 对应后端的 FavoriteAddRequest
   })
 }
 
-/** 移除收藏题目 */
-export function removeFavoriteProblem(folderId: number, problemId: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(), 300)
+// 将某道题从指定收藏夹移除
+export async function removeFavoriteProblem(folderId: number, problemId: number): Promise<void> {
+  await request({
+    url: '/api/favorites/remove',
+    method: 'POST',
+    data: { folderId, problemId }, // 对应后端的 FavoriteRemoveRequest
   })
 }

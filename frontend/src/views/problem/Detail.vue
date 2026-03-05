@@ -11,7 +11,35 @@
     <ProblemHeader class="relative z-20" :is-timer-paused="isTimerPaused" />
 
     <div class="flex-1 min-h-0 relative z-10 w-full max-w-[1920px] mx-auto">
-      <splitpanes class="zeekr-theme" horizontal>
+      <div v-if="loading" class="w-full h-full flex p-4 gap-4">
+        <div
+          class="flex-1 bg-zinc-900/40 backdrop-blur-sm border border-white/5 rounded-2xl p-8 animate-pulse"
+        >
+          <div class="h-8 bg-zinc-800 rounded-lg w-1/3 mb-6"></div>
+          <div class="flex gap-2 mb-8">
+            <div class="h-6 bg-zinc-800 rounded-md w-16"></div>
+            <div class="h-6 bg-zinc-800 rounded-md w-20"></div>
+          </div>
+          <div class="space-y-3">
+            <div class="h-4 bg-zinc-800 rounded w-full"></div>
+            <div class="h-4 bg-zinc-800 rounded w-5/6"></div>
+            <div class="h-4 bg-zinc-800 rounded w-4/6"></div>
+          </div>
+        </div>
+        <div
+          class="flex-1 bg-[#1e1e1e] border border-white/5 rounded-2xl p-8 animate-pulse hidden md:block"
+        >
+          <div class="flex gap-2 mb-4 border-b border-white/5 pb-4">
+            <div class="h-6 bg-zinc-800 rounded-md w-24"></div>
+          </div>
+          <div class="space-y-2 mt-8">
+            <div class="h-4 bg-zinc-800 rounded w-1/2 ml-4"></div>
+            <div class="h-4 bg-zinc-800 rounded w-1/3 ml-8"></div>
+          </div>
+        </div>
+      </div>
+
+      <splitpanes v-else class="zeekr-theme" horizontal>
         <pane size="100">
           <splitpanes vertical @resize="handleResize" class="h-full">
             <pane
@@ -21,6 +49,7 @@
               class="flex flex-col min-w-0 transition-[width] duration-300 ease-in-out bg-zinc-900/40 backdrop-blur-sm border-r border-white/5"
             >
               <ProblemDescription
+                v-if="problem"
                 :problem="problem"
                 :is-maximized="maximizedPane === 'left'"
                 @toggle-maximize="toggleMaximizeLeft"
@@ -48,12 +77,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import ProblemHeader from './components/ProblemHeader.vue'
 import ProblemDescription from './components/ProblemDescription.vue'
 import CodeWorkspace from './components/CodeWorkspace.vue'
+
+// 引入真实的 API
+import { getProblemDetail, type Problem } from '@/api/problem'
+
+const route = useRoute()
+
+// --- Data State ---
+const loading = ref(true)
+const problem = ref<Problem | null>(null)
+// 可以根据接口返回语言偏好生成默认代码骨架，这里暂且留空或给基础模板
+const code = ref(`// 在这里开始你的编码...\n`)
 
 // 控制计时器的开关状态
 const isTimerPaused = ref(false)
@@ -106,27 +147,27 @@ const toggleMaximizeRight = () => {
   }
 }
 
-// --- Mock Data ---
-const code = ref(
-  `class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        \n    }\n}`,
-)
-const problem = {
-  title: '1. 两数之和',
-  content: `<p>给定一个整数数组 <code>nums</code> 和一个整数目标值 <code>target</code>，请你在该数组中找出 <strong>和为目标值</strong> <em><code>target</code></em>  的那 <strong>两个</strong> 整数，并返回它们的数组下标。</p>
-  <p>你可以假设每种输入只会对应一个答案。但是，数组中同一个元素在答案里不能重复出现。</p>`,
-  examples: [
-    {
-      input: 'nums = [2,7,11,15], target = 9',
-      output: '[0,1]',
-      explanation: '因为 nums[0] + nums[1] == 9 ，返回 [0, 1] 。',
-    },
-    { input: 'nums = [3,2,4], target = 6', output: '[1,2]' },
-  ],
-  tags: ['数组', '哈希表'],
-}
+// --- Lifecycle ---
+onMounted(async () => {
+  const problemId = route.params.id as string
+  if (!problemId) return
+
+  loading.value = true
+  try {
+    const data = await getProblemDetail(problemId)
+    problem.value = data
+    // 如果后端有返回初始代码模板，可以在这里赋值：
+    // if (data.defaultCode) code.value = data.defaultCode
+  } catch (error) {
+    console.error('获取题目详情失败:', error)
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style>
+/* Splitpanes 的极氪风定制样式保持不变 */
 .zeekr-theme.splitpanes {
   background-color: transparent !important;
 }
