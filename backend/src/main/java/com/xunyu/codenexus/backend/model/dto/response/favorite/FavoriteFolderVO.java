@@ -14,15 +14,34 @@ import java.time.LocalDateTime;
 @Data
 public class FavoriteFolderVO {
 
+    /**
+     * 收藏夹 ID
+     */
     private Long id;
 
+    /**
+     * 收藏夹名称
+     */
     private String name;
 
+    /**
+     * 收藏夹描述
+     */
     private String description;
 
-    // 对应前端预期的 isDefault/isPublic
+    /**
+     * 是否公开: 0-私有, 1-公开
+     */
     private Integer isPublic;
 
+    /**
+     * 是否为默认收藏夹 (前端需求: 1为默认不可删除，0为自定义)
+     */
+    private Integer isDefault;
+
+    /**
+     * 封面图URL
+     */
     private String coverUrl;
 
     /**
@@ -31,7 +50,7 @@ public class FavoriteFolderVO {
     private Integer problemCount;
 
     /**
-     * 创建时间 (前端详情页顶部需要展示)
+     * 创建时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

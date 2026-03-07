@@ -51,7 +51,7 @@
             </div>
             <h3 class="text-2xl font-bold text-white">
               {{ greeting }},
-              <span class="text-[#FF4C00]">{{ userStore.nickname || '指挥官' }}</span>
+              <span class="text-[#FF4C00]">{{ displayName }}</span>
             </h3>
             <p class="text-zinc-400 text-sm mt-1 max-w-xs leading-relaxed line-clamp-2">
               检测到新的算法挑战已上线。今日算力充沛，建议立即开始训练。
@@ -165,13 +165,22 @@
             <div
               class="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,76,0,0.3)]"
             >
-              {{ userStore.userInfo?.rankScore || 1450 }}
+              {{ stats.rankScore }}
             </div>
-            <div class="text-[10px] text-emerald-500 font-medium mt-1 flex items-center gap-1">
+            <div
+              class="text-[10px] font-medium mt-1 flex items-center gap-1"
+              :class="stats.weeklyScoreChange >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+            >
               <span
+                v-if="stats.weeklyScoreChange >= 0"
                 class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] border-b-emerald-500"
               ></span>
-              本周提升 24
+              <span
+                v-else
+                class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-rose-500"
+              ></span>
+              本周变化 {{ stats.weeklyScoreChange >= 0 ? '+' : ''
+              }}{{ Math.abs(stats.weeklyScoreChange) }}
             </div>
           </div>
 
@@ -185,10 +194,13 @@
               />
             </div>
             <div class="text-3xl font-bold font-mono text-zinc-200 tracking-tighter">
-              #{{ userStore.userInfo?.globalRank || 8848 }}
+              #{{ stats.globalRank }}
             </div>
             <div class="w-full bg-zinc-800 h-1 rounded-full mt-3 overflow-hidden">
-              <div class="h-full bg-yellow-600 w-[65%] shadow-[0_0_10px_#ca8a04]"></div>
+              <div
+                class="h-full bg-yellow-600 shadow-[0_0_10px_#ca8a04] transition-all duration-1000"
+                :style="{ width: rankProgress }"
+              ></div>
             </div>
           </div>
 
@@ -202,8 +214,10 @@
               />
             </div>
             <div class="flex items-baseline gap-2">
-              <span class="text-3xl font-bold font-mono text-white tracking-tighter">128</span>
-              <span class="text-xs text-zinc-600 font-mono">/ 500</span>
+              <span class="text-3xl font-bold font-mono text-white tracking-tighter">{{
+                stats.solvedCount
+              }}</span>
+              <span class="text-xs text-zinc-600 font-mono">/ {{ stats.totalProblems }}</span>
             </div>
           </div>
         </div>
@@ -285,9 +299,9 @@
                     class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-900 border border-white/20 rounded-md text-xs text-zinc-200 font-mono whitespace-nowrap opacity-0 group-hover/cell:opacity-100 transition-opacity duration-200 pointer-events-none z-50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] select-none min-w-max"
                   >
                     <span class="text-zinc-400">{{ item.date }}:</span>
-                    <span class="font-bold ml-1" :class="levelTextColors[item.level]">{{
-                      getLevelText(item.level)
-                    }}</span>
+                    <span class="font-bold ml-1" :class="levelTextColors[item.level]"
+                      >{{ item.count }} 活跃度</span
+                    >
                     <div
                       class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 border-b border-r border-white/20 rotate-45"
                     ></div>
@@ -313,7 +327,6 @@
           <div
             class="absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           ></div>
-
           <div
             class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mr-4 group-hover:bg-[#FF4C00] group-hover:text-white transition-colors duration-300 z-10"
           >
@@ -341,7 +354,6 @@
           <div
             class="absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           ></div>
-
           <div
             class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mr-4 group-hover:bg-zinc-200 group-hover:text-black transition-colors duration-300 z-10"
           >
@@ -388,7 +400,7 @@
           v-if="actionType === 'RANKED'"
           class="mt-4 p-3 bg-black/40 rounded-lg border border-white/5 text-xs text-zinc-500 font-mono"
         >
-          当前排位积分: <span class="text-white">{{ userStore.userInfo?.rankScore || 1450 }}</span>
+          当前排位积分: <span class="text-white">{{ stats.rankScore }}</span>
         </div>
       </div>
     </ArenaDialog>
@@ -416,6 +428,15 @@ import {
 } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
+// API 引入
+import {
+  getDashboardStats,
+  dailyCheckIn,
+  getActivityHeatmap,
+  type DashboardStatsVO,
+} from '@/api/dashboard'
+import { getDailyRecommendProblem } from '@/api/problem'
+
 // --- 状态管理 ---
 const router = useRouter()
 const userStore = useUserStore()
@@ -424,9 +445,7 @@ const now = useNow()
 const formattedTime = useDateFormat(now, 'HH:mm:ss')
 const currentDate = useDateFormat(now, 'YYYY年MM月DD日 dddd')
 
-// --- [智能锁定逻辑] ---
 const { width, height } = useWindowSize()
-// 规则：宽度大于 1024px (大屏) 且 高度大于 800px (足够容纳内容) 时，锁定页面
 const isFixedMode = computed(() => width.value >= 1024 && height.value >= 800)
 
 const greeting = computed(() => {
@@ -438,16 +457,64 @@ const greeting = computed(() => {
   return '晚上好'
 })
 
-// 打卡逻辑
+// 处理 UserInfo | UserProfileVO 联合类型的属性访问问题
+const displayName = computed(() => {
+  const info = userStore.userInfo
+  if (!info) return '指挥官'
+
+  if ('nickname' in info && info.nickname) return info.nickname
+  if ('userName' in info && info.userName) return info.userName
+
+  return '指挥官'
+})
+
+// --- Dashboard 核心数据集成 ---
+const stats = ref<DashboardStatsVO>({
+  isCheckedInToday: false,
+  continuousCheckInDays: 0,
+  rankScore: 1500,
+  weeklyScoreChange: 0,
+  globalRank: 9999,
+  solvedCount: 0,
+  totalProblems: 0,
+})
+
 const isCheckedIn = ref(false)
-const checkInDays = ref(41)
-const handleCheckIn = () => {
-  if (isCheckedIn.value) return
-  isCheckedIn.value = true
-  checkInDays.value++
+const checkInDays = ref(0)
+
+const rankProgress = computed(() => {
+  const base = 10000
+  const progress = Math.max(0, Math.min(100, ((base - stats.value.globalRank) / base) * 100))
+  return `${progress}%`
+})
+
+const fetchStats = async () => {
+  try {
+    const res = await getDashboardStats()
+    stats.value = res
+    isCheckedIn.value = stats.value.isCheckedInToday
+    checkInDays.value = stats.value.continuousCheckInDays
+  } catch (error) {
+    console.error('获取仪表盘数据失败', error)
+  }
 }
 
-// 战备弹窗逻辑
+const handleCheckIn = async () => {
+  if (isCheckedIn.value) return
+  try {
+    const res = await dailyCheckIn()
+    if (res.success) {
+      isCheckedIn.value = true
+      checkInDays.value = res.continuousCheckInDays
+      // 打卡成功后，主动重新拉取一下热力图，刷新活跃度
+      generateHeatmapData()
+    }
+  } catch (error) {
+    console.error('充能失败', error)
+  }
+}
+
+// --- 战备弹窗与路由跳转 ---
 const showDialog = ref(false)
 const actionType = ref<'RANKED' | 'PRACTICE'>('RANKED')
 
@@ -474,23 +541,32 @@ const triggerAction = (type: 'RANKED' | 'PRACTICE') => {
   showDialog.value = true
 }
 
-const handleConfirm = () => {
+const handleConfirm = async () => {
   showDialog.value = false
   if (actionType.value === 'RANKED') {
     router.push('/battle/matchmaking')
   } else {
-    router.push('/problems/1001')
+    try {
+      const problemId = await getDailyRecommendProblem()
+      if (problemId) {
+        router.push(`/problems/${problemId}`)
+      }
+    } catch (error) {
+      console.error('获取推荐题目失败', error)
+    }
   }
 }
 
-// --- 热力图核心逻辑 (Half-Year View) ---
+// --- 热力图核心逻辑接入 ---
 
 const currentYear = ref(new Date().getFullYear())
-const currentPeriod = ref(new Date().getMonth() < 6 ? 0 : 1) // 0: 上半年, 1: 下半年
+const currentPeriod = ref(new Date().getMonth() < 6 ? 0 : 1)
 
+// 更新数据结构，加入 count 属性
 interface HeatmapItem {
   date: string | null
   level: number
+  count: number
 }
 
 const heatmapData = ref<HeatmapItem[]>([])
@@ -516,11 +592,11 @@ const switchPeriod = (direction: number) => {
 }
 
 const heatmapColors = [
-  'bg-zinc-800', // Level 0
-  'bg-[#FF4C00]/20', // Level 1
-  'bg-[#FF4C00]/40', // Level 2
-  'bg-[#FF4C00]/70', // Level 3
-  'bg-[#FF4C00]', // Level 4
+  'bg-zinc-800',
+  'bg-[#FF4C00]/20',
+  'bg-[#FF4C00]/40',
+  'bg-[#FF4C00]/70',
+  'bg-[#FF4C00]',
 ]
 
 const levelTextColors = [
@@ -531,49 +607,62 @@ const levelTextColors = [
   'text-white',
 ]
 
-const getLevelText = (level: number) => {
-  const map = ['无数据', '低', '中', '高', '极高']
-  return map[level] || '未知'
-}
+// 修改热力图生成算法
+const generateHeatmapData = async () => {
+  try {
+    const year = currentYear.value
+    // 从后端获取当前年份的真实数据
+    const backendData = await getActivityHeatmap(year)
 
-const generateHeatmapData = () => {
-  const data: HeatmapItem[] = []
+    // 将后端数据转为 Map，以 YYYY-MM-DD 为 key，存储 { level, count }
+    const dataMap = new Map(
+      (backendData || []).map((item) => [
+        item.date,
+        { level: item.level, count: item.submissionCount || 0 },
+      ]),
+    )
 
-  const year = currentYear.value
-  const isFirstHalf = currentPeriod.value === 0
+    const isFirstHalf = currentPeriod.value === 0
+    const startMonth = isFirstHalf ? 0 : 6
+    const endMonth = isFirstHalf ? 5 : 11
 
-  const startMonth = isFirstHalf ? 0 : 6
-  const endMonth = isFirstHalf ? 5 : 11
+    const startDate = new Date(year, startMonth, 1)
+    const endDate = new Date(year, endMonth + 1, 0)
 
-  const startDate = new Date(year, startMonth, 1)
-  const endDate = new Date(year, endMonth + 1, 0)
+    const data: HeatmapItem[] = []
 
-  // 补全前面的空位 (周一为起始)
-  // getDay(): 0(周日) -> 需要补6个
-  // getDay(): 1(周一) -> 需要补0个
-  let startDay = startDate.getDay()
-  if (startDay === 0) startDay = 7
-  const paddingCount = startDay - 1
-
-  for (let i = 0; i < paddingCount; i++) {
-    data.push({ date: null, level: 0 })
-  }
-
-  const tempDate = new Date(startDate)
-  while (tempDate <= endDate) {
-    const dateStr = tempDate.toISOString().split('T')[0]
-    let level = 0
-    if (Math.random() > 0.4) {
-      level = Math.ceil(Math.random() * 4)
+    // 补齐周一开头的空白占位
+    let startDay = startDate.getDay()
+    if (startDay === 0) startDay = 7
+    const paddingCount = startDay - 1
+    for (let i = 0; i < paddingCount; i++) {
+      data.push({ date: null, level: 0, count: 0 })
     }
-    data.push({ date: dateStr, level })
-    tempDate.setDate(tempDate.getDate() + 1)
-  }
 
-  heatmapData.value = data
+    // 生成网格数据
+    const tempDate = new Date(startDate)
+    while (tempDate <= endDate) {
+      // 避免时区导致日期错误，安全格式化为 YYYY-MM-DD
+      const y = tempDate.getFullYear()
+      const m = String(tempDate.getMonth() + 1).padStart(2, '0')
+      const d = String(tempDate.getDate()).padStart(2, '0')
+      const dateStr = `${y}-${m}-${d}`
+
+      // 从后端数据匹配，没有就是 0
+      const record = dataMap.get(dateStr) || { level: 0, count: 0 }
+      data.push({ date: dateStr, level: record.level, count: record.count })
+
+      tempDate.setDate(tempDate.getDate() + 1)
+    }
+
+    heatmapData.value = data
+  } catch (error) {
+    console.error('获取热力图失败', error)
+  }
 }
 
 onMounted(() => {
+  fetchStats()
   generateHeatmapData()
 })
 </script>

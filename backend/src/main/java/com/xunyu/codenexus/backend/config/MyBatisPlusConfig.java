@@ -1,15 +1,20 @@
+// src/main/java/com/xunyu/codenexus/backend/config/MyBatisPlusConfig.java
 package com.xunyu.codenexus.backend.config;
 
+import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDateTime;
 
 /**
  * MyBatis Plus 配置类
- * 用于自动填充 createTime 和 updateTime
+ * 用于自动填充 createTime 和 updateTime，以及注册分页插件
  *
  * @author xunyu
  */
@@ -18,6 +23,17 @@ import java.time.LocalDateTime;
 // implements MetaObjectHandler 这是 MyBatis Plus 提供的一个钩子接口。
 // 只要你实现了它，每次执行 SQL 前，MP 都会先把对象拿给你过目一遍。
 public class MyBatisPlusConfig implements MetaObjectHandler {
+
+    /**
+     * 注册 MyBatis-Plus 分页插件 (解决 total 和 pages 始终为 0 的问题)
+     */
+    @Bean
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        // 因为你的项目使用的是 MySQL，所以这里显式指定 DbType.MYSQL
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+        return interceptor;
+    }
 
     /**
      * 插入时的填充策略

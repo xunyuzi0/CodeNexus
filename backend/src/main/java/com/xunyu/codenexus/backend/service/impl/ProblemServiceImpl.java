@@ -7,11 +7,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xunyu.codenexus.backend.common.context.UserContext;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
 import com.xunyu.codenexus.backend.mapper.ProblemMapper;
+import com.xunyu.codenexus.backend.mapper.UserMapper;
 import com.xunyu.codenexus.backend.mapper.UserProblemStateMapper;
 import com.xunyu.codenexus.backend.model.dto.request.problem.ProblemQueryRequest;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemDetailVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemVO;
 import com.xunyu.codenexus.backend.model.entity.Problem;
+import com.xunyu.codenexus.backend.model.entity.User;
 import com.xunyu.codenexus.backend.model.entity.UserProblemState;
 import com.xunyu.codenexus.backend.service.ProblemService;
 import com.xunyu.codenexus.backend.utils.AssertUtil;
@@ -37,6 +39,10 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     @Resource
     private UserProblemStateMapper userProblemStateMapper;
 
+    // 修复：新增注入 UserMapper，供推荐算法使用
+    @Resource
+    private UserMapper userMapper;
+
     @Override
     public Page<ProblemVO> getProblemPage(ProblemQueryRequest request) {
         // 1. 构造基础分页参数
@@ -44,29 +50,22 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         LambdaQueryWrapper<Problem> wrapper = new LambdaQueryWrapper<>();
 
         // 2. 动态拼装查询条件
-        // 标题模糊查询
         if (StringUtils.hasText(request.getKeyword())) {
             wrapper.like(Problem::getTitle, request.getKeyword());
         }
-        // 难度精确匹配
         if (request.getDifficulty() != null) {
             wrapper.eq(Problem::getDifficulty, request.getDifficulty());
         }
-        // MySQL 8 JSON 数组过滤查询
         if (!CollectionUtils.isEmpty(request.getTags())) {
             for (String tag : request.getTags()) {
-                // 使用占位符 {0} 防止 SQL 注入
-                // 因为 MySQL 中 JSON_CONTAINS 查找字符串元素需要带双引号，所以拼接 "\"" + tag + "\""
                 wrapper.apply("JSON_CONTAINS(tags, {0})", "\"" + tag + "\"");
             }
         }
-        // 默认按题目 ID 升序排列
         wrapper.orderByAsc(Problem::getId);
 
         // 3. 执行数据库查询
         Page<Problem> problemPage = this.page(pageParam, wrapper);
 
-        // 如果结果为空，直接返回空分页
         if (CollectionUtils.isEmpty(problemPage.getRecords())) {
             return new Page<>(problemPage.getCurrent(), problemPage.getSize(), problemPage.getTotal());
         }
@@ -76,18 +75,16 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
                 .map(Problem::getId)
                 .collect(Collectors.toList());
 
-        // 5. 尝试获取当前登录用户 ID (公开接口可能未登录)
+        // 5. 获取当前登录用户解答状态
         Long userId = UserContext.getUserId();
         Map<Long, Integer> userStateMap = null;
 
         if (userId != null) {
-            // 一次性通过 IN 查询该用户对当前页这些题目的解答状态，避免 N+1 查询问题
             LambdaQueryWrapper<UserProblemState> stateWrapper = new LambdaQueryWrapper<>();
             stateWrapper.eq(UserProblemState::getUserId, userId)
                     .in(UserProblemState::getProblemId, problemIds);
 
             List<UserProblemState> states = userProblemStateMapper.selectList(stateWrapper);
-            // 转化为 Map 以便后续 O(1) 高速合并，Key=problemId, Value=state
             userStateMap = states.stream().collect(Collectors.toMap(
                     UserProblemState::getProblemId,
                     UserProblemState::getState
@@ -100,7 +97,6 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             ProblemVO vo = new ProblemVO();
             BeanUtils.copyProperties(problem, vo);
 
-            // 计算通过率并防零除异常
             if (problem.getSubmitNum() == null || problem.getSubmitNum() == 0) {
                 vo.setPassRate(0.0);
             } else {
@@ -108,7 +104,6 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
                 vo.setPassRate(rate);
             }
 
-            // 合并用户答题状态 (未登录或没做过默认为 0)
             if (userStateMap != null && userStateMap.containsKey(problem.getId())) {
                 vo.setUserState(userStateMap.get(problem.getId()));
             } else {
@@ -125,13 +120,71 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
     @Override
     public ProblemDetailVO getProblemDetail(Long id) {
-        // 校验题目是否存在
         Problem problem = this.getById(id);
         AssertUtil.notNull(problem, ResultCode.NOT_FOUND, "题目不存在或已下架");
 
-        // 转为详情 VO 返回，绝不暴漏多余的底层字段
         ProblemDetailVO vo = new ProblemDetailVO();
         BeanUtils.copyProperties(problem, vo);
         return vo;
+    }
+
+    @Override
+    public Long getDailyPracticeProblem() {
+        Long userId = UserContext.getUserId();
+
+        // 1. 查询当前用户段位，动态映射难度
+        User user = userMapper.selectById(userId);
+        AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, "用户状态异常");
+
+        int score = user.getRatingScore();
+        int targetDifficulty;
+        if (score < 1800) {
+            targetDifficulty = 1; // 坚韧黑铁~英勇黄铜 推 Easy
+        } else if (score < 3000) {
+            targetDifficulty = 2; // 不屈白银~荣耀黄金 推 Medium
+        } else {
+            targetDifficulty = 3; // 天梯传说 推 Hard
+        }
+
+        // 2. 查出该用户已经 AC(状态为2) 的所有题目 ID
+        LambdaQueryWrapper<UserProblemState> stateWrapper = new LambdaQueryWrapper<>();
+        stateWrapper.select(UserProblemState::getProblemId)
+                .eq(UserProblemState::getUserId, userId)
+                .eq(UserProblemState::getState, 2);
+        List<UserProblemState> acStates = userProblemStateMapper.selectList(stateWrapper);
+        List<Long> acProblemIds = acStates.stream().map(UserProblemState::getProblemId).collect(Collectors.toList());
+
+        // 3. 构造智能推荐查询
+        LambdaQueryWrapper<Problem> problemWrapper = new LambdaQueryWrapper<>();
+        problemWrapper.select(Problem::getId)
+                .eq(Problem::getDifficulty, targetDifficulty);
+        if (!acProblemIds.isEmpty()) {
+            problemWrapper.notIn(Problem::getId, acProblemIds);
+        }
+        problemWrapper.last("ORDER BY RAND() LIMIT 1");
+
+        Problem recommendProblem = this.getOne(problemWrapper);
+
+        // 4. 兜底策略：如果符合该难度的题全做完了，取消难度限制
+        if (recommendProblem == null) {
+            LambdaQueryWrapper<Problem> fallbackWrapper = new LambdaQueryWrapper<>();
+            fallbackWrapper.select(Problem::getId);
+            if (!acProblemIds.isEmpty()) {
+                fallbackWrapper.notIn(Problem::getId, acProblemIds);
+            }
+            fallbackWrapper.last("ORDER BY RAND() LIMIT 1");
+            recommendProblem = this.getOne(fallbackWrapper);
+        }
+
+        // 5. 极端兜底：如果所有题都刷完了，全表随机抽
+        if (recommendProblem == null) {
+            LambdaQueryWrapper<Problem> extremeFallback = new LambdaQueryWrapper<>();
+            extremeFallback.select(Problem::getId).last("ORDER BY RAND() LIMIT 1");
+            recommendProblem = this.getOne(extremeFallback);
+        }
+
+        AssertUtil.notNull(recommendProblem, "当前题库为空，无法获取推荐题目");
+
+        return recommendProblem.getId();
     }
 }

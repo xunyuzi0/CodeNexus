@@ -104,91 +104,13 @@
       </div>
 
       <template v-else>
-        <div
-          v-for="(item, index) in problemList"
-          :key="item.id"
-          @click="handleEnterProblem(item.id)"
-          class="group relative flex items-center justify-between p-4 pl-6 rounded-2xl border border-white/5 bg-zinc-900/40 backdrop-blur-sm hover:bg-zinc-800/60 hover:border-[#FF4C00]/30 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:-translate-y-[1px]"
-          v-motion
-          :initial="{ opacity: 0, y: 20 }"
-          :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: index * 50 } }"
-        >
-          <div
-            class="absolute left-0 top-4 bottom-4 w-1 bg-[#FF4C00] rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_12px_#FF4C00]"
-          ></div>
-
-          <div class="flex items-center gap-5 overflow-hidden flex-1">
-            <div class="shrink-0">
-              <CheckCircle2
-                v-if="item.status === 'PASSED'"
-                class="w-5 h-5 text-emerald-500/80 drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-              />
-              <div
-                v-else-if="item.status === 'ATTEMPTED'"
-                class="w-4 h-4 rounded-full border-[3px] border-amber-500/30"
-              ></div>
-              <Circle v-else class="w-5 h-5 text-zinc-700" />
-            </div>
-
-            <div class="flex flex-col min-w-0">
-              <div class="flex items-baseline gap-3">
-                <span
-                  class="text-zinc-500 font-mono text-sm font-bold group-hover:text-zinc-400 transition-colors"
-                >
-                  #{{ item.displayId }}
-                </span>
-                <h3
-                  class="text-zinc-200 font-bold text-base truncate group-hover:text-white transition-colors"
-                >
-                  {{ item.title }}
-                </h3>
-              </div>
-
-              <div class="flex items-center gap-2 mt-1.5">
-                <span
-                  v-for="tag in item.tags"
-                  :key="tag"
-                  class="border border-white/5 bg-white/5 text-xs text-zinc-500 px-2.5 py-1 rounded-md font-medium group-hover:border-white/10 group-hover:text-zinc-400 transition-colors"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="hidden md:flex items-center gap-8 shrink-0 pr-2">
-            <div class="text-right">
-              <p class="text-zinc-600 text-xs uppercase font-bold tracking-wider mb-0.5">
-                首次通过率
-              </p>
-              <p class="text-zinc-300 font-mono text-sm">{{ item.passRate }}%</p>
-            </div>
-
-            <div class="w-16 flex justify-end">
-              <span
-                class="text-xs font-black px-2 py-1 rounded-md select-none tracking-wide border"
-                :class="difficultyColorMap[item.difficulty]"
-              >
-                {{ difficultyTextMap[item.difficulty] }}
-              </span>
-            </div>
-
-            <button
-              @click.stop="openCollectDialog(item.id)"
-              class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-all active:scale-90"
-              title="添加到收藏夹"
-            >
-              <Star
-                class="w-5 h-5 transition-colors duration-300"
-                :class="
-                  isCollected(item.id)
-                    ? 'text-[#FF4C00] fill-[#FF4C00] drop-shadow-[0_0_8px_rgba(255,76,0,0.5)]'
-                    : 'text-zinc-600 hover:text-[#FF4C00]'
-                "
-              />
-            </button>
-          </div>
-        </div>
+        <ProblemList
+          :problems="problemList"
+          action-type="favorite"
+          :collected-ids="collectedProblemIds"
+          @click="handleEnterProblem"
+          @action="openCollectDialog"
+        />
       </template>
     </div>
 
@@ -228,16 +150,8 @@
 
     <ArenaDialog
       v-model="collectDialog.show"
-      :title="collectDialog.selectedFolderId ? '收藏题目' : '移除收藏'"
-      :confirm-text="
-        collectDialog.selectedFolderId
-          ? isSubmitting
-            ? '处理中...'
-            : '确认收藏'
-          : isSubmitting
-            ? '处理中...'
-            : '确认移除'
-      "
+      title="收藏题目 (可多选)"
+      :confirm-text="isSubmitting ? '处理中...' : '保存更改'"
       @confirm="confirmCollect"
     >
       <div class="flex flex-col gap-4 min-h-[150px]">
@@ -249,13 +163,7 @@
 
         <template v-else>
           <div class="flex justify-between items-end">
-            <p class="text-xs text-zinc-500">
-              {{
-                collectDialog.selectedFolderId
-                  ? '已选择文件夹：'
-                  : '请选择目标文件夹（取消勾选即为移除）：'
-              }}
-            </p>
+            <p class="text-xs text-zinc-500">请选择目标文件夹：</p>
           </div>
 
           <p v-if="errorMessage" class="text-xs text-red-500 font-bold animate-pulse">
@@ -269,7 +177,7 @@
               @click="toggleFolderSelection(folder.id)"
               class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all select-none group"
               :class="
-                collectDialog.selectedFolderId === folder.id
+                collectDialog.selectedFolderIds.includes(folder.id)
                   ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
                   : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/10'
               "
@@ -278,7 +186,7 @@
                 <Folder
                   class="w-4 h-4 transition-colors"
                   :class="
-                    collectDialog.selectedFolderId === folder.id
+                    collectDialog.selectedFolderIds.includes(folder.id)
                       ? 'text-[#FF4C00]'
                       : 'text-zinc-600 group-hover:text-zinc-400'
                   "
@@ -289,14 +197,14 @@
               <div class="relative w-4 h-4 flex items-center justify-center">
                 <transition name="scale">
                   <div
-                    v-if="collectDialog.selectedFolderId === folder.id"
-                    class="w-4 h-4 rounded-full bg-[#FF4C00] flex items-center justify-center"
+                    v-if="collectDialog.selectedFolderIds.includes(folder.id)"
+                    class="w-4 h-4 rounded bg-[#FF4C00] flex items-center justify-center"
                   >
-                    <Check class="w-2.5 h-2.5 text-white" />
+                    <Check class="w-3 h-3 text-white font-bold" />
                   </div>
                   <div
                     v-else
-                    class="w-4 h-4 rounded-full border border-zinc-700 group-hover:border-zinc-500"
+                    class="w-4 h-4 rounded border border-zinc-700 group-hover:border-zinc-500"
                   ></div>
                 </transition>
               </div>
@@ -343,18 +251,15 @@ import {
   TrendingUp,
   Search,
   Filter,
-  CheckCircle2,
-  Circle,
   Zap,
-  Star,
   ChevronLeft,
   ChevronRight,
-  ArrowUp,
   Folder,
   Plus,
   Check,
 } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
+import ProblemList from '@/components/problem/ProblemList.vue' // 引入重构后的公共组件
 
 // API 引入
 import {
@@ -374,7 +279,6 @@ import {
 
 const router = useRouter()
 
-// 滚动容器监听
 const scrollContainer = ref<HTMLElement | null>(null)
 const { y } = useScroll(scrollContainer)
 
@@ -383,8 +287,19 @@ const loading = ref(false)
 const problemList = ref<Problem[]>([])
 const totalProblems = ref(0)
 
-// 维护本地 UI 收藏状态
-const collectedMap = ref<Map<number, FavoriteFolder>>(new Map())
+// 维护一对多：题目ID -> 收藏夹ID数组
+const collectedMap = ref<Map<number, number[]>>(new Map())
+
+// 计算出所有被收藏的题目 ID 集合，供 ProblemList 组件点亮星星
+const collectedProblemIds = computed(() => {
+  const ids: number[] = []
+  collectedMap.value.forEach((folders, problemId) => {
+    if (folders && folders.length > 0) {
+      ids.push(problemId)
+    }
+  })
+  return ids
+})
 
 const queryParams = reactive<ProblemQuery>({
   pageNum: 1,
@@ -402,7 +317,7 @@ const collectDialog = reactive({
   show: false,
   loading: false,
   currentProblemId: -1,
-  selectedFolderId: null as number | null,
+  selectedFolderIds: [] as number[],
   newFolderName: '',
   folders: [] as FavoriteFolder[],
 })
@@ -434,18 +349,6 @@ const difficultyOptions: { label: string; value: ProblemDifficulty | ''; activeC
   },
 ]
 
-const difficultyColorMap: Record<ProblemDifficulty, string> = {
-  EASY: 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10',
-  MEDIUM: 'text-amber-500 border-amber-500/20 bg-amber-500/10',
-  HARD: 'text-rose-500 border-rose-500/20 bg-rose-500/10',
-}
-
-const difficultyTextMap: Record<ProblemDifficulty, string> = {
-  EASY: '简单',
-  MEDIUM: '中等',
-  HARD: '困难',
-}
-
 // --- Methods ---
 
 const fetchData = async () => {
@@ -461,21 +364,26 @@ const fetchData = async () => {
   }
 }
 
+// 同步所有题目的收藏状态
 const syncFavoriteStatus = async () => {
   try {
     const resFolders = await getFolders()
-    const map = new Map<number, FavoriteFolder>()
+    const map = new Map<number, number[]>()
 
     const promises = resFolders.map((folder) => getFolderDetail(folder.id))
     const folderDetails = await Promise.all(promises)
 
     folderDetails.forEach((detail) => {
       detail.list.forEach((problem) => {
-        map.set(problem.id, detail.folder)
+        const currentFolders = map.get(problem.id) || []
+        if (!currentFolders.includes(detail.folder.id)) {
+          currentFolders.push(detail.folder.id)
+        }
+        map.set(problem.id, currentFolders)
       })
     })
 
-    collectedMap.value = new Map(map) // 【强制替换响应式源】
+    collectedMap.value = new Map(map)
   } catch (error) {
     console.warn('同步收藏状态失败', error)
   }
@@ -511,10 +419,8 @@ const scrollToTop = () => {
   }
 }
 
-const isCollected = (id: number) => collectedMap.value.has(id)
-
 const openCollectDialog = async (id: number) => {
-  errorMessage.value = '' // 清除旧错误
+  errorMessage.value = ''
   collectDialog.currentProblemId = id
   collectDialog.show = true
   collectDialog.loading = true
@@ -524,12 +430,8 @@ const openCollectDialog = async (id: number) => {
     const resFolders = await getFolders()
     collectDialog.folders = resFolders
 
-    if (collectedMap.value.has(id)) {
-      const folder = collectedMap.value.get(id)
-      collectDialog.selectedFolderId = folder ? folder.id : null
-    } else {
-      collectDialog.selectedFolderId = null
-    }
+    // 回显已勾选的收藏夹
+    collectDialog.selectedFolderIds = [...(collectedMap.value.get(id) || [])]
   } catch (error) {
     console.error('获取收藏夹失败', error)
   } finally {
@@ -538,10 +440,11 @@ const openCollectDialog = async (id: number) => {
 }
 
 const toggleFolderSelection = (folderId: number) => {
-  if (collectDialog.selectedFolderId === folderId) {
-    collectDialog.selectedFolderId = null
+  const index = collectDialog.selectedFolderIds.indexOf(folderId)
+  if (index > -1) {
+    collectDialog.selectedFolderIds.splice(index, 1)
   } else {
-    collectDialog.selectedFolderId = folderId
+    collectDialog.selectedFolderIds.push(folderId)
   }
 }
 
@@ -555,59 +458,52 @@ const handleCreateFolder = async () => {
   try {
     const newFolder = await createFolder(name)
     collectDialog.folders.push(newFolder)
-    collectDialog.selectedFolderId = newFolder.id
+    collectDialog.selectedFolderIds.push(newFolder.id)
     collectDialog.newFolderName = ''
   } catch (error: any) {
     console.error('新建文件夹失败', error)
-    errorMessage.value = error.message || '新建夹失败，请重试'
+    errorMessage.value = error.message || '新建文件夹失败，请重试'
   } finally {
     isSubmitting.value = false
   }
 }
 
-// 【修复核心】：加入了 isSubmitting 和强力响应式 Map 克隆
+// 核心修复：提交时通过求差集分别发起添加和移除请求
 const confirmCollect = async () => {
   if (isSubmitting.value) return
 
   const targetId = collectDialog.currentProblemId
-  const newFolderId = collectDialog.selectedFolderId
-  const oldFolder = collectedMap.value.get(targetId)
+  const newFolderIds = [...collectDialog.selectedFolderIds] // 用户最终勾选的
+  const oldFolderIds = collectedMap.value.get(targetId) || [] // 题目原本所在的
 
   isSubmitting.value = true
   errorMessage.value = ''
 
   try {
-    if (newFolderId) {
-      if (oldFolder && oldFolder.id !== newFolderId) {
-        await removeFavoriteProblem(oldFolder.id, targetId)
-      }
-      if (!oldFolder || oldFolder.id !== newFolderId) {
-        await addFavoriteProblem(newFolderId, targetId)
-      }
+    // 找出需要新增和移除的
+    const toAdd = newFolderIds.filter((id) => !oldFolderIds.includes(id))
+    const toRemove = oldFolderIds.filter((id) => !newFolderIds.includes(id))
 
-      const selectedFolderObj = collectDialog.folders.find((f) => f.id === newFolderId)
-      if (selectedFolderObj) {
-        // 【解决响应式丢失】：每次更新都创建新的 Map
-        const updatedMap = new Map(collectedMap.value)
-        updatedMap.set(targetId, selectedFolderObj)
-        collectedMap.value = updatedMap
-      }
+    // 并发发起所有变更请求
+    const promises: Promise<void>[] = []
+    toAdd.forEach((folderId) => promises.push(addFavoriteProblem(folderId, targetId)))
+    toRemove.forEach((folderId) => promises.push(removeFavoriteProblem(folderId, targetId)))
+
+    await Promise.all(promises)
+
+    // 更新本地状态
+    const updatedMap = new Map(collectedMap.value)
+    if (newFolderIds.length > 0) {
+      updatedMap.set(targetId, newFolderIds)
     } else {
-      if (oldFolder) {
-        await removeFavoriteProblem(oldFolder.id, targetId)
-        // 【解决响应式丢失】：每次更新都创建新的 Map
-        const updatedMap = new Map(collectedMap.value)
-        updatedMap.delete(targetId)
-        collectedMap.value = updatedMap
-      }
+      updatedMap.delete(targetId)
     }
+    collectedMap.value = updatedMap
 
-    // 如果没有抛错，安全关闭弹窗
     collectDialog.show = false
   } catch (error: any) {
     console.error('收藏操作失败', error)
-    // 动态暴露后端抛出的错误原因！
-    errorMessage.value = error.message || '操作失败，请按 F12 检查是否是后端抛错了！'
+    errorMessage.value = error.message || '操作失败，请检查网络报错'
   } finally {
     isSubmitting.value = false
   }
@@ -643,17 +539,6 @@ onMounted(() => {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
 }
 .scale-enter-active,
 .scale-leave-active {

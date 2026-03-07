@@ -30,4 +30,12 @@ public interface ProblemService extends IService<Problem> {
      * @return 题目详情 VO
      */
     ProblemDetailVO getProblemDetail(Long id);
+
+    /**
+     * 获取“每日一练”推荐题目
+     * 智能推荐逻辑：基于当前用户的段位分映射难度，并过滤掉已 AC 的题目
+     *
+     * @return 推荐题目的 ID
+     */
+    Long getDailyPracticeProblem();
 }
