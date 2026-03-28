@@ -3,9 +3,9 @@
  * 题库模块 API 定义
  * -----------------
  * 已根据后端 ProblemController 真实接口规范全面重构
+ * 包含 1000 偏移量 displayId 的前端兜底逻辑及代码评测接口
  */
 
-// 【修复 1】：使用具名导入 { request }，它能正确推断 Promise<T>，彻底解决 AxiosResponse 类型报错
 import { request } from '@/utils/request'
 import type { PageResult } from '@/types/api'
 
@@ -39,20 +39,61 @@ export interface ProblemQuery {
   tags?: string[]
 }
 
-export type CheckpointStatus = 'PENDING' | 'AC' | 'WA' | 'TLE' | 'RE' | 'MLE'
+// ==== 题解数据结构 ====
+export interface ProblemSolution {
+  id: number
+  problemId: number
+  title: string
+  content: string
+  authorName: string
+  viewCount: number
+  createTime: string
+}
+
+// ==== 提交记录数据结构 ====
+export interface SubmissionHistory {
+  id: number
+  status: number // 0: PENDING, 1: AC, 2: WA, 3: TLE, 4: MLE, 5: RE, 6: CE
+  timeCost: number
+  memoryCost: number
+  language: string
+  submitTime: string
+}
+
+// ==========================================
+// 新增：沙箱判题与代码执行接口相关类型
+// ==========================================
+
+export interface RunCodeRequest {
+  code: string
+  language: string
+  inputs: string[]
+}
+
+export interface RunCodeResult {
+  status: 'AC' | 'ERROR' | 'TLE'
+  input: string
+  output: string
+  expected: string | null
+  runtime: string
+}
+
+export type CheckpointStatus = 'PENDING' | 'RUNNING' | 'AC' | 'WA' | 'TLE' | 'RE' | 'MLE'
 
 export interface SubmissionCheckpoint {
   id: number
   status: CheckpointStatus
-  time: string
-  memory: string
+  time?: string | null
+  memory?: string | null
 }
 
-export interface SubmitResponse {
-  status: 'OK' | 'COMPILE_ERROR'
+export interface PollSubmissionResult {
+  status: 'JUDGING' | 'OK'
   message?: string
-  checkpoints?: SubmissionCheckpoint[]
+  checkpoints: SubmissionCheckpoint[]
 }
+
+// ==========================================
 
 const mapDifficultyToBackend = (diff?: ProblemDifficulty | ''): number | undefined => {
   if (diff === 'EASY') return 1
@@ -92,7 +133,7 @@ export async function getProblemList(params: ProblemQuery): Promise<PageResult<P
   return {
     list: (res?.records || []).map((item: any) => ({
       id: item.id,
-      displayId: item.displayId || `P-${item.id}`,
+      displayId: item.displayId || `P-${1000 + Number(item.id)}`,
       title: item.title,
       difficulty: mapDifficultyToFront(item.difficulty),
       tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags || [],
@@ -117,7 +158,7 @@ export async function getProblemDetail(id: number | string): Promise<Problem> {
 
   return {
     id: item.id,
-    displayId: item.displayId || `P-${item.id}`,
+    displayId: item.displayId || `P-${1000 + Number(item.id)}`,
     title: item.title,
     difficulty: mapDifficultyToFront(item.difficulty),
     tags: typeof item.tags === 'string' ? JSON.parse(item.tags) : item.tags || [],
@@ -131,22 +172,74 @@ export async function getProblemDetail(id: number | string): Promise<Problem> {
   }
 }
 
-// 模拟代码提交与判题接口 (后端暂未实现，保留前端 Mock)
-export function submitCode(problemId: number, code: string): Promise<SubmitResponse> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        status: 'OK',
-        checkpoints: [
-          { id: 1, status: 'AC', time: '12ms', memory: '4.2MB' },
-          { id: 2, status: 'AC', time: '14ms', memory: '4.3MB' },
-        ],
-      })
-    }, 500)
+// 获取官方题解
+export async function getProblemSolution(problemId: number | string): Promise<ProblemSolution> {
+  return await request<ProblemSolution>({
+    url: `/api/problems/${problemId}/solution`,
+    method: 'GET',
   })
 }
 
-// 补充缺失的导出方法，解决 dashboard 引入报错的问题
+// 获取提交记录 (带分页封装)
+export async function getProblemSubmissions(
+  problemId: number | string,
+  params: { current?: number; pageSize?: number } = { current: 1, pageSize: 10 },
+): Promise<PageResult<SubmissionHistory>> {
+  const res = await request<any>({
+    url: `/api/problems/${problemId}/submissions`,
+    method: 'GET',
+    params,
+  })
+
+  return {
+    list: res?.records || [],
+    total: res?.total || 0,
+    pageNum: res?.current || params.current || 1,
+    pageSize: res?.size || params.pageSize || 10,
+  }
+}
+
+// ==========================================
+// 新增：执行代码 (自测)
+// ==========================================
+export async function runCode(
+  problemId: number | string,
+  data: RunCodeRequest,
+): Promise<RunCodeResult[]> {
+  return await request<RunCodeResult[]>({
+    url: `/api/problems/${problemId}/run`,
+    method: 'POST',
+    data,
+  })
+}
+
+// ==========================================
+// 新增：提交代码 (返回 submissionId)
+// ==========================================
+export async function submitCode(
+  problemId: number | string,
+  data: { code: string; language: string },
+): Promise<number> {
+  return await request<number>({
+    url: `/api/problems/${problemId}/submit`,
+    method: 'POST',
+    data,
+  })
+}
+
+// ==========================================
+// 新增：轮询判题进度
+// ==========================================
+export async function getSubmissionStatus(
+  submissionId: number | string,
+): Promise<PollSubmissionResult> {
+  return await request<PollSubmissionResult>({
+    url: `/api/submissions/${submissionId}/status`,
+    method: 'GET',
+  })
+}
+
+// 获取每日推荐题目
 export async function getDailyRecommendProblem(): Promise<number> {
   const res = await request<number>({
     url: '/api/problem/recommend/daily',

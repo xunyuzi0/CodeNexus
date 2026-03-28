@@ -18,16 +18,24 @@
       <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
 
       <div class="flex items-center gap-3">
-        <span class="text-sm font-mono text-zinc-500">1.</span>
+        <span class="text-sm font-mono text-zinc-500">{{ problem?.displayId || 'P-?' }}</span>
         <h1
           class="text-sm font-bold text-zinc-100 tracking-wide truncate max-w-[200px] sm:max-w-md"
         >
-          两数之和
+          {{ problem?.title || '加载中...' }}
         </h1>
         <span
-          class="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 tracking-wider uppercase"
+          v-if="problem"
+          class="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border tracking-wider uppercase"
+          :class="[
+            problem.difficulty === 'EASY'
+              ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
+              : problem.difficulty === 'MEDIUM'
+                ? 'border-amber-500/20 bg-amber-500/10 text-amber-500'
+                : 'border-rose-500/20 bg-rose-500/10 text-rose-500',
+          ]"
         >
-          Easy
+          {{ problem.difficulty }}
         </span>
       </div>
     </div>
@@ -66,9 +74,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ChevronLeft, Timer } from 'lucide-vue-next'
+import type { Problem } from '@/api/problem' // 引入全局 Problem 类型
 
 const props = defineProps<{
   isTimerPaused?: boolean
+  problem?: Problem | null // 新增接收 Problem 属性
 }>()
 
 const seconds = ref(0)

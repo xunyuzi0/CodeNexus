@@ -15,20 +15,16 @@ public class ProblemVO {
 
     private Long id;
 
+    // 【修复】：新增展示用ID，解决列表页与详情页数据不一致的问题
+    private String displayId;
+
     private String title;
 
     private Integer difficulty;
 
     private List<String> tags;
 
-    /**
-     * 通过率 (例如 55.5 表示 55.5%)
-     */
     private Double passRate;
 
-    /**
-     * 当前用户状态 (0-未开始, 1-尝试过, 2-已通过)
-     * 未登录用户默认为 0
-     */
     private Integer userState;
 }

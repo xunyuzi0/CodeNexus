@@ -60,12 +60,19 @@
             </h1>
             <div class="flex items-center gap-3 text-xs">
               <span
-                class="px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 uppercase tracking-wider"
+                class="px-2 py-0.5 rounded text-[10px] font-bold border tracking-wider uppercase"
+                :class="[
+                  problem.difficulty === 'EASY'
+                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
+                    : problem.difficulty === 'MEDIUM'
+                      ? 'border-amber-500/20 bg-amber-500/10 text-amber-500'
+                      : 'border-rose-500/20 bg-rose-500/10 text-rose-500',
+                ]"
               >
-                Easy
+                {{ problem.difficulty }}
               </span>
               <span class="text-zinc-500 flex items-center gap-1">
-                <CheckCircle2 class="w-3 h-3" /> 通过率 86.4%
+                <CheckCircle2 class="w-3 h-3" /> 通过率 {{ problem.passRate }}%
               </span>
             </div>
           </div>
@@ -150,40 +157,84 @@
           key="solution"
           class="space-y-4 animate-in fade-in slide-in-from-bottom-2"
         >
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-bold text-white">官方题解</h2>
-            <span class="text-xs text-zinc-500">阅读量 12.5k</span>
-          </div>
           <div
+            v-if="solutionLoading"
             class="h-32 w-full bg-zinc-800/20 border border-white/5 rounded-xl flex items-center justify-center"
           >
-            <p class="text-zinc-500 text-sm">题解内容加载中...</p>
+            <Loader2 class="w-6 h-6 animate-spin text-[#FF4C00]" />
+          </div>
+
+          <template v-else-if="solutionData">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-bold text-white">{{ solutionData.title }}</h2>
+              <span class="text-xs text-zinc-500 flex items-center gap-1">
+                阅读量
+                {{
+                  solutionData.viewCount >= 1000
+                    ? (solutionData.viewCount / 1000).toFixed(1) + 'k'
+                    : solutionData.viewCount
+                }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-zinc-400 pb-4 border-b border-white/5">
+              <span
+                >作者: <strong class="text-zinc-200">{{ solutionData.authorName }}</strong></span
+              >
+              <span>·</span>
+              <span>发布于 {{ solutionData.createTime }}</span>
+            </div>
+            <div
+              class="prose prose-invert prose-sm max-w-none text-zinc-400 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-600"
+              v-html="solutionData.content"
+            ></div>
+          </template>
+
+          <div
+            v-else
+            class="h-32 w-full bg-zinc-800/20 border border-white/5 rounded-xl flex items-center justify-center"
+          >
+            <p class="text-zinc-500 text-sm">暂无官方题解</p>
           </div>
         </div>
 
         <div v-else key="submissions" class="space-y-3 animate-in fade-in slide-in-from-bottom-2">
           <h2 class="text-lg font-bold text-white mb-4">我的提交</h2>
-          <div
-            v-for="i in 3"
-            :key="i"
-            class="p-4 bg-zinc-900/40 border border-white/5 rounded-xl flex items-center justify-between group hover:border-white/10 transition-colors"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="w-2 h-2 rounded-full"
-                :class="i === 1 ? 'bg-emerald-500' : 'bg-red-500'"
-              ></div>
-              <div>
-                <p
-                  class="text-sm font-medium"
-                  :class="i === 1 ? 'text-emerald-500' : 'text-red-500'"
+
+          <div v-if="submissionsLoading" class="h-32 flex items-center justify-center">
+            <Loader2 class="w-6 h-6 animate-spin text-[#FF4C00]" />
+          </div>
+
+          <template v-else-if="submissionsList.length > 0">
+            <div
+              v-for="sub in submissionsList"
+              :key="sub.id"
+              class="p-4 bg-zinc-900/40 border border-white/5 rounded-xl flex items-center justify-between group hover:border-white/10 transition-colors"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full" :class="getStatusConfig(sub.status).bg"></div>
+                <div>
+                  <p class="text-sm font-medium" :class="getStatusConfig(sub.status).color">
+                    {{ getStatusConfig(sub.status).text }}
+                  </p>
+                  <p class="text-xs text-zinc-500">{{ sub.submitTime }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-mono text-zinc-400 block"
+                  >{{ sub.timeCost }}ms / {{ sub.memoryCost }}MB</span
                 >
-                  {{ i === 1 ? 'Accepted' : 'Wrong Answer' }}
-                </p>
-                <p class="text-xs text-zinc-500">2 months ago</p>
+                <span class="text-[10px] text-zinc-500 uppercase mt-0.5 inline-block">{{
+                  sub.language
+                }}</span>
               </div>
             </div>
-            <span class="text-xs font-mono text-zinc-400">12ms / 42.1MB</span>
+          </template>
+
+          <div
+            v-else
+            class="h-32 w-full flex items-center justify-center bg-zinc-900/20 border border-white/5 rounded-xl"
+          >
+            <p class="text-zinc-500 text-sm">暂无提交记录</p>
           </div>
         </div>
       </Transition>
@@ -192,7 +243,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   FileText,
   FlaskConical,
@@ -201,15 +252,15 @@ import {
   Minimize2,
   CheckCircle2,
   Tag,
+  Loader2,
 } from 'lucide-vue-next'
 
+import { getProblemSolution, getProblemSubmissions } from '@/api/problem'
+import type { Problem, ProblemSolution, SubmissionHistory } from '@/api/problem'
+
+// 强制使用全局的 Problem 强类型
 interface Props {
-  problem: {
-    title: string
-    content: string
-    examples: { input: string; output: string; explanation?: string }[]
-    tags: string[]
-  }
+  problem: Problem
   isMaximized: boolean
   hideTabs?: boolean
 }
@@ -227,10 +278,73 @@ const tabs = [
   { id: 'submissions', label: '记录', icon: History },
 ]
 
-// 支持在对战模式下动态隐藏多余 Tab
 const filteredTabs = computed(() => {
   if (props.hideTabs) return tabs.filter((t) => t.id === 'desc')
   return tabs
+})
+
+// === 新增：题解与提交记录的动态加载状态 ===
+const solutionData = ref<ProblemSolution | null>(null)
+const solutionLoading = ref(false)
+
+const submissionsList = ref<SubmissionHistory[]>([])
+const submissionsLoading = ref(false)
+
+// 加载官方题解
+const fetchSolution = async () => {
+  if (solutionData.value || !props.problem?.id) return
+  solutionLoading.value = true
+  try {
+    solutionData.value = await getProblemSolution(props.problem.id)
+  } catch (error) {
+    console.error('获取题解失败:', error)
+  } finally {
+    solutionLoading.value = false
+  }
+}
+
+// 加载历史提交
+const fetchSubmissions = async () => {
+  // 默认拉取前 10 条展示
+  if (submissionsList.value.length > 0 || !props.problem?.id) return
+  submissionsLoading.value = true
+  try {
+    const res = await getProblemSubmissions(props.problem.id, { current: 1, pageSize: 10 })
+    submissionsList.value = res.list
+  } catch (error) {
+    console.error('获取提交记录失败:', error)
+  } finally {
+    submissionsLoading.value = false
+  }
+}
+
+// 根据后端返回的状态码(0-6)匹配极氪风的颜色和文本
+const getStatusConfig = (status: number) => {
+  switch (status) {
+    case 1:
+      return { text: 'Accepted', color: 'text-emerald-500', bg: 'bg-emerald-500' }
+    case 2:
+      return { text: 'Wrong Answer', color: 'text-red-500', bg: 'bg-red-500' }
+    case 3:
+      return { text: 'Time Limit Exceeded', color: 'text-orange-500', bg: 'bg-orange-500' }
+    case 4:
+      return { text: 'Memory Limit Exceeded', color: 'text-yellow-500', bg: 'bg-yellow-500' }
+    case 5:
+      return { text: 'Runtime Error', color: 'text-purple-500', bg: 'bg-purple-500' }
+    case 6:
+      return { text: 'Compile Error', color: 'text-zinc-500', bg: 'bg-zinc-500' }
+    default:
+      return { text: 'Pending', color: 'text-blue-500', bg: 'bg-blue-500' }
+  }
+}
+
+// 监听 Tab 切换，按需懒加载数据
+watch(currentTab, (newTab) => {
+  if (newTab === 'solution') {
+    fetchSolution()
+  } else if (newTab === 'submissions') {
+    fetchSubmissions()
+  }
 })
 </script>
 

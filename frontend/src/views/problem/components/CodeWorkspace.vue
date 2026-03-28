@@ -38,14 +38,12 @@
               >
                 <component :is="tab === 'testcase' ? FlaskConical : Terminal" class="w-3.5 h-3.5" />
                 {{ tab === 'testcase' ? '测试用例' : '执行结果' }}
-
                 <div
                   v-if="activeConsoleTab === tab"
                   class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF4C00] shadow-[0_-2px_6px_rgba(255,76,0,0.4)]"
                 ></div>
               </button>
             </div>
-
             <button
               @click="toggleConsole"
               class="mr-2 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
@@ -91,7 +89,7 @@
               <div class="space-y-4 flex-1 overflow-y-auto pr-2">
                 <template v-if="testCases[activeCaseIndex]">
                   <div
-                    v-for="(_, key) in testCases[activeCaseIndex].inputs"
+                    v-for="(_, key) in testCases[activeCaseIndex]!.inputs"
                     :key="key"
                     class="space-y-2"
                   >
@@ -101,7 +99,7 @@
                     >
                     <input
                       type="text"
-                      v-model="testCases[activeCaseIndex].inputs[key]"
+                      v-model="testCases[activeCaseIndex]!.inputs[key]"
                       class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm text-zinc-300 placeholder-zinc-700 focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 outline-none transition-all"
                       spellcheck="false"
                     />
@@ -141,7 +139,7 @@
                     class="px-3 py-1.5 rounded-lg text-xs font-mono transition-all border flex items-center gap-2"
                     :class="[
                       activeResultIndex === idx
-                        ? res.status === 'AC'
+                        ? res?.status === 'AC'
                           ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-sm'
                           : 'bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-sm'
                         : 'border-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300',
@@ -150,7 +148,7 @@
                     <span
                       class="w-1.5 h-1.5 rounded-full"
                       :class="
-                        res.status === 'AC'
+                        res?.status === 'AC'
                           ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
                           : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
                       "
@@ -163,7 +161,7 @@
                   <div
                     class="flex items-center gap-3 px-4 py-3 rounded-xl border mb-4"
                     :class="
-                      runResults[activeResultIndex].status === 'AC'
+                      runResults[activeResultIndex]!.status === 'AC'
                         ? 'bg-emerald-500/10 border-emerald-500/20'
                         : 'bg-rose-500/10 border-rose-500/20'
                     "
@@ -171,16 +169,16 @@
                     <span
                       class="text-sm font-bold uppercase tracking-wider"
                       :class="
-                        runResults[activeResultIndex].status === 'AC'
+                        runResults[activeResultIndex]!.status === 'AC'
                           ? 'text-emerald-500'
                           : 'text-rose-500'
                       "
-                      >{{ getStatusText(runResults[activeResultIndex].status) }}</span
+                      >{{ getStatusText(runResults[activeResultIndex]!.status) }}</span
                     >
                     <span
                       class="w-[1px] h-3"
                       :class="
-                        runResults[activeResultIndex].status === 'AC'
+                        runResults[activeResultIndex]!.status === 'AC'
                           ? 'bg-emerald-500/20'
                           : 'bg-rose-500/20'
                       "
@@ -188,12 +186,13 @@
                     <span
                       class="text-xs font-mono"
                       :class="
-                        runResults[activeResultIndex].status === 'AC'
+                        runResults[activeResultIndex]!.status === 'AC'
                           ? 'text-emerald-400/80'
                           : 'text-rose-400/80'
                       "
-                      >Runtime: {{ runResults[activeResultIndex].runtime }}</span
                     >
+                      Runtime: {{ runResults[activeResultIndex]!.runtime || 'N/A' }}
+                    </span>
                   </div>
 
                   <div
@@ -207,7 +206,7 @@
                       <div
                         class="text-zinc-300 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg whitespace-pre-wrap leading-relaxed"
                       >
-                        {{ runResults[activeResultIndex].input }}
+                        {{ runResults[activeResultIndex]!.input }}
                       </div>
                     </div>
                     <div class="space-y-1.5">
@@ -218,12 +217,12 @@
                       <div
                         class="bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg"
                         :class="
-                          runResults[activeResultIndex].status === 'AC'
+                          runResults[activeResultIndex]!.status === 'AC'
                             ? 'text-emerald-500'
                             : 'text-rose-500'
                         "
                       >
-                        {{ runResults[activeResultIndex].output }}
+                        {{ runResults[activeResultIndex]!.output || '无输出' }}
                       </div>
                     </div>
                     <div class="space-y-1.5">
@@ -232,9 +231,9 @@
                         >Expected Output</span
                       >
                       <div
-                        class="text-emerald-500 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg"
+                        class="text-emerald-500 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg opacity-80"
                       >
-                        {{ runResults[activeResultIndex].expected }}
+                        {{ runResults[activeResultIndex]!.expected ?? 'N/A (自测模式无对照组)' }}
                       </div>
                     </div>
                   </div>
@@ -275,8 +274,7 @@
           :disabled="isRunning || isSubmitting"
           class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-200 border border-white/5 hover:bg-zinc-700 hover:text-white transition-all font-bold text-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
         >
-          <Play class="w-4 h-4 fill-zinc-400 group-hover:fill-white transition-colors" />
-          运行
+          <Play class="w-4 h-4 fill-zinc-400 group-hover:fill-white transition-colors" /> 运行
         </button>
 
         <button
@@ -286,7 +284,7 @@
         >
           <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
           <CloudUpload v-else class="w-4 h-4" />
-          {{ isSubmitting ? '提交中...' : '提交' }}
+          {{ isSubmitting ? '判题中...' : '提交' }}
         </button>
       </div>
     </div>
@@ -304,8 +302,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import {
@@ -323,30 +321,17 @@ import {
 import CodeEditor from '@/components/code/CodeEditor.vue'
 import JudgePanel from '@/components/code/JudgePanel.vue'
 
+// 引入真实的 API
+import { runCode, submitCode, getSubmissionStatus } from '@/api/problem'
+import type { RunCodeResult } from '@/api/problem'
+
 // --- Interfaces & Types ---
 interface TestCase {
   inputs: Record<string, string>
 }
 
-type RunStatus = 'AC' | 'WA' | 'ERROR'
-
-interface RunResult {
-  status: RunStatus
-  input: string
-  output: string
-  expected: string
-  runtime: string
-}
-
-type CheckpointStatus = 'pending' | 'running' | 'AC' | 'WA' | 'TLE' | 'MLE' | 'RE'
-
-interface Checkpoint {
-  id: number
-  status: CheckpointStatus
-  time?: number
-}
-
 const router = useRouter()
+const route = useRoute()
 const modelValue = defineModel<string>({ required: true })
 
 defineProps<{
@@ -372,13 +357,28 @@ const activeCaseIndex = ref(0)
 // Execution Results
 const isRunning = ref(false)
 const isSubmitting = ref(false)
-const runResults = ref<RunResult[]>([])
+const runResults = ref<RunCodeResult[]>([])
 const activeResultIndex = ref(0)
 
 // Judge Panel State
 const showJudgePanel = ref(false)
 const judgeStatus = ref<'judging' | 'accepted' | 'rejected'>('judging')
-const checkpoints = ref<Checkpoint[]>([])
+
+// 修复 3：使用 any[] 类型兜底，避免与 JudgePanel 内部强定义的类型产生冲突
+const checkpoints = ref<any[]>([])
+
+let pollTimer: number | null = null
+
+const clearPollTimer = () => {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+onUnmounted(() => {
+  clearPollTimer()
+})
 
 // --- Actions ---
 const handleResize = (event: { min: number; max: number; size: number }[]) => {
@@ -409,7 +409,8 @@ const toggleConsole = () => {
 const handleAddTestCase = () => {
   const newInputs: Record<string, string> = {}
   if (testCases.value.length > 0) {
-    Object.keys(testCases.value[0].inputs).forEach((key) => {
+    // 修复点：在这里加上 ! 进行非空断言，告诉 TS 这个元素一定存在
+    Object.keys(testCases.value[0]!.inputs).forEach((key) => {
       newInputs[key] = ''
     })
   } else {
@@ -429,86 +430,93 @@ const handleRemoveTestCase = (index: number) => {
   }
 }
 
-const handleRun = () => {
+const handleRun = async () => {
   if (isRunning.value) return
+  const problemId = route.params.id as string
+  if (!problemId) return
+
   if (!isConsoleOpen.value) toggleConsole()
   activeConsoleTab.value = 'result'
   isRunning.value = true
   runResults.value = []
   activeResultIndex.value = 0
 
-  setTimeout(() => {
-    isRunning.value = false
-    runResults.value = testCases.value.map((tc, idx) => {
-      let expected = '[0, 1]'
-      if (idx === 1) expected = '[1, 2]'
-      if (idx === 2) expected = '[0, 1]'
-      const isPass = Math.random() > 0.4
-      return {
-        status: isPass ? 'AC' : 'WA',
-        input: formatInput(tc.inputs),
-        output: isPass ? expected : '[0, 0]',
-        expected: expected,
-        runtime: `${Math.floor(Math.random() * 5) + 1}ms`,
-      }
+  try {
+    const formattedInputs = testCases.value.map((tc) => Object.values(tc.inputs).join('\n'))
+    const res = await runCode(problemId, {
+      code: modelValue.value,
+      language: 'java',
+      inputs: formattedInputs,
     })
-  }, 1200)
+    runResults.value = res
+  } catch (error) {
+    console.error('运行代码失败:', error)
+  } finally {
+    isRunning.value = false
+  }
 }
 
-// === 核心: 提交并触发沉浸式雷达判题 ===
 const handleSubmit = async () => {
   if (isSubmitting.value) return
+  const problemId = route.params.id as string
+  if (!problemId) return
 
   showJudgePanel.value = true
   judgeStatus.value = 'judging'
   isSubmitting.value = true
+  checkpoints.value = []
+  clearPollTimer()
 
-  // 初始化 20 个检查点
-  checkpoints.value = Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    status: 'pending' as CheckpointStatus,
-  }))
+  try {
+    const submissionId = await submitCode(problemId, {
+      code: modelValue.value,
+      language: 'java',
+    })
 
-  let hasError = false
+    pollTimer = window.setInterval(async () => {
+      try {
+        const pollRes = await getSubmissionStatus(submissionId)
 
-  // 模拟流式判题过程
-  for (let i = 0; i < checkpoints.value.length; i++) {
-    checkpoints.value[i].status = 'running'
-    await new Promise((r) => setTimeout(r, 150)) // 模拟网络与执行耗时
+        // 修复 4：数据映射！把后端的 PENDING/RUNNING 转成前端组件内部需要的小写
+        checkpoints.value = (pollRes.checkpoints || []).map((cp) => ({
+          ...cp,
+          status:
+            cp.status === 'PENDING' ? 'pending' : cp.status === 'RUNNING' ? 'running' : cp.status,
+        }))
 
-    const isPass = Math.random() > 0.15 // 85% 概率通过
+        if (pollRes.status === 'OK') {
+          clearPollTimer()
+          isSubmitting.value = false
 
-    if (isPass) {
-      checkpoints.value[i].status = 'AC'
-      checkpoints.value[i].time = Math.floor(Math.random() * 8) + 1
-    } else {
-      const errors: CheckpointStatus[] = ['WA', 'TLE', 'MLE', 'RE']
-      checkpoints.value[i].status = errors[Math.floor(Math.random() * errors.length)]
-      checkpoints.value[i].time = Math.floor(Math.random() * 40) + 10
-      hasError = true
-    }
-  }
+          const hasError = checkpoints.value.some(
+            (cp) => cp.status !== 'AC' && cp.status !== 'pending' && cp.status !== 'running',
+          )
 
-  isSubmitting.value = false
-  judgeStatus.value = hasError ? 'rejected' : 'accepted'
+          judgeStatus.value = hasError ? 'rejected' : 'accepted'
 
-  if (!hasError) {
-    emit('success') // 通知顶部停止计时
+          if (!hasError) emit('success')
+        }
+      } catch (err) {
+        console.error('轮询状态异常:', err)
+        clearPollTimer()
+        isSubmitting.value = false
+        judgeStatus.value = 'rejected'
+      }
+    }, 1000)
+  } catch (error) {
+    console.error('提交失败:', error)
+    isSubmitting.value = false
+    judgeStatus.value = 'rejected'
   }
 }
 
 // --- Helpers ---
-const getStatusText = (status: RunStatus) => {
+const getStatusText = (status: string) => {
   if (status === 'AC') return 'Accepted'
   if (status === 'WA') return 'Wrong Answer'
-  return 'Runtime Error'
-}
-
-const formatInput = (inputs?: Record<string, string>) => {
-  if (!inputs) return 'N/A'
-  return Object.entries(inputs)
-    .map(([k, v]) => `${k} = ${v || 'null'}`)
-    .join('\n')
+  if (status === 'TLE') return 'Time Limit Exceeded'
+  if (status === 'ERROR') return 'Runtime Error'
+  return status
 }
 </script>
 

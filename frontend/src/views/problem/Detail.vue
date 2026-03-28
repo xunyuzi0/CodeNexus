@@ -8,7 +8,7 @@
       "
     ></div>
 
-    <ProblemHeader class="relative z-20" :is-timer-paused="isTimerPaused" />
+    <ProblemHeader class="relative z-20" :is-timer-paused="isTimerPaused" :problem="problem" />
 
     <div class="flex-1 min-h-0 relative z-10 w-full max-w-[1920px] mx-auto">
       <div v-if="loading" class="w-full h-full flex p-4 gap-4">
@@ -156,8 +156,6 @@ onMounted(async () => {
   try {
     const data = await getProblemDetail(problemId)
     problem.value = data
-    // 如果后端有返回初始代码模板，可以在这里赋值：
-    // if (data.defaultCode) code.value = data.defaultCode
   } catch (error) {
     console.error('获取题目详情失败:', error)
   } finally {

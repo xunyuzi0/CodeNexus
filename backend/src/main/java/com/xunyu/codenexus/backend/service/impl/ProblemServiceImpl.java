@@ -39,7 +39,6 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     @Resource
     private UserProblemStateMapper userProblemStateMapper;
 
-    // 修复：新增注入 UserMapper，供推荐算法使用
     @Resource
     private UserMapper userMapper;
 
@@ -97,6 +96,11 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             ProblemVO vo = new ProblemVO();
             BeanUtils.copyProperties(problem, vo);
 
+            // 【核心修正 1】：统一列表页 displayId 的兜底与 1000 偏移量对齐
+            if (!StringUtils.hasText(vo.getDisplayId())) {
+                vo.setDisplayId("P-" + (problem.getId() + 1000));
+            }
+
             if (problem.getSubmitNum() == null || problem.getSubmitNum() == 0) {
                 vo.setPassRate(0.0);
             } else {
@@ -120,11 +124,43 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
     @Override
     public ProblemDetailVO getProblemDetail(Long id) {
+        // 1. 获取物理记录
         Problem problem = this.getById(id);
         AssertUtil.notNull(problem, ResultCode.NOT_FOUND, "题目不存在或已下架");
 
         ProblemDetailVO vo = new ProblemDetailVO();
         BeanUtils.copyProperties(problem, vo);
+
+        // 2. 字段桥接处理
+        // 【核心修正 2】：统一详情页 displayId 的兜底与 1000 偏移量对齐
+        if (!StringUtils.hasText(vo.getDisplayId())) {
+            vo.setDisplayId("P-" + (problem.getId() + 1000));
+        }
+        // 将底层 description 映射为前端所需的 content
+        vo.setContent(problem.getDescription());
+
+        // 3. 计算全局通过率 (保留一位小数百分比格式)
+        if (problem.getSubmitNum() == null || problem.getSubmitNum() == 0) {
+            vo.setPassRate(0.0);
+        } else {
+            double rate = (double) problem.getAcceptedNum() / problem.getSubmitNum() * 100;
+            vo.setPassRate(Math.round(rate * 10.0) / 10.0);
+        }
+
+        // 4. 基于 UserContext 探测用户做题状态
+        Long userId = UserContext.getUserId();
+        if (userId != null) {
+            LambdaQueryWrapper<UserProblemState> stateWrapper = new LambdaQueryWrapper<>();
+            stateWrapper.eq(UserProblemState::getUserId, userId)
+                    .eq(UserProblemState::getProblemId, id);
+            UserProblemState stateObj = userProblemStateMapper.selectOne(stateWrapper);
+            // 映射状态 (0->未开始, 1->尝试过, 2->已通过)
+            vo.setUserState(stateObj != null ? stateObj.getState() : 0);
+        } else {
+            // 未登录的游客模式兜底：未开始
+            vo.setUserState(0);
+        }
+
         return vo;
     }
 

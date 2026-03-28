@@ -3,6 +3,7 @@ package com.xunyu.codenexus.backend.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.xunyu.codenexus.backend.model.dto.response.problem.ExampleVO;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,11 @@ public class Problem {
     private Long id;
 
     /**
+     * 展示用ID(如 P-1001)
+     */
+    private String displayId;
+
+    /**
      * 题目标题
      */
     private String title;
@@ -41,10 +47,15 @@ public class Problem {
 
     /**
      * 标签列表 (JSON数组)
-     * 使用 JacksonTypeHandler 自动在 JSON 字符串和 List<String> 之间转换
      */
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> tags;
+
+    /**
+     * 测试用例示例(JSON数组) - 映射为 ExampleVO
+     */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<ExampleVO> examples;
 
     /**
      * 时间限制 (单位: ms)
