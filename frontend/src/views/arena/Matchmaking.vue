@@ -85,36 +85,50 @@ import { useUserStore } from '@/stores/user'
 import { X } from 'lucide-vue-next'
 import { storage } from '@/utils/storage'
 
+// [新增]: 引入真实的后端 API
+import { joinMatchmaking, cancelMatchmaking, getMatchStatus } from '@/api/arena'
+
 const router = useRouter()
 const userStore = useUserStore()
 
 const found = ref(false)
 const isCanceled = ref(false)
 
-// 使用 number 类型以兼容浏览器环境的 setTimeout
-let matchTimer: number | null = null
+// [改造]: 轮询定时器与跳转定时器
+let pollTimer: number | null = null
 let redirectTimer: number | null = null
 
-// [Refactor] 集中清理逻辑，防止幽灵跳转
-const cleanup = () => {
-  isCanceled.value = true
-
-  if (matchTimer) {
-    clearTimeout(matchTimer)
-    matchTimer = null
+// --- 工具函数：清理定时器 ---
+const clearTimers = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
   }
-
   if (redirectTimer) {
     clearTimeout(redirectTimer)
     redirectTimer = null
   }
-
-  // 确保离开页面时（无论是跳转大厅还是取消），匹配凭证都被销毁
-  storage.remove('MATCH_PENDING', 'session')
 }
 
-// [Refactor] 路由守卫：拦截所有离开行为
-// 无论是匹配成功跳转大厅，还是点击取消按钮，亦或是浏览器后退，都会触发此守卫
+// --- 核心流转：清理与退出匹配池 ---
+const cleanup = async () => {
+  isCanceled.value = true
+  clearTimers()
+
+  // 确保离开页面时，一次性凭证被消费销毁
+  storage.remove('MATCH_PENDING', 'session')
+
+  // [后端契约]: 如果还没匹配成功就离开了页面，必须通知后端退出排队池
+  if (!found.value) {
+    try {
+      await cancelMatchmaking()
+    } catch (error) {
+      console.warn('[Arena] Backend cancel match failed:', error)
+    }
+  }
+}
+
+// 路由守卫：拦截所有离开行为 (无论是匹配成功、点击取消、还是浏览器后退)
 onBeforeRouteLeave((to, from, next) => {
   cleanup()
   next()
@@ -122,7 +136,6 @@ onBeforeRouteLeave((to, from, next) => {
 
 const checkMatchSession = (): boolean => {
   const hasTicket = storage.get<string>('MATCH_PENDING', 'session') === 'true'
-
   if (!hasTicket) {
     router.replace({
       path: '/arena',
@@ -130,46 +143,72 @@ const checkMatchSession = (): boolean => {
     })
     return false
   }
-
-  // 验票通过。虽然 cleanup 会兜底清除，但为了逻辑严谨性，此处可先消费凭证
-  storage.remove('MATCH_PENDING', 'session')
   return true
 }
 
-onMounted(() => {
-  // 优先执行安全检查
+// --- [后端契约]: 核心轮询逻辑 ---
+const startPolling = () => {
+  // 每 2 秒轮询一次状态
+  pollTimer = window.setInterval(async () => {
+    if (isCanceled.value) return
+
+    try {
+      const res = await getMatchStatus()
+
+      if (res.status === 'SUCCESS' && res.roomCode && res.ticket) {
+        // 1. 匹配成功，锁定状态
+        found.value = true
+        clearTimers() // 停止轮询
+
+        // 2. 匹配成功后，留出 1.5 秒给用户看“MATCH FOUND”的动效，然后火速跳转
+        redirectTimer = window.setTimeout(() => {
+          if (isCanceled.value) return
+
+          router.replace({
+            name: 'ArenaLobby',
+            params: { roomId: res.roomCode },
+            // [极其重要]: 将后端下发的 ticket 带给大厅作为验票凭证
+            query: { mode: 'RANKED', ticket: res.ticket },
+          })
+        }, 1500)
+      } else if (res.status === 'FAILED') {
+        // 后端提示匹配异常，终止轮询并抛出错误
+        clearTimers()
+        router.replace({ path: '/arena', query: { error: 'MATCH_INVALID' } })
+      }
+      // 遇到 MATCHING 状态，什么都不做，等待下一个 2 秒
+    } catch (error) {
+      console.error('[Arena] Polling error:', error)
+      // 若是由于网络波动导致的错误，request.ts 已有容错，暂不中断轮询
+    }
+  }, 2000)
+}
+
+onMounted(async () => {
+  // 1. 优先执行前端安全防跳检 (防止直接在地址栏输入URL)
   if (!checkMatchSession()) {
     return
   }
 
-  // 模拟匹配过程：3.5秒后匹配成功
-  matchTimer = window.setTimeout(() => {
-    if (isCanceled.value) return
-    found.value = true
-
-    // 匹配成功后，1.5秒跳转到大厅
-    redirectTimer = window.setTimeout(() => {
-      if (isCanceled.value) return
-
-      const roomId = 'MATCH_' + Math.random().toString(36).substring(2, 6).toUpperCase()
-
-      // [Security]: 跳转将触发 onBeforeRouteLeave，从而自动执行 cleanup
-      router.replace({
-        name: 'ArenaLobby',
-        params: { roomId },
-        query: { mode: 'RANKED' },
-      })
-    }, 1500)
-  }, 3500)
+  // 2. 真实调用后端，加入天梯池
+  try {
+    const isJoined = await joinMatchmaking()
+    if (isJoined) {
+      // 3. 加入成功，开始轮询
+      startPolling()
+    }
+  } catch (error) {
+    console.error('[Arena] Failed to join matchmaking pool:', error)
+    router.replace({ path: '/arena', query: { error: 'MATCH_INVALID' } })
+  }
 })
 
 const cancelMatch = () => {
-  // [Refactor] 简化逻辑：直接触发路由跳转，依赖路由守卫执行清理
+  // 直接触发路由跳转，onBeforeRouteLeave 守卫会自动执行 cleanup (包含调用 DELETE 取消接口)
   router.replace('/arena')
 }
 
 onUnmounted(() => {
-  // [Security] 兜底清理，防止路由守卫未覆盖的极端情况
   cleanup()
 })
 </script>

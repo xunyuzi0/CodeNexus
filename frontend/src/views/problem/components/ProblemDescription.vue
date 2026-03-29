@@ -79,7 +79,7 @@
 
           <div
             class="prose prose-invert prose-sm max-w-none text-zinc-400 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-600"
-            v-html="problem.content"
+            v-html="parsedContent"
           ></div>
 
           <div v-if="problem.examples && problem.examples.length > 0" class="mt-8 space-y-4">
@@ -185,7 +185,7 @@
             </div>
             <div
               class="prose prose-invert prose-sm max-w-none text-zinc-400 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-600"
-              v-html="solutionData.content"
+              v-html="parsedSolutionContent"
             ></div>
           </template>
 
@@ -244,6 +244,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { marked } from 'marked' // 引入 marked 库
 import {
   FileText,
   FlaskConical,
@@ -283,7 +284,18 @@ const filteredTabs = computed(() => {
   return tabs
 })
 
-// === 新增：题解与提交记录的动态加载状态 ===
+// === 新增：解析 Markdown ===
+const parsedContent = computed(() => {
+  if (!props.problem?.content) return ''
+  return marked.parse(props.problem.content)
+})
+
+const parsedSolutionContent = computed(() => {
+  if (!solutionData.value?.content) return ''
+  return marked.parse(solutionData.value.content)
+})
+
+// === 题解与提交记录的动态加载状态 ===
 const solutionData = ref<ProblemSolution | null>(null)
 const solutionLoading = ref(false)
 

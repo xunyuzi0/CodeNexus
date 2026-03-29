@@ -64,6 +64,7 @@
             >
               <CodeWorkspace
                 v-model="code"
+                :problem="problem"
                 :is-maximized="maximizedPane === 'right'"
                 @toggle-maximize="toggleMaximizeRight"
                 @success="handleProblemSuccess"
@@ -93,8 +94,45 @@ const route = useRoute()
 // --- Data State ---
 const loading = ref(true)
 const problem = ref<Problem | null>(null)
-// 可以根据接口返回语言偏好生成默认代码骨架，这里暂且留空或给基础模板
-const code = ref(`// 在这里开始你的编码...\n`)
+
+// 默认应用 ACM 模式模板
+const code = ref(`import java.util.*;
+import java.io.*;
+
+public class Solution {
+
+    /**
+     * 核心算法逻辑写在这里
+     */
+    public void solve() {
+        // TODO: 在这里编写你的算法逻辑
+        
+    }
+
+    /**
+     * CodeNexus ACM 模式程序入口
+     * 请在此处解析标准输入 (Standard Input) 并打印标准输出 (Standard Output)
+     */
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        // 示例：如果题目需要读取多行或特定格式的输入
+        /*
+        if (scanner.hasNextLine()) {
+            // 1. 读取并解析输入数据
+            String line = scanner.nextLine();
+            
+            // 2. 实例化并调用核心算法
+            Solution sol = new Solution();
+            // Object result = sol.solve(...);
+            
+            // 3. 按照题目要求的格式打印输出
+            // System.out.println(result);
+        }
+        */
+    }
+}
+`)
 
 // 控制计时器的开关状态
 const isTimerPaused = ref(false)

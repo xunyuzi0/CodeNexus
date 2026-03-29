@@ -84,12 +84,13 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Swords, Ticket, Zap, Maximize2, Radio } from 'lucide-vue-next'
+import { Swords, Ticket, Zap, Maximize2, Radio, AlertCircle, XCircle, Info } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 import TiltCard from '@/components/arena/TiltCard.vue'
-import { AlertCircle, XCircle, Info } from 'lucide-vue-next'
-// [Updated] 引入封装后的 storage 工具
 import { storage } from '@/utils/storage'
+
+// 引入真实的后端 API
+import { createRoom, joinRoom } from '@/api/arena'
 
 const router = useRouter()
 const route = useRoute()
@@ -135,10 +136,12 @@ const cards = [
 type ActionType = 'CREATE' | 'MATCH' | 'JOIN'
 const currentAction = ref<ActionType>('CREATE')
 const showDialog = ref(false)
-const pendingRoomId = ref('')
 const otpCode = ref<string[]>(new Array(6).fill(''))
 const otpInputs = ref<HTMLInputElement[]>([])
 const otpString = computed(() => otpCode.value.join(''))
+
+// 请求防抖/加载状态
+const isSubmitting = ref(false)
 
 // 错误状态存储
 const isErrorAlert = ref(false)
@@ -150,19 +153,14 @@ const triggerAction = (type: ActionType) => {
   currentErrorData.value = null
 
   currentAction.value = type
-  if (type === 'CREATE')
-    pendingRoomId.value = Math.random().toString(36).substring(2, 8).toUpperCase()
-  else if (type === 'MATCH') pendingRoomId.value = ''
-  else if (type === 'JOIN') {
+  if (type === 'JOIN') {
     otpCode.value = new Array(6).fill('')
-    pendingRoomId.value = ''
     nextTick(() => otpInputs.value[0]?.focus())
   }
   showDialog.value = true
 }
 
 const dialogConfig = computed(() => {
-  // 1. 优先级最高：如果有错误，显示错误信息
   if (isErrorAlert.value && currentErrorData.value) {
     return {
       title: currentErrorData.value.title,
@@ -172,7 +170,6 @@ const dialogConfig = computed(() => {
     }
   }
 
-  // 2. 正常业务逻辑
   if (currentAction.value === 'MATCH')
     return {
       title: '排位匹配确认',
@@ -181,17 +178,23 @@ const dialogConfig = computed(() => {
       icon: Radio,
     }
   else if (currentAction.value === 'JOIN')
-    return { title: '加入房间', desc: '', btnText: '验证并加入', icon: Ticket }
+    return {
+      title: '加入房间',
+      desc: '',
+      btnText: isSubmitting.value ? '加入中...' : '验证并加入',
+      icon: Ticket,
+    }
   else
     return {
       title: '即将进入沉浸战场',
       desc: '您即将离开控制台，进入隔离沙箱环境。<br>侧边栏将被隐藏，以提供极致的专注编程体验。',
-      btnText: '确认进入',
+      btnText: isSubmitting.value ? '创建中...' : '确认创建并进入',
       icon: Maximize2,
     }
 })
 
-const handleConfirm = () => {
+// 核心改造: 接入真实 API 处理确认动作
+const handleConfirm = async () => {
   // 错误弹窗逻辑：点击仅关闭
   if (isErrorAlert.value) {
     showDialog.value = false
@@ -199,14 +202,61 @@ const handleConfirm = () => {
     return
   }
 
-  if (currentAction.value === 'MATCH') {
-    // [Updated] 使用工具类设置匹配凭证 (使用 session 模式)
-    storage.set('MATCH_PENDING', 'true', 'session')
+  // 防止重复点击
+  if (isSubmitting.value) return
 
+  if (currentAction.value === 'MATCH') {
+    storage.set('MATCH_PENDING', 'true', 'session')
     router.push('/battle/matchmaking')
-  } else if (currentAction.value === 'JOIN') {
-    if (otpString.value.length === 6) router.push(`/battle/lobby/${otpString.value}`)
-  } else router.push(`/battle/lobby/${pendingRoomId.value}`)
+  }
+  // [架构师改造]: 加入房间前先调接口落盘
+  else if (currentAction.value === 'JOIN') {
+    if (otpString.value.length === 6) {
+      try {
+        isSubmitting.value = true
+        // 1. 调用新增的加入房间 API
+        await joinRoom(otpString.value)
+
+        // 2. 数据库落盘成功后，再跳转大厅
+        router.push(`/battle/lobby/${otpString.value}`)
+        showDialog.value = false
+      } catch (error: any) {
+        // 如果后端拦截（如人满、密码错、房间不存在），直接在当前面板爆红
+        isErrorAlert.value = true
+        currentErrorData.value = {
+          title: '加入房间失败',
+          desc: error.message || '房间不存在或已满，请检查邀请码',
+          icon: AlertCircle,
+        }
+        console.error('[Arena] Join room failed:', error)
+      } finally {
+        isSubmitting.value = false
+      }
+    }
+  } else if (currentAction.value === 'CREATE') {
+    try {
+      isSubmitting.value = true
+      // 传递 roomType 和 type 防止后端字段差异导致400
+      const res = await createRoom({ roomType: 1, type: 1 })
+
+      router.push({
+        name: 'ArenaLobby',
+        params: { roomId: res.roomCode },
+        query: { mode: 'CUSTOM' },
+      })
+      showDialog.value = false
+    } catch (error: any) {
+      isErrorAlert.value = true
+      currentErrorData.value = {
+        title: '创建房间失败',
+        desc: error.message || '神经连接遭到后端拒绝，请检查日志',
+        icon: AlertCircle,
+      }
+      console.error('[Arena] Create room failed:', error)
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 }
 
 const handleInput = (e: Event, index: number) => {

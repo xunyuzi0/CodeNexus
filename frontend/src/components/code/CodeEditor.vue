@@ -2,7 +2,6 @@
   <div
     ref="editorWrapperRef"
     class="flex flex-col w-full h-full rounded-xl overflow-hidden bg-zinc-950/50 backdrop-blur-xl border border-white/5 transition-colors duration-300"
-    :class="{ 'ring-1 ring-[#FF4C00]/50': isFocused }"
   >
     <div
       class="flex items-center justify-between px-4 py-2 bg-zinc-900/80 border-b border-white/5 select-none z-10"
@@ -27,15 +26,18 @@
             @click="lang === 'java' ? selectLanguage(lang) : null"
             class="px-3 py-2 text-xs flex items-center justify-between group transition-colors"
             :class="
-              lang === 'java' 
-                ? 'text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer' 
+              lang === 'java'
+                ? 'text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer'
                 : 'text-zinc-600 cursor-not-allowed bg-zinc-950/30'
             "
           >
             <span class="font-mono" :class="{ 'opacity-50': lang !== 'java' }">{{ lang }}</span>
-            
+
             <Check v-if="currentLanguage === lang" class="w-3 h-3 text-[#FF4C00]" />
-            <Lock v-else-if="lang !== 'java'" class="w-3 h-3 text-zinc-700 group-hover:text-zinc-600 transition-colors" />
+            <Lock
+              v-else-if="lang !== 'java'"
+              class="w-3 h-3 text-zinc-700 group-hover:text-zinc-600 transition-colors"
+            />
           </div>
         </div>
       </div>
@@ -56,7 +58,7 @@
         >
           <Copy class="w-4 h-4" />
         </button>
-        
+
         <button
           @click="$emit('toggle-maximize')"
           class="p-1.5 text-zinc-500 hover:text-white hover:bg-white/5 rounded transition-colors"
@@ -117,7 +119,7 @@ const props = withDefaults(defineProps<Props>(), {
   language: 'java',
   readOnly: false,
   loading: false,
-  isMaximized: false
+  isMaximized: false,
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'toggle-maximize'])
@@ -146,16 +148,16 @@ onMounted(() => {
     rules: [
       { token: 'comment', foreground: '606060', fontStyle: 'italic' },
       { token: 'keyword', foreground: 'FF4C00', fontStyle: 'bold' },
-      { token: 'string', foreground: '10B981' }, 
+      { token: 'string', foreground: '10B981' },
       { token: 'number', foreground: '3B82F6' },
     ],
     colors: {
-      'editor.background': '#00000000', 
-      'editor.foreground': '#D4D4D8', 
-      'editor.lineHighlightBackground': '#FFFFFF05',
+      'editor.background': '#00000000',
+      'editor.foreground': '#D4D4D8',
+      'editor.lineHighlightBackground': '#FFFFFF00', // 彻底透明化
       'editorCursor.foreground': '#FF4C00',
-      'editorLineNumber.foreground': '#52525b', 
-      'editor.selectionBackground': '#FF4C0033', 
+      'editorLineNumber.foreground': '#52525b',
+      'editor.selectionBackground': '#FF4C0033',
       'editorIndentGuide.background': '#27272a',
       'editorIndentGuide.activeBackground': '#52525b',
     },
@@ -170,19 +172,28 @@ onMounted(() => {
     fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
     automaticLayout: true,
     scrollBeyondLastLine: false,
-    minimap: { enabled: false }, 
+    minimap: { enabled: false },
     lineNumbersMinChars: 3,
     padding: { top: 16, bottom: 16 },
     cursorBlinking: 'smooth',
     cursorSmoothCaretAnimation: 'on',
     smoothScrolling: true,
+
+    // ======== 新增的纯净体验优化配置 ========
+    stickyScroll: { enabled: false }, // 彻底关闭代码顶部吸附（解决滚动时顶部代码固定不走的问题）
+    hideCursorInOverviewRuler: true, // 隐藏右侧概览标尺中的光标位置提示（解决右侧橙色点）
+    overviewRulerLanes: 0, // 彻底关闭右侧概览标尺
+    renderLineHighlight: 'none', // 关闭当前代码行的高亮提示（解决左侧和行内额外的白色光标/背景框）
+    folding: false, // 关闭代码折叠功能（防止左侧出现折叠小箭头被误认为光标）
+    // ========================================
+
     scrollbar: {
       useShadows: false,
       vertical: 'visible',
       horizontal: 'visible',
       verticalScrollbarSize: 10,
       horizontalScrollbarSize: 10,
-      verticalSliderSize: 6, 
+      verticalSliderSize: 6,
       horizontalSliderSize: 6,
     },
   })
@@ -204,26 +215,38 @@ onMounted(() => {
   editorInstance.onDidBlurEditorText(() => (isFocused.value = false))
 })
 
-watch(() => props.modelValue, (newValue) => {
-  if (editorInstance && newValue !== editorInstance.getValue()) {
-    editorInstance.setValue(newValue)
-  }
-})
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (editorInstance && newValue !== editorInstance.getValue()) {
+      editorInstance.setValue(newValue)
+    }
+  },
+)
 
-watch(() => settingsStore.editorFontSize, (newSize) => {
-  editorInstance?.updateOptions({ fontSize: newSize })
-})
+watch(
+  () => settingsStore.editorFontSize,
+  (newSize) => {
+    editorInstance?.updateOptions({ fontSize: newSize })
+  },
+)
 
-watch(() => props.language, (newLang) => {
-  if (editorInstance && newLang) {
-    monaco.editor.setModelLanguage(editorInstance.getModel()!, newLang)
-    currentLanguage.value = newLang
-  }
-})
+watch(
+  () => props.language,
+  (newLang) => {
+    if (editorInstance && newLang) {
+      monaco.editor.setModelLanguage(editorInstance.getModel()!, newLang)
+      currentLanguage.value = newLang
+    }
+  },
+)
 
-watch(() => props.readOnly, (val) => {
-  editorInstance?.updateOptions({ readOnly: val })
-})
+watch(
+  () => props.readOnly,
+  (val) => {
+    editorInstance?.updateOptions({ readOnly: val })
+  },
+)
 
 const toggleLangDropdown = () => (isLangOpen.value = !isLangOpen.value)
 
@@ -247,10 +270,10 @@ onUnmounted(() => {
   box-shadow: none !important;
 }
 .monaco-editor .slider {
-  background: #3f3f46 !important; 
+  background: #3f3f46 !important;
   border-radius: 9999px !important;
 }
 .monaco-editor .slider:hover {
-  background: #52525b !important; 
+  background: #52525b !important;
 }
 </style>

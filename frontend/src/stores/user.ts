@@ -37,17 +37,29 @@ export const useUserStore = defineStore('user', () => {
     storage.setToken(newToken)
   }
 
-  // 获取完整个人档案及偏好 (替代原有的 fetchUserInfo)
+  // 获取完整个人档案及偏好
   async function fetchUserProfile() {
     try {
       const data = await getMyProfile()
+
+      // ==========================================
+      // [前端架构师 Fix]: 防御性空值兜底
+      // 后端 user_preference 表可能为 0 条记录，导致 preferences 为 null。
+      // ==========================================
+      if (!data.preferences) {
+        data.preferences = {
+          editorTheme: 'zeekr-dark',
+          fontSize: 14,
+        }
+      }
+
       userInfo.value = data
 
       // 角色处理兼容
       const role = (data as any).role || (data as any).userRole
       roles.value = role ? [role] : ['user']
 
-      // 【核心联动】如果拿到了后端的偏好设置，同步更新到本地的 settingsStore
+      // 【核心联动】同步更新到本地的 settingsStore
       if (data.preferences) {
         const settingsStore = useSettingsStore()
         if (data.preferences.editorTheme) {

@@ -84,7 +84,7 @@
             </div>
 
             <div
-              v-if="mode === 'CUSTOM'"
+              v-if="mode === 'CUSTOM' && isHost"
               class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#FF4C00] text-black text-[10px] font-black px-3 py-0.5 rounded-sm uppercase tracking-widest shadow-lg"
             >
               HOST
@@ -105,7 +105,7 @@
         <div class="mb-12 flex flex-col items-center" v-if="!isLaunching">
           <div class="text-xs text-zinc-500 font-bold tracking-widest mb-2 flex items-center gap-2">
             <Timer class="w-3 h-3" />
-            <span>自动解散</span>
+            <span>房间解散</span>
           </div>
           <div
             class="font-mono text-5xl md:text-6xl font-black italic tracking-tighter tabular-nums transition-colors duration-300"
@@ -163,6 +163,13 @@
                   <CheckCircle2
                     class="w-8 h-8 text-emerald-500 drop-shadow-[0_0_10px_rgba(16,185,129,0.6)]"
                   />
+                </div>
+
+                <div
+                  v-if="mode === 'CUSTOM' && opponent.isHost"
+                  class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-zinc-600 text-white text-[10px] font-black px-3 py-0.5 rounded-sm uppercase tracking-widest shadow-lg"
+                >
+                  HOST
                 </div>
               </div>
             </div>
@@ -254,13 +261,14 @@
     </div>
 
     <ArenaDialog
-      v-model="showTimeoutDialog"
-      title="匹配超时"
+      :model-value="showTimeoutDialog"
+      title="房间已解散"
       confirm-text="返回大厅"
       @confirm="exitLobby"
+      @update:model-value="exitLobby"
     >
       <div class="text-center space-y-4">
-        <p class="text-zinc-400">双方未能在规定时间内完成准备，房间已自动解散。</p>
+        <p class="text-zinc-400">房间存活时间已到期，已自动安全解散。</p>
       </div>
     </ArenaDialog>
 
@@ -272,7 +280,7 @@
     >
       <div class="text-center space-y-4">
         <p class="text-zinc-400">
-          当前位置将<span class="text-red-500 font-bold">不被保留</span>，您需要重新匹配。
+          离开后，您的位置将<span class="text-red-500 font-bold">不再保留</span>。
         </p>
       </div>
     </ArenaDialog>
@@ -280,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useClipboard } from '@vueuse/core'
 import { useUserStore } from '@/stores/user'
@@ -291,9 +299,11 @@ import { checkRoomValidity } from '@/api/arena'
 
 // --- 类型定义 ---
 interface Opponent {
+  id: number
   name: string
   avatar: string
   isReady: boolean
+  isHost: boolean
 }
 
 // --- 基础设置 ---
@@ -304,155 +314,254 @@ const { copy } = useClipboard()
 
 const roomId = route.params.roomId as string
 const mode = computed(() => (route.query.mode === 'RANKED' ? 'RANKED' : 'CUSTOM'))
+const ticket = computed(() => route.query.ticket as string | undefined)
 
 // --- 状态数据 ---
 const isVerifying = ref(true)
 const isSelfReady = ref(false)
+const isHost = ref(false)
 const opponent = ref<Opponent | null>(null)
 const isLaunching = ref(false)
-const countdown = ref(mode.value === 'RANKED' ? 20 : 120)
+const countdown = ref(0) // 初始为 0，绝对等待后端时钟
 const showTimeoutDialog = ref(false)
 
-// [新增]: 退出相关状态
 const showExitDialog = ref(false)
-const isManualExit = ref(false) // 用户确认退出标志
-const isSystemExit = ref(false) // 系统强制跳转标志 (如超时、校验失败)
+const isManualExit = ref(false)
+const isSystemExit = ref(false)
 
-// 定时器引用
 let mainTimer: number | null = null
-let simEntryTimer: number | null = null
-let simReadyTimer: number | null = null
+let ws: WebSocket | null = null
 
-// 格式化时间
 const formattedTime = computed(() => {
-  const m = Math.floor(countdown.value / 60)
+  // [防御性编程]: 哪怕格式化时也做一次 Math.max 兜底，绝不让负号上 UI
+  const safeTime = Math.max(0, countdown.value)
+  const m = Math.floor(safeTime / 60)
     .toString()
     .padStart(2, '0')
-  const s = (countdown.value % 60).toString().padStart(2, '0')
+  const s = (safeTime % 60).toString().padStart(2, '0')
   return `${m}:${s}`
 })
 
-// --- [核心]: 路由守卫 ---
+// --- 路由守卫 ---
 onBeforeRouteLeave((to, from, next) => {
-  // 放行条件: 游戏开始 / 系统强制退出 / 用户确认退出
   if (isLaunching.value || isSystemExit.value || isManualExit.value) {
     next()
   } else {
-    // 拦截其他情况 (如浏览器返回、侧键)
     next(false)
     showExitDialog.value = true
   }
 })
 
-// --- 核心业务逻辑 ---
-
+// --- HTTP 验票守卫 ---
 const initializeRoom = async () => {
   if (!roomId) {
-    // 标记为系统退出，避免被守卫拦截
     isSystemExit.value = true
     router.replace('/arena')
     return
   }
 
   try {
-    const isValid = await checkRoomValidity(roomId)
-    if (!isValid) {
-      console.warn('[Arena Security] Room is invalid or expired:', roomId)
-      // 标记为系统退出
+    const res = await checkRoomValidity(roomId, ticket.value)
+
+    if (!res.isValid) {
       isSystemExit.value = true
-      router.replace({
-        path: '/arena',
-        query: { error: 'ROOM_INVALID' },
-      })
-    } else {
-      isVerifying.value = false
-      startTimer()
-      initSimulation()
+      router.replace({ path: '/arena', query: { error: 'ROOM_INVALID' } })
+      return
     }
+
+    if (res.status === 'FINISHED' || res.status === 'DISMISSED') {
+      isSystemExit.value = true
+      router.replace({ path: '/arena', query: { error: 'BATTLE_ENDED' } })
+      return
+    }
+
+    isVerifying.value = false
+
+    // [架构师修复 1]: 移除此处的 startTimer()。不能再“抢跑”了！
+    // 必须等待 WebSocket 连接成功并下发 expireTime 时才启动时钟。
+    connectWebSocket()
   } catch (error) {
-    console.error('Room check failed:', error)
+    console.error('[Arena] Room validity check failed:', error)
     isSystemExit.value = true
     router.replace('/arena')
   }
 }
 
-// 初始化模拟数据
-const initSimulation = () => {
-  if (mode.value === 'RANKED') {
-    opponent.value = {
-      name: 'DeepSeeker_AI',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-      isReady: false,
+// ==========================================
+// WebSocket 通信与后端状态机联动
+// ==========================================
+const connectWebSocket = () => {
+  const token = userStore.token
+  if (!token) return
+
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const wsHost = import.meta.env.VITE_WS_URL || 'ws://localhost:8080'
+  const wsUrl = `${wsHost}/api/ws/arena/${roomId}?token=${token}`
+
+  ws = new WebSocket(wsUrl)
+
+  ws.onopen = () => {
+    console.log('⚡ [Arena WS] Neural link established.')
+  }
+
+  ws.onmessage = (event) => {
+    try {
+      const payload = JSON.parse(event.data)
+      handleWsMessage(payload)
+    } catch (e) {
+      console.error('[Arena WS] Failed to parse message:', e)
     }
-    simulateOpponentReady(2000, 8000)
-  } else {
-    opponent.value = null
-    const entryDelay = Math.random() * 6000 + 2000
-    simEntryTimer = window.setTimeout(() => {
-      opponent.value = {
-        name: 'AlgorithmMaster_99',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-        isReady: false,
-      }
-      simulateOpponentReady(2000, 5000)
-    }, entryDelay)
+  }
+
+  ws.onclose = (event) => {
+    console.warn('🔌 [Arena WS] Disconnected.', event.reason)
   }
 }
 
-const simulateOpponentReady = (min: number, max: number) => {
-  const delay = Math.random() * (max - min) + min
-  simReadyTimer = window.setTimeout(() => {
-    if (opponent.value) {
-      opponent.value.isReady = true
+const handleWsMessage = (payload: any) => {
+  const { action, data } = payload
+  const myId = (userStore.userInfo as any)?.id
+
+  switch (action) {
+    case 'SYNC_ROOM': {
+      // [架构师修复 2]: 绝对时钟同步，并精准启动定时器
+      if (data.expireTime) {
+        const remainingSeconds = Math.floor((data.expireTime - Date.now()) / 1000)
+        countdown.value = Math.max(0, remainingSeconds)
+
+        // 如果还没启动过定时器，并且时间大于0，正式发车
+        if (!mainTimer && countdown.value > 0) {
+          startTimer()
+        } else if (countdown.value <= 0) {
+          // 如果后端传来的时间本身就已经过期了，直接触发弹窗
+          handleTimeout()
+        }
+      }
+
+      // 身份与列表覆盖更新 (Host Migration)
+      const me = data.players.find((p: any) => p.userId === myId)
+      if (me) {
+        isSelfReady.value = me.isReady
+        isHost.value = Number(me.isCreator) === 1
+      }
+
+      const other = data.players.find((p: any) => p.userId !== myId)
+      if (other) {
+        opponent.value = {
+          id: other.userId,
+          name: other.nickname,
+          avatar:
+            other.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${other.nickname}`,
+          isReady: other.isReady,
+          isHost: Number(other.isCreator) === 1,
+        }
+      } else {
+        opponent.value = null
+      }
+      break
     }
-  }, delay)
+    case 'PLAYER_JOINED': {
+      if (data.userId !== myId) {
+        opponent.value = {
+          id: data.userId,
+          name: data.nickname,
+          avatar:
+            data.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.nickname}`,
+          isReady: data.isReady,
+          isHost: Number(data.isCreator) === 1,
+        }
+      }
+      break
+    }
+    case 'PLAYER_READY': {
+      if (data.userId === myId) {
+        isSelfReady.value = data.isReady
+      } else if (opponent.value && opponent.value.id === data.userId) {
+        opponent.value.isReady = data.isReady
+      }
+      break
+    }
+    case 'PLAYER_LEFT': {
+      if (opponent.value && opponent.value.id === data.userId) {
+        opponent.value = null
+        if (isSelfReady.value) {
+          sendReadyAction(false)
+        }
+      }
+      break
+    }
+    case 'GAME_START': {
+      clearAllTimers()
+      isLaunching.value = true
+
+      setTimeout(() => {
+        router.replace({
+          name: 'ArenaBattle',
+          params: { roomId },
+          query: { mode: mode.value, problemId: data.problemId },
+        })
+      }, 1500)
+      break
+    }
+  }
 }
 
+const sendReadyAction = (status: boolean) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(
+      JSON.stringify({
+        action: 'READY',
+        data: { isReady: status },
+      }),
+    )
+  }
+}
+
+const handleSelfReady = () => {
+  if (isSelfReady.value || !opponent.value) return
+  sendReadyAction(true)
+}
+// ==========================================
+
+// [架构师修复 3]: 定时器逻辑大升级
 const startTimer = () => {
+  if (mainTimer) return // 防抖，防止多次启动
+
   mainTimer = window.setInterval(() => {
-    countdown.value--
+    // 只有在时间大于0的时候才扣减
+    if (countdown.value > 0) {
+      countdown.value--
+    }
+
+    // 一旦发现小于等于0，立刻处理后事
     if (countdown.value <= 0) {
+      countdown.value = 0 // 物理清零兜底
       handleTimeout()
     }
   }, 1000)
 }
 
-const handleSelfReady = () => {
-  if (isSelfReady.value || !opponent.value) return
-  isSelfReady.value = true
-}
-
 const handleTimeout = () => {
   clearAllTimers()
+  countdown.value = 0 // 再次强制兜底
+
+  // 极端情况判断：如果俩人最后1秒都准备了，让它开局，不弹窗
   if (isSelfReady.value && opponent.value?.isReady) return
+
+  // 否则，强制拉起超时离场弹窗
   showTimeoutDialog.value = true
 }
 
-// 监听游戏开始
-watchEffect(() => {
-  if (isSelfReady.value && opponent.value?.isReady && !isLaunching.value) {
-    clearAllTimers()
-    isLaunching.value = true // 设置为 true 后，路由守卫会自动放行
-
-    setTimeout(() => {
-      router.replace({
-        name: 'ArenaBattle',
-        params: { roomId },
-        query: { mode: mode.value },
-      })
-    }, 1500)
-  }
-})
-
 const copyRoomId = () => copy(roomId)
 
-// 超时退出
+// [架构师修复 4]: 退房逻辑
 const exitLobby = () => {
+  // 这会绕过离开确认弹窗，直接触发路由跳转
   isSystemExit.value = true
   router.replace('/arena')
+  // 路由跳转会自动触发 onUnmounted 里的 closeWebSocket()，后端借此感知“玩家退出并销毁房间”
 }
 
-// [新增]: 确认手动离开
 const confirmManualExit = () => {
   isManualExit.value = true
   showExitDialog.value = false
@@ -460,9 +569,17 @@ const confirmManualExit = () => {
 }
 
 const clearAllTimers = () => {
-  if (mainTimer) clearInterval(mainTimer)
-  if (simEntryTimer) clearTimeout(simEntryTimer)
-  if (simReadyTimer) clearTimeout(simReadyTimer)
+  if (mainTimer) {
+    clearInterval(mainTimer)
+    mainTimer = null
+  }
+}
+
+const closeWebSocket = () => {
+  if (ws) {
+    ws.close()
+    ws = null
+  }
 }
 
 onMounted(() => {
@@ -471,6 +588,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   clearAllTimers()
+  closeWebSocket() // 这里就是呼叫后端的“退房物理开关”
 })
 </script>
 

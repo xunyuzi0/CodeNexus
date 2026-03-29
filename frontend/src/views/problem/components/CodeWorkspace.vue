@@ -1,18 +1,30 @@
 <template>
   <div class="flex flex-col h-full w-full bg-[#1e1e1e] relative group/workspace overflow-hidden">
     <div class="flex-1 min-h-0 relative z-0">
-      <splitpanes class="default-theme zeekr-theme" horizontal @resize="handleResize">
+      <splitpanes class="zeekr-theme" horizontal @resize="handleResize">
         <pane
           :size="paneSizes.editor"
           :min-size="isConsoleOpen ? 10 : 100"
           class="flex flex-col min-h-0 relative transition-[height] duration-300 ease-in-out"
         >
-          <div class="flex-1 relative overflow-hidden">
+          <div
+            v-if="readOnly && isBattleMode"
+            class="absolute top-0 left-0 right-0 z-50 bg-amber-500/90 text-black text-xs font-bold px-3 py-1.5 flex items-center justify-center gap-2 shadow-lg backdrop-blur-sm"
+          >
+            <Eye class="w-3.5 h-3.5" />
+            <span>正在查看对手代码 (只读模式)</span>
+          </div>
+
+          <div
+            class="flex-1 relative overflow-hidden"
+            :class="{ 'ring-2 ring-amber-500/50': readOnly && isBattleMode }"
+          >
             <CodeEditor
               v-model="modelValue"
               language="java"
               class="h-full w-full"
               :is-maximized="isMaximized"
+              :read-only="readOnly"
               @toggle-maximize="$emit('toggle-maximize')"
             />
           </div>
@@ -81,28 +93,30 @@
                   @click="handleAddTestCase"
                   class="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-colors border border-dashed border-zinc-700"
                   title="添加测试用例"
+                  :disabled="readOnly"
                 >
                   <Plus class="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div class="space-y-4 flex-1 overflow-y-auto pr-2">
+              <div class="space-y-4 flex-1 overflow-y-auto pr-2 pb-4">
                 <template v-if="testCases[activeCaseIndex]">
                   <div
                     v-for="(_, key) in testCases[activeCaseIndex]!.inputs"
                     :key="key"
-                    class="space-y-2"
+                    class="space-y-2 flex flex-col shrink-0"
                   >
                     <label
                       class="block text-xs font-medium text-zinc-500 uppercase tracking-wider font-mono pl-1"
-                      >{{ key }} =</label
+                      >{{ key }}</label
                     >
-                    <input
-                      type="text"
+                    <textarea
                       v-model="testCases[activeCaseIndex]!.inputs[key]"
-                      class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm text-zinc-300 placeholder-zinc-700 focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 outline-none transition-all"
+                      class="w-full min-h-[80px] bg-black/30 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm text-zinc-300 placeholder-zinc-700 focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 outline-none transition-all resize-y"
                       spellcheck="false"
-                    />
+                      :placeholder="`请输入 ${key} 的纯数据`"
+                      :disabled="readOnly"
+                    ></textarea>
                   </div>
                 </template>
               </div>
@@ -271,7 +285,7 @@
       <div class="flex items-center gap-3">
         <button
           @click="handleRun"
-          :disabled="isRunning || isSubmitting"
+          :disabled="isRunning || isSubmitting || readOnly"
           class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-200 border border-white/5 hover:bg-zinc-700 hover:text-white transition-all font-bold text-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
         >
           <Play class="w-4 h-4 fill-zinc-400 group-hover:fill-white transition-colors" /> 运行
@@ -279,7 +293,7 @@
 
         <button
           @click="handleSubmit"
-          :disabled="isRunning || isSubmitting"
+          :disabled="isRunning || isSubmitting || readOnly"
           class="px-8 py-2 rounded-lg bg-[#FF4C00] text-white font-bold text-sm flex items-center gap-2 shadow-[0_0_15px_rgba(255,76,0,0.3)] hover:shadow-[0_0_25px_rgba(255,76,0,0.5)] hover:bg-[#ff5f1f] transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
         >
           <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
@@ -293,7 +307,7 @@
       :show="showJudgePanel"
       :status="judgeStatus"
       :checkpoints="checkpoints"
-      mode="practice"
+      :mode="isBattleMode ? 'battle' : 'practice'"
       @close="showJudgePanel = false"
       @to-problems="router.push('/problems')"
       @next-problem="router.push('/problems/2')"
@@ -302,7 +316,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onUnmounted } from 'vue'
+import { ref, reactive, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
@@ -317,12 +331,12 @@ import {
   FlaskConical,
   Loader2,
   X,
+  Eye,
 } from 'lucide-vue-next'
 import CodeEditor from '@/components/code/CodeEditor.vue'
 import JudgePanel from '@/components/code/JudgePanel.vue'
 
-// 引入真实的 API
-import { runCode, submitCode, getSubmissionStatus } from '@/api/problem'
+import { runCode, submitCode, getSubmissionStatus, type Problem } from '@/api/problem'
 import type { RunCodeResult } from '@/api/problem'
 
 // --- Interfaces & Types ---
@@ -334,11 +348,28 @@ const router = useRouter()
 const route = useRoute()
 const modelValue = defineModel<string>({ required: true })
 
-defineProps<{
-  isMaximized?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    isMaximized?: boolean
+    problem?: any // 兼容后端真实 Problem 数据格式
+    readOnly?: boolean // 是否为只读模式（如竞技场战败后查看代码）
+    isBattleMode?: boolean // 是否处于竞技场模式
+  }>(),
+  {
+    isMaximized: false,
+    readOnly: false,
+    isBattleMode: false,
+  },
+)
 
-const emit = defineEmits(['toggle-maximize', 'success'])
+const emit = defineEmits([
+  'toggle-maximize',
+  'success',
+  'submit-start',
+  'submit-fail',
+  'run-start',
+  'run-end',
+])
 
 // Console & Layout
 const isConsoleOpen = ref(true)
@@ -347,12 +378,48 @@ const lastConsoleSize = ref(30)
 const activeConsoleTab = ref<'testcase' | 'result'>('testcase')
 
 // Test Cases
-const testCases = ref<TestCase[]>([
-  { inputs: { nums: '[2,7,11,15]', target: '9' } },
-  { inputs: { nums: '[3,2,4]', target: '6' } },
-  { inputs: { nums: '[3,3]', target: '6' } },
-])
+const testCases = ref<TestCase[]>([])
 const activeCaseIndex = ref(0)
+
+const parseInputString = (str: string): Record<string, string> => {
+  const result: Record<string, string> = {}
+  if (!str) return { 'Standard Input': '' }
+
+  if (!str.includes('=')) {
+    return { 'Standard Input': str.trim() }
+  }
+
+  const parts = str.split(/,\s*(?=[a-zA-Z_0-9]+\s*=)/)
+
+  let parsedCount = 0
+  parts.forEach((part) => {
+    const match = part.match(/^([a-zA-Z_0-9]+)\s*=\s*([\s\S]*)$/)
+    if (match) {
+      result[match[1].trim()] = match[2].trim()
+      parsedCount++
+    }
+  })
+
+  if (parsedCount === 0) {
+    return { 'Standard Input': str.trim() }
+  }
+
+  return result
+}
+
+watch(
+  () => props.problem,
+  (newProblem) => {
+    if (newProblem && newProblem.examples && newProblem.examples.length > 0) {
+      testCases.value = newProblem.examples.map((ex: any) => ({
+        inputs: parseInputString(ex.input || ''),
+      }))
+    } else {
+      testCases.value = [{ inputs: { 'Standard Input': '' } }]
+    }
+  },
+  { immediate: true },
+)
 
 // Execution Results
 const isRunning = ref(false)
@@ -363,8 +430,6 @@ const activeResultIndex = ref(0)
 // Judge Panel State
 const showJudgePanel = ref(false)
 const judgeStatus = ref<'judging' | 'accepted' | 'rejected'>('judging')
-
-// 修复 3：使用 any[] 类型兜底，避免与 JudgePanel 内部强定义的类型产生冲突
 const checkpoints = ref<any[]>([])
 
 let pollTimer: number | null = null
@@ -409,12 +474,11 @@ const toggleConsole = () => {
 const handleAddTestCase = () => {
   const newInputs: Record<string, string> = {}
   if (testCases.value.length > 0) {
-    // 修复点：在这里加上 ! 进行非空断言，告诉 TS 这个元素一定存在
     Object.keys(testCases.value[0]!.inputs).forEach((key) => {
       newInputs[key] = ''
     })
   } else {
-    newInputs['param'] = ''
+    newInputs['Standard Input'] = ''
   }
   testCases.value.push({ inputs: newInputs })
   activeCaseIndex.value = testCases.value.length - 1
@@ -431,8 +495,9 @@ const handleRemoveTestCase = (index: number) => {
 }
 
 const handleRun = async () => {
-  if (isRunning.value) return
-  const problemId = route.params.id as string
+  if (isRunning.value || props.readOnly) return
+  // 提取真实 ID：优先从属性获取（适配竞技场），兜底从路由获取（适配个人刷题）
+  const problemId = props.problem?.id || route.params.id
   if (!problemId) return
 
   if (!isConsoleOpen.value) toggleConsole()
@@ -441,8 +506,11 @@ const handleRun = async () => {
   runResults.value = []
   activeResultIndex.value = 0
 
+  emit('run-start') // 向竞技场抛出事件，记录日志
+
   try {
     const formattedInputs = testCases.value.map((tc) => Object.values(tc.inputs).join('\n'))
+
     const res = await runCode(problemId, {
       code: modelValue.value,
       language: 'java',
@@ -453,12 +521,13 @@ const handleRun = async () => {
     console.error('运行代码失败:', error)
   } finally {
     isRunning.value = false
+    emit('run-end')
   }
 }
 
 const handleSubmit = async () => {
-  if (isSubmitting.value) return
-  const problemId = route.params.id as string
+  if (isSubmitting.value || props.readOnly) return
+  const problemId = props.problem?.id || route.params.id
   if (!problemId) return
 
   showJudgePanel.value = true
@@ -466,6 +535,8 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   checkpoints.value = []
   clearPollTimer()
+
+  emit('submit-start') // 向竞技场抛出开始提交的事件
 
   try {
     const submissionId = await submitCode(problemId, {
@@ -477,7 +548,6 @@ const handleSubmit = async () => {
       try {
         const pollRes = await getSubmissionStatus(submissionId)
 
-        // 修复 4：数据映射！把后端的 PENDING/RUNNING 转成前端组件内部需要的小写
         checkpoints.value = (pollRes.checkpoints || []).map((cp) => ({
           ...cp,
           status:
@@ -494,19 +564,25 @@ const handleSubmit = async () => {
 
           judgeStatus.value = hasError ? 'rejected' : 'accepted'
 
-          if (!hasError) emit('success')
+          if (hasError) {
+            emit('submit-fail') // 抛出错误事件
+          } else {
+            emit('success') // 抛出成功事件（AC）
+          }
         }
       } catch (err) {
         console.error('轮询状态异常:', err)
         clearPollTimer()
         isSubmitting.value = false
         judgeStatus.value = 'rejected'
+        emit('submit-fail')
       }
     }, 1000)
   } catch (error) {
     console.error('提交失败:', error)
     isSubmitting.value = false
     judgeStatus.value = 'rejected'
+    emit('submit-fail')
   }
 }
 
@@ -531,5 +607,62 @@ const getStatusText = (status: string) => {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+</style>
+
+<style>
+.zeekr-theme.splitpanes {
+  background-color: transparent !important;
+}
+.zeekr-theme .splitpanes__pane {
+  background-color: transparent !important;
+  overflow: hidden;
+}
+.zeekr-theme .splitpanes__splitter {
+  background-color: #09090b !important;
+  border: none !important;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 20;
+  transition: all 0.2s ease;
+}
+.zeekr-theme.splitpanes--vertical > .splitpanes__splitter {
+  width: 6px !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  margin-left: -1px;
+}
+.zeekr-theme.splitpanes--horizontal > .splitpanes__splitter {
+  height: 6px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  margin-top: -1px;
+}
+.zeekr-theme .splitpanes__splitter::after {
+  content: '';
+  position: absolute;
+  background-color: #ff4c00;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.zeekr-theme.splitpanes--vertical > .splitpanes__splitter::after {
+  top: 10%;
+  bottom: 10%;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+.zeekr-theme.splitpanes--horizontal > .splitpanes__splitter::after {
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+.zeekr-theme .splitpanes__splitter:hover::after,
+.zeekr-theme .splitpanes__splitter:active::after {
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(255, 76, 0, 0.6);
 }
 </style>
