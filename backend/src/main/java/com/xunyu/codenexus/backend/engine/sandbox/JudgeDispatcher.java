@@ -2,9 +2,14 @@ package com.xunyu.codenexus.backend.engine.sandbox;
 
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.xunyu.codenexus.backend.engine.arena.ArenaWebSocketHandler;
+import com.xunyu.codenexus.backend.mapper.ArenaRoomMapper;
+import com.xunyu.codenexus.backend.mapper.ArenaRoomUserMapper;
 import com.xunyu.codenexus.backend.mapper.ProblemSubmissionMapper;
 import com.xunyu.codenexus.backend.mapper.ProblemTestcaseMapper;
 import com.xunyu.codenexus.backend.model.dto.response.problem.SubmitResponseVO;
+import com.xunyu.codenexus.backend.model.entity.ArenaRoom;
+import com.xunyu.codenexus.backend.model.entity.ArenaRoomUser;
 import com.xunyu.codenexus.backend.model.entity.ProblemSubmission;
 import com.xunyu.codenexus.backend.model.entity.ProblemTestcase;
 import com.xunyu.codenexus.backend.service.impl.ProblemRunServiceImpl;
@@ -22,6 +27,9 @@ import java.util.concurrent.*;
 
 /**
  * 核心异步判题消费者调度器 (The Dispatcher Worker)
+ * 支持判题进度实时推送至竞技大厅战况面板
+ *
+ * @author CodeNexusBuilder
  */
 @Slf4j
 @Component
@@ -35,6 +43,14 @@ public class JudgeDispatcher {
     private ProblemTestcaseMapper problemTestcaseMapper;
     @Resource
     private DockerSandboxEngine dockerSandboxEngine;
+
+    // 注入大厅和房间 Mapper 以支持日志推送
+    @Resource
+    private ArenaWebSocketHandler arenaWebSocketHandler;
+    @Resource
+    private ArenaRoomUserMapper arenaRoomUserMapper;
+    @Resource
+    private ArenaRoomMapper arenaRoomMapper;
 
     private ExecutorService judgeThreadPool;
     private Thread pollerThread;
@@ -82,6 +98,23 @@ public class JudgeDispatcher {
         }
     }
 
+    /**
+     * 根据用户 ID 动态寻址当前的竞技场房间短码
+     */
+    private String findActiveRoomCode(Long userId) {
+        LambdaQueryWrapper<ArenaRoomUser> ruQw = new LambdaQueryWrapper<>();
+        ruQw.eq(ArenaRoomUser::getUserId, userId).orderByDesc(ArenaRoomUser::getId).last("LIMIT 1");
+        ArenaRoomUser ru = arenaRoomUserMapper.selectOne(ruQw);
+
+        if (ru != null) {
+            ArenaRoom room = arenaRoomMapper.selectById(ru.getRoomId());
+            if (room != null && ("WAITING".equals(room.getStatus()) || "BATTLING".equals(room.getStatus()))) {
+                return room.getRoomCode();
+            }
+        }
+        return null;
+    }
+
     private void processSubmission(Long submissionId) {
         try {
             ProblemSubmission submission = problemSubmissionMapper.selectById(submissionId);
@@ -89,6 +122,9 @@ public class JudgeDispatcher {
 
             Long problemId = submission.getProblemId();
             String code = submission.getCode();
+
+            // 尝试寻找该玩家所在的竞技场房间
+            String roomCode = findActiveRoomCode(submission.getUserId());
 
             LambdaQueryWrapper<ProblemTestcase> testcaseWrapper = new LambdaQueryWrapper<>();
             testcaseWrapper.eq(ProblemTestcase::getProblemId, problemId).orderByAsc(ProblemTestcase::getSortOrder);
@@ -107,6 +143,11 @@ public class JudgeDispatcher {
             }
             statusVO.setCheckpoints(checkpoints);
             flushCache(submissionId, statusVO);
+
+            // 推送开始运行日志
+            if (roomCode != null) {
+                arenaWebSocketHandler.pushSystemBattleLog(roomCode, "INFO", "exec: JVM sandbox initialized, running test cases...", null);
+            }
 
             int finalStatus = 1; // 1-AC
             int totalTime = 0;
@@ -131,17 +172,19 @@ public class JudgeDispatcher {
                 if ("TLE".equals(result.status())) {
                     currentCp.setStatus("TLE");
                     finalStatus = 3;
+                    if (roomCode != null) {
+                        arenaWebSocketHandler.pushSystemBattleLog(roomCode, "ERROR", "exec: Time Limit Exceeded on Test Case " + (i + 1), null);
+                    }
                     break;
                 } else if ("ERROR".equals(result.status())) {
                     currentCp.setStatus("RE");
                     statusVO.setMessage("编译或运行报错:\n" + result.output());
-
-                    // ================= 核心修复点 =================
-                    // 将沙箱底层的报错堆栈直接打印到控制台，不再瞎子摸象！
                     log.error("[沙箱引擎拦截] 任务 {} 执行报错，沙箱控制台输出: \n{}", submissionId, result.output());
-                    // ==============================================
 
                     finalStatus = 5;
+                    if (roomCode != null) {
+                        arenaWebSocketHandler.pushSystemBattleLog(roomCode, "ERROR", "exec: Compilation/Runtime Error! Check syntax.", result.output());
+                    }
                     break;
                 }
 
@@ -150,10 +193,17 @@ public class JudgeDispatcher {
 
                 if (actualOutput.equals(expectedOutput)) {
                     currentCp.setStatus("AC");
+                    if (roomCode != null) {
+                        arenaWebSocketHandler.pushSystemBattleLog(roomCode, "SUCCESS", "exec: Test Case " + (i + 1) + "/" + testcases.size() + " Passed... [" + result.timeCost() + "ms]", null);
+                    }
                 } else {
                     currentCp.setStatus("WA");
                     finalStatus = 2;
                     statusVO.setMessage("解答错误! 期望输出: " + expectedOutput + ", 实际输出: " + actualOutput);
+
+                    if (roomCode != null) {
+                        arenaWebSocketHandler.pushSystemBattleLog(roomCode, "WARN", "exec: Wrong Answer on Test Case " + (i + 1) + ". Differs from expected output.", null);
+                    }
                     break;
                 }
                 flushCache(submissionId, statusVO);
@@ -167,6 +217,9 @@ public class JudgeDispatcher {
             statusVO.setStatus("OK");
             if (finalStatus == 1) {
                 statusVO.setMessage("所有测试用例均通过！(Accepted)");
+                if (roomCode != null) {
+                    arenaWebSocketHandler.pushSystemBattleLog(roomCode, "SUCCESS", "exec: All test cases passed! (Accepted)", null);
+                }
             }
             flushCache(submissionId, statusVO);
 

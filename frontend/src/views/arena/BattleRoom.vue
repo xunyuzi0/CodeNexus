@@ -112,106 +112,9 @@
               v-show="paneSize.right > 0"
               :size="paneSize.right"
               :min-size="15"
-              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-zinc-900/40 backdrop-blur-sm border-l border-white/5"
+              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-[#050505]"
             >
-              <div
-                class="h-10 shrink-0 flex items-center px-4 bg-zinc-900/80 border-b border-white/5 select-none z-10"
-              >
-                <span
-                  class="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"
-                >
-                  <Swords class="w-4 h-4 text-zinc-500" /> 战况雷达
-                </span>
-              </div>
-
-              <div class="flex-1 flex flex-col p-4 gap-4 min-h-0 overflow-hidden">
-                <div
-                  class="bg-zinc-950/50 border border-white/5 rounded-2xl p-4 shrink-0 space-y-5"
-                >
-                  <div class="space-y-4">
-                    <div class="space-y-1.5">
-                      <div
-                        class="flex justify-between items-end text-xs uppercase font-bold tracking-wider"
-                      >
-                        <span class="text-[#FF4C00] flex items-center gap-1.5"
-                          ><User class="w-3.5 h-3.5" /> 我方</span
-                        >
-                        <span class="text-zinc-400 font-mono">{{ myProgress }}% AC</span>
-                      </div>
-                      <div class="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          class="h-full bg-[#FF4C00] shadow-[0_0_10px_#FF4C00] transition-all duration-500 ease-out"
-                          :style="{ width: myProgress + '%' }"
-                        ></div>
-                      </div>
-                    </div>
-                    <div class="space-y-1.5">
-                      <div
-                        class="flex justify-between items-end text-xs uppercase font-bold tracking-wider"
-                      >
-                        <span class="text-rose-500 flex items-center gap-1.5"
-                          ><ShieldAlert class="w-3.5 h-3.5" /> 对手 ({{ opponent.name }})</span
-                        >
-                        <span class="text-zinc-400 font-mono">{{ opponent.progress }}% AC</span>
-                      </div>
-                      <div class="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          class="h-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)] transition-all duration-500 ease-out"
-                          :style="{ width: opponent.progress + '%' }"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  class="flex-1 bg-black/40 border border-white/5 rounded-2xl flex flex-col min-h-0 overflow-hidden"
-                >
-                  <div
-                    class="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-white/[0.02] shrink-0"
-                  >
-                    <Activity class="w-3.5 h-3.5 text-zinc-400" />
-                    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest"
-                      >实时情报流</span
-                    >
-                  </div>
-                  <div
-                    class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2 font-mono text-xs"
-                  >
-                    <TransitionGroup name="list">
-                      <div
-                        v-for="log in battleLogs"
-                        :key="log.id"
-                        class="flex gap-3 items-start p-2.5 rounded-lg bg-zinc-900/50 border border-white/5 hover:bg-zinc-800 transition-colors"
-                      >
-                        <div class="shrink-0 mt-0.5">
-                          <FileText
-                            v-if="log.type === 'CODE_UPDATE'"
-                            class="w-3.5 h-3.5 text-blue-400"
-                          />
-                          <AlertCircle
-                            v-else-if="log.type === 'TEST_FAIL'"
-                            class="w-3.5 h-3.5 text-rose-500"
-                          />
-                          <CheckCircle2
-                            v-else-if="log.type === 'TEST_PASS'"
-                            class="w-3.5 h-3.5 text-yellow-500"
-                          />
-                          <Trophy
-                            v-else-if="log.type === 'SUBMIT_AC'"
-                            class="w-3.5 h-3.5 text-[#FF4C00]"
-                          />
-                          <Info v-else class="w-3.5 h-3.5 text-zinc-500" />
-                        </div>
-                        <div class="flex flex-col gap-1 min-w-0">
-                          <span class="text-zinc-300 leading-snug">{{ log.message }}</span>
-                          <span class="text-[9px] text-zinc-600">{{ log.time }}</span>
-                        </div>
-                      </div>
-                    </TransitionGroup>
-                  </div>
-                </div>
-              </div>
+              <BattleConsole @ping="handleTacticalPing" />
             </pane>
           </splitpanes>
         </pane>
@@ -320,31 +223,15 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
-import {
-  Timer,
-  Swords,
-  Activity,
-  Loader2,
-  Trophy,
-  XCircle,
-  AlertCircle,
-  CheckCircle2,
-  FileText,
-  Info,
-  RotateCcw,
-  ArrowRight,
-  Eye,
-  Star,
-  User,
-  ShieldAlert,
-} from 'lucide-vue-next'
+import { Timer, Loader2, Trophy, XCircle, RotateCcw, ArrowRight, Eye, Star } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
-// 核心改动：引入高度复用的 CodeWorkspace
 import CodeWorkspace from '@/views/problem/components/CodeWorkspace.vue'
 import ProblemDescription from '@/views/problem/components/ProblemDescription.vue'
-import { checkRoomValidity } from '@/api/arena'
+
+// 核心改动：引入刚刚重写好的战况雷达组件
+import BattleConsole from '@/components/arena/BattleConsole.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -453,6 +340,12 @@ const handleSuccess = () => {
   }, 1500)
 }
 
+// 接收来自战况控制台子组件的战术信号
+const handleTacticalPing = (type: string) => {
+  console.log('发出战术信号:', type)
+  // TODO: 后续可接入 WebSocket 广播
+}
+
 // --- Layout Methods ---
 const handleResize = (event: { min: number; max: number; size: number }[]) => {
   if (maximizedPane.value === 'none' && event && event.length >= 3) {
@@ -534,7 +427,6 @@ function startBattle() {
         100,
         opponent.value.progress + (Math.random() > 0.5 ? 10 : 0),
       )
-      // 当对手进度达到 100% 时，跳负
       if (opponent.value.progress >= 100) {
         addLog('INFO', '对手已率先通过本题！')
         endGame('DEFEAT')
@@ -584,29 +476,6 @@ const addToFavorites = () => alert('已收藏本题')
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.3s ease;
-}
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateX(-10px);
-}
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease;
@@ -618,12 +487,5 @@ const addToFavorites = () => alert('已收藏本题')
 
 :deep(.splitpanes__pane) {
   overflow: hidden;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 </style>
