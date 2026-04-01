@@ -1,7 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-// 如果有用到 mock 或其他插件保持原样...
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,17 +10,24 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  // --- 核心修复代码 START ---
   server: {
     port: 3000,
     strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080', // 后端的实际地址和端口
-        changeOrigin: true, // 允许跨域
-        rewrite: (path) => path.replace(/^\/api/, ''), // 关键！去掉路径前的 /api
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
+        // --- 智能路径重写引擎 ---
+        rewrite: (path) => {
+          // 1. 如果是竞技场模块或 WebSocket，保留 /api 原样转发给后端
+          if (path.startsWith('/api/arena') || path.startsWith('/api/ws')) {
+            return path
+          }
+          // 2. 其他老接口，保留历史行为：砍掉 /api
+          return path.replace(/^\/api/, '')
+        },
       },
     },
   },
-  // --- 核心修复代码 END ---
 })

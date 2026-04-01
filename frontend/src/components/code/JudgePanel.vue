@@ -47,7 +47,7 @@
               </div>
 
               <button
-                v-if="mode === 'battle' && status === 'rejected'"
+                v-if="mode === 'battle' && status !== 'judging'"
                 @click="emit('close')"
                 class="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
                 title="关闭雷达"
@@ -122,7 +122,7 @@ interface Props {
   show: boolean
   status: 'judging' | 'accepted' | 'rejected'
   checkpoints: Checkpoint[]
-  mode?: 'practice' | 'battle' // 核心：区分对战还是刷题
+  mode?: 'practice' | 'battle'
 }
 
 const props = withDefaults(defineProps<Props>(), {

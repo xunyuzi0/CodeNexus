@@ -12,6 +12,8 @@ import com.xunyu.codenexus.backend.model.entity.ArenaRoom;
 import com.xunyu.codenexus.backend.model.entity.ArenaRoomUser;
 import com.xunyu.codenexus.backend.model.entity.ProblemSubmission;
 import com.xunyu.codenexus.backend.model.entity.ProblemTestcase;
+import com.xunyu.codenexus.backend.service.ArenaSettlementService;
+import com.xunyu.codenexus.backend.service.ProblemSubmissionService;
 import com.xunyu.codenexus.backend.service.impl.ProblemRunServiceImpl;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -27,7 +29,7 @@ import java.util.concurrent.*;
 
 /**
  * 核心异步判题消费者调度器 (The Dispatcher Worker)
- * 支持判题进度实时推送至竞技大厅战况面板
+ * 支持判题进度实时推送至竞技大厅战况面板，并触发天梯结算
  *
  * @author CodeNexusBuilder
  */
@@ -44,7 +46,13 @@ public class JudgeDispatcher {
     @Resource
     private DockerSandboxEngine dockerSandboxEngine;
 
-    // 注入大厅和房间 Mapper 以支持日志推送
+    @Resource
+    private ProblemSubmissionService problemSubmissionService;
+
+    // 注入我们全新编写的天梯结算引擎
+    @Resource
+    private ArenaSettlementService arenaSettlementService;
+
     @Resource
     private ArenaWebSocketHandler arenaWebSocketHandler;
     @Resource
@@ -67,7 +75,7 @@ public class JudgeDispatcher {
         );
         this.pollerThread = new Thread(this::pollQueue, "Judge-Poller-Thread");
         this.pollerThread.start();
-        log.info("[判题调度器] 核心消费者引擎启动成功，开始监听队列: {}", ProblemRunServiceImpl.JUDGE_QUEUE_KEY);
+        log.info("[判题调度器] 核心消费者引擎启动成功...");
     }
 
     @PreDestroy
@@ -98,9 +106,6 @@ public class JudgeDispatcher {
         }
     }
 
-    /**
-     * 根据用户 ID 动态寻址当前的竞技场房间短码
-     */
     private String findActiveRoomCode(Long userId) {
         LambdaQueryWrapper<ArenaRoomUser> ruQw = new LambdaQueryWrapper<>();
         ruQw.eq(ArenaRoomUser::getUserId, userId).orderByDesc(ArenaRoomUser::getId).last("LIMIT 1");
@@ -123,7 +128,6 @@ public class JudgeDispatcher {
             Long problemId = submission.getProblemId();
             String code = submission.getCode();
 
-            // 尝试寻找该玩家所在的竞技场房间
             String roomCode = findActiveRoomCode(submission.getUserId());
 
             LambdaQueryWrapper<ProblemTestcase> testcaseWrapper = new LambdaQueryWrapper<>();
@@ -144,12 +148,11 @@ public class JudgeDispatcher {
             statusVO.setCheckpoints(checkpoints);
             flushCache(submissionId, statusVO);
 
-            // 推送开始运行日志
             if (roomCode != null) {
                 arenaWebSocketHandler.pushSystemBattleLog(roomCode, "INFO", "exec: JVM sandbox initialized, running test cases...", null);
             }
 
-            int finalStatus = 1; // 1-AC
+            int finalStatus = 1;
             int totalTime = 0;
 
             for (int i = 0; i < testcases.size(); i++) {
@@ -179,7 +182,7 @@ public class JudgeDispatcher {
                 } else if ("ERROR".equals(result.status())) {
                     currentCp.setStatus("RE");
                     statusVO.setMessage("编译或运行报错:\n" + result.output());
-                    log.error("[沙箱引擎拦截] 任务 {} 执行报错，沙箱控制台输出: \n{}", submissionId, result.output());
+                    log.error("[沙箱引擎拦截] 任务 {} 执行报错: \n{}", submissionId, result.output());
 
                     finalStatus = 5;
                     if (roomCode != null) {
@@ -209,16 +212,17 @@ public class JudgeDispatcher {
                 flushCache(submissionId, statusVO);
             }
 
-            submission.setStatus(finalStatus);
-            submission.setTimeCost(totalTime);
-            submission.setMemoryCost(0.0);
-            problemSubmissionMapper.updateById(submission);
+            // 更新状态机打卡
+            problemSubmissionService.updateSubmissionStatus(submissionId, finalStatus, totalTime, 0.0);
 
             statusVO.setStatus("OK");
             if (finalStatus == 1) {
                 statusVO.setMessage("所有测试用例均通过！(Accepted)");
                 if (roomCode != null) {
                     arenaWebSocketHandler.pushSystemBattleLog(roomCode, "SUCCESS", "exec: All test cases passed! (Accepted)", null);
+
+                    // 🎯 核心联动：有人 AC，立即通过结算引擎打响比赛结束的鸣枪，并结算排位分！
+                    arenaSettlementService.settleMatch(roomCode, submission.getUserId());
                 }
             }
             flushCache(submissionId, statusVO);
@@ -227,12 +231,7 @@ public class JudgeDispatcher {
 
         } catch (Exception e) {
             log.error("[判题调度器] 任务 {} 执行发生不可逆系统级异常!", submissionId, e);
-
-            ProblemSubmission submission = problemSubmissionMapper.selectById(submissionId);
-            if (submission != null) {
-                submission.setStatus(6); // 6-System Error
-                problemSubmissionMapper.updateById(submission);
-            }
+            problemSubmissionService.updateSubmissionStatus(submissionId, 6, 0, 0.0);
 
             SubmitResponseVO errorVO = new SubmitResponseVO();
             errorVO.setStatus("SYSTEM_ERROR");

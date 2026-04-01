@@ -1,4 +1,3 @@
-// src/main/java/com/xunyu/codenexus/backend/service/impl/DashboardServiceImpl.java
 package com.xunyu.codenexus.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -13,7 +12,6 @@ import com.xunyu.codenexus.backend.mapper.UserStatisticsMapper;
 import com.xunyu.codenexus.backend.model.dto.response.CheckInVO;
 import com.xunyu.codenexus.backend.model.dto.response.DashboardStatsVO;
 import com.xunyu.codenexus.backend.model.dto.response.HeatmapItemVO;
-import com.xunyu.codenexus.backend.model.entity.Problem;
 import com.xunyu.codenexus.backend.model.entity.User;
 import com.xunyu.codenexus.backend.model.entity.UserActivityLog;
 import com.xunyu.codenexus.backend.model.entity.UserStatistics;
@@ -25,26 +23,27 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 仪表盘核心业务实现类
- *
- * @author CodeNexusBuilder
+ * 修复：精准处理混合日期类型 (UserStatistics用Date，UserActivityLog用LocalDate)
  */
 @Slf4j
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
-    // Redis 缓存 Key 前缀统一定义
     private static final String REDIS_GLOBAL_RANK_KEY = "codenexus:rank:global";
     private static final String CHECKIN_LOCK_PREFIX = "codenexus:checkin:lock:";
     private static final String PROBLEM_AC_SET_PREFIX = "codenexus:ac:set:";
+
     @Resource
     private UserMapper userMapper;
     @Resource
@@ -56,6 +55,18 @@ public class DashboardServiceImpl implements DashboardService {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    // --- 日期类型转换工具方法 (仅供 UserStatistics 使用) ---
+    private Date toDate(LocalDate localDate) {
+        if (localDate == null) return null;
+        return java.sql.Date.valueOf(localDate);
+    }
+
+    private LocalDate toLocalDate(Date date) {
+        if (date == null) return null;
+        return new java.sql.Date(date.getTime()).toLocalDate();
+    }
+    // --------------------------------------------------------
+
     @Override
     public DashboardStatsVO getDashboardStats() {
         Long userId = UserContext.getUserId();
@@ -65,42 +76,51 @@ public class DashboardServiceImpl implements DashboardService {
         LambdaQueryWrapper<UserStatistics> statsWrapper = new LambdaQueryWrapper<>();
         statsWrapper.eq(UserStatistics::getUserId, userId);
         UserStatistics stats = userStatisticsMapper.selectOne(statsWrapper);
+
         if (stats == null) {
             stats = new UserStatistics();
             stats.setContinuousCheckinDays(0);
             stats.setSolvedCount(0);
+            stats.setArenaScore(1000);
+            stats.setArenaMatches(0);
+            stats.setArenaWins(0);
         }
-
-        LocalDate today = LocalDate.now();
 
         DashboardStatsVO vo = new DashboardStatsVO();
         vo.setRankScore(user.getRatingScore());
         vo.setSolvedCount(stats.getSolvedCount());
         vo.setContinuousCheckInDays(stats.getContinuousCheckinDays());
-        vo.setIsCheckedInToday(today.equals(stats.getLastCheckinDate()));
 
-        LambdaQueryWrapper<Problem> problemWrapper = new LambdaQueryWrapper<>();
-        vo.setTotalProblems(Math.toIntExact(problemMapper.selectCount(problemWrapper)));
+        // 【精准修复点】仅对 stats.getLastCheckinDate 进行类型转换
+        LocalDate today = LocalDate.now();
+        LocalDate lastCheckin = toLocalDate(stats.getLastCheckinDate());
+        vo.setIsCheckedInToday(today.equals(lastCheckin));
 
-        Long redisRank = stringRedisTemplate.opsForZSet().reverseRank(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId));
-        if (redisRank != null) {
-            vo.setGlobalRank(redisRank.intValue() + 1);
+        // 计算天梯积分与胜率
+        int matches = stats.getArenaMatches() == null ? 0 : stats.getArenaMatches();
+        int wins = stats.getArenaWins() == null ? 0 : stats.getArenaWins();
+        vo.setArenaScore(stats.getArenaScore() == null ? 1000 : stats.getArenaScore());
+        vo.setArenaMatches(matches);
+        vo.setArenaWins(wins);
+
+        if (matches == 0) {
+            vo.setWinRate(0.0);
         } else {
-            vo.setGlobalRank(user.getGlobalRank());
+            double rate = ((double) wins / matches) * 100;
+            vo.setWinRate(new BigDecimal(rate).setScale(1, RoundingMode.HALF_UP).doubleValue());
         }
 
-        LocalDate weekAgo = today.minusDays(7);
+        vo.setTotalProblems(Math.toIntExact(problemMapper.selectCount(new LambdaQueryWrapper<>())));
+        Long redisRank = stringRedisTemplate.opsForZSet().reverseRank(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId));
+        vo.setGlobalRank(redisRank != null ? redisRank.intValue() + 1 : user.getGlobalRank());
+
+        // 【精准修复点】UserActivityLog 查询直接使用 LocalDate
         QueryWrapper<UserActivityLog> logWrapper = new QueryWrapper<>();
         logWrapper.select("IFNULL(SUM(score_change), 0) as total_change")
                 .eq("user_id", userId)
-                .ge("activity_date", weekAgo);
+                .ge("activity_date", today.minusDays(7));
         List<Map<String, Object>> sumResult = userActivityLogMapper.selectMaps(logWrapper);
-        if (sumResult != null && !sumResult.isEmpty()) {
-            Number totalChange = (Number) sumResult.get(0).get("total_change");
-            vo.setWeeklyScoreChange(totalChange != null ? totalChange.intValue() : 0);
-        } else {
-            vo.setWeeklyScoreChange(0);
-        }
+        vo.setWeeklyScoreChange(sumResult != null ? ((Number) sumResult.get(0).get("total_change")).intValue() : 0);
 
         return vo;
     }
@@ -110,144 +130,82 @@ public class DashboardServiceImpl implements DashboardService {
     public CheckInVO checkIn() {
         Long userId = UserContext.getUserId();
         LocalDate today = LocalDate.now();
-        String dateStr = today.format(DateTimeFormatter.BASIC_ISO_DATE);
+        String lockKey = CHECKIN_LOCK_PREFIX + userId + ":" + today.toString();
 
-        // 1. 分布式防重发锁
-        String lockKey = CHECKIN_LOCK_PREFIX + userId + ":" + dateStr;
         Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, "1", 12, TimeUnit.HOURS);
-        if (Boolean.FALSE.equals(locked)) {
-            throw new BusinessException("操作过于频繁或今日已打卡");
-        }
+        if (Boolean.FALSE.equals(locked)) throw new BusinessException("今日已打卡，请勿重复操作");
 
-        // 2. 更新统计扩展表
-        LambdaQueryWrapper<UserStatistics> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserStatistics::getUserId, userId);
-        UserStatistics stats = userStatisticsMapper.selectOne(wrapper);
+        UserStatistics stats = userStatisticsMapper.selectOne(new LambdaQueryWrapper<UserStatistics>().eq(UserStatistics::getUserId, userId));
         boolean isNew = (stats == null);
         if (isNew) {
             stats = new UserStatistics();
             stats.setUserId(userId);
-            stats.setContinuousCheckinDays(0);
             stats.setSolvedCount(0);
-        } else {
-            AssertUtil.isFalse(today.equals(stats.getLastCheckinDate()), "今日已完成充能");
-        }
-
-        LocalDate yesterday = today.minusDays(1);
-        if (yesterday.equals(stats.getLastCheckinDate())) {
-            stats.setContinuousCheckinDays(stats.getContinuousCheckinDays() + 1);
-        } else {
             stats.setContinuousCheckinDays(1);
-        }
-        stats.setLastCheckinDate(today);
-
-        if (isNew) {
-            userStatisticsMapper.insert(stats);
         } else {
-            userStatisticsMapper.updateById(stats);
+            LocalDate lastCheckin = toLocalDate(stats.getLastCheckinDate());
+            AssertUtil.isFalse(today.equals(lastCheckin), "今日已完成充能");
+            LocalDate yesterday = today.minusDays(1);
+            stats.setContinuousCheckinDays(yesterday.equals(lastCheckin) ? stats.getContinuousCheckinDays() + 1 : 1);
         }
 
-        // 3. 发放打卡积分奖励
-        int rewardScore = 5;
+        // 【精准修复点】保存 UserStatistics 时将 LocalDate 转为 Date
+        stats.setLastCheckinDate(toDate(today));
+        if (isNew) userStatisticsMapper.insert(stats);
+        else userStatisticsMapper.updateById(stats);
+
+        int reward = 5;
         User user = userMapper.selectById(userId);
-        user.setRatingScore(user.getRatingScore() + rewardScore);
+        user.setRatingScore(user.getRatingScore() + reward);
         userMapper.updateById(user);
         stringRedisTemplate.opsForZSet().add(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId), user.getRatingScore());
 
-        // 4. 更新日志表：注意这里 isCheckin 设为 1，acCount 增加 0 (解决命名冲突，改用 activityLog)
-        UserActivityLog activityLog = new UserActivityLog();
-        activityLog.setUserId(userId);
-        activityLog.setActivityDate(today);
-        activityLog.setAcCount(0);
-        activityLog.setIsCheckin(1); // 关键修改：标记为已打卡
-        activityLog.setScoreChange(rewardScore);
-        userActivityLogMapper.upsertActivityLog(activityLog);
+        UserActivityLog log = new UserActivityLog();
+        log.setUserId(userId);
+        // 【精准修复点】保存 UserActivityLog 时直接使用 LocalDate，不转换
+        log.setActivityDate(today);
+        log.setIsCheckin(1);
+        log.setScoreChange(reward);
+        userActivityLogMapper.upsertActivityLog(log);
 
         CheckInVO vo = new CheckInVO();
         vo.setSuccess(true);
         vo.setContinuousCheckInDays(stats.getContinuousCheckinDays());
-        vo.setReward("充能成功！获得 " + rewardScore + " 点天梯排位分！");
-
+        vo.setReward("充能成功！获得 " + reward + " 点天梯分");
         return vo;
     }
 
     @Override
     public List<HeatmapItemVO> getActivityHeatmap(Integer year) {
         Long userId = UserContext.getUserId();
-        LocalDate startDate = LocalDate.of(year, 1, 1);
-        LocalDate endDate = LocalDate.of(year, 12, 31);
+        // 【精准修复点】UserActivityLog 查询直接使用 LocalDate
+        List<UserActivityLog> logs = userActivityLogMapper.selectList(new LambdaQueryWrapper<UserActivityLog>()
+                .eq(UserActivityLog::getUserId, userId)
+                .between(UserActivityLog::getActivityDate, LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31)));
 
-        LambdaQueryWrapper<UserActivityLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserActivityLog::getUserId, userId)
-                .ge(UserActivityLog::getActivityDate, startDate)
-                .le(UserActivityLog::getActivityDate, endDate);
-        List<UserActivityLog> logs = userActivityLogMapper.selectList(wrapper);
-
-        List<HeatmapItemVO> resultList = new ArrayList<>();
-        // 解决命名冲突，改用 activityLog
-        for (UserActivityLog activityLog : logs) {
+        List<HeatmapItemVO> results = new ArrayList<>();
+        for (UserActivityLog log : logs) {
             HeatmapItemVO vo = new HeatmapItemVO();
-            vo.setDate(activityLog.getActivityDate().toString());
-
-            // 1. 核心规则：当日总活跃度 = 打卡分(0或1) + 当日AC去重题目数
-            int checkinScore = (activityLog.getIsCheckin() != null && activityLog.getIsCheckin() == 1) ? 1 : 0;
-            int acScore = (activityLog.getAcCount() != null) ? activityLog.getAcCount() : 0;
-            int dailyScore = checkinScore + acScore;
-
-            // 2. 将计算出的总分借用 submissionCount 传给前端展示
-            vo.setSubmissionCount(dailyScore);
-
-            // 3. 严格遵循架构师定义的 Level 映射公式
-            int level;
-            if (dailyScore >= 9) {
-                level = 4; // 极限橘，今日肝帝
-            } else if (dailyScore >= 6) {
-                level = 3; // 高亮橘
-            } else if (dailyScore >= 3) {
-                level = 2; // 中亮橘
-            } else if (dailyScore >= 1) {
-                level = 1; // 微亮橘 (打卡了或者做出1-2题)
-            } else {
-                level = 0; // 深灰色，全盘摸鱼
-            }
-
-            vo.setLevel(level);
-            resultList.add(vo);
+            // 【精准修复点】直接调用 LocalDate 原生的 toString() 即可
+            vo.setDate(log.getActivityDate().toString());
+            int count = (log.getIsCheckin() != null ? log.getIsCheckin() : 0) + (log.getAcCount() != null ? log.getAcCount() : 0);
+            vo.setSubmissionCount(count);
+            vo.setLevel(count >= 9 ? 4 : count >= 6 ? 3 : count >= 3 ? 2 : count >= 1 ? 1 : 0);
+            results.add(vo);
         }
-        return resultList;
+        return results;
     }
 
     @Override
     public void recordProblemAc(Long userId, Long problemId) {
-        LocalDate today = LocalDate.now();
-        String dateStr = today.format(DateTimeFormatter.BASIC_ISO_DATE);
-
-        // 1. 构建 Redis Set Key：区分用户和日期
-        String redisSetKey = PROBLEM_AC_SET_PREFIX + userId + ":" + dateStr;
-
-        // 2. 尝试向 Set 中添加该题目的 ID。如果是当日首次 AC 这道题，SADD 会返回 1；如果已经存在，返回 0
-        Long addedCount = stringRedisTemplate.opsForSet().add(redisSetKey, String.valueOf(problemId));
-
-        // 为该 Set 设置 48 小时过期时间，防止内存泄漏 (只需要存活过今天即可)
-        stringRedisTemplate.expire(redisSetKey, 48, TimeUnit.HOURS);
-
-        // 3. 如果是当日新做的(去重后有效)，则给 activity_log 的 ac_count + 1
-        if (addedCount != null && addedCount > 0) {
-            // 解决命名冲突，改用 activityLog
-            UserActivityLog activityLog = new UserActivityLog();
-            activityLog.setUserId(userId);
-            activityLog.setActivityDate(today);
-            activityLog.setAcCount(1);      // SQL 会执行 ac_count = ac_count + 1
-            activityLog.setIsCheckin(0);    // SQL 的 GREATEST() 保证不会覆盖掉已打卡的 1 状态
-            activityLog.setScoreChange(0);  // 刷题积分这里暂时不加，由其他模块或根据题目难度发分
-
-            userActivityLogMapper.upsertActivityLog(activityLog);
-
-            // 此时 log 准确指向 @Slf4j 注入的日志对象
-            log.info("用户 {} 今日首次 AC 题目 {}, 活跃度 +1", userId, problemId);
-        } else {
-            // 此时 log 准确指向 @Slf4j 注入的日志对象
-            log.info("用户 {} 今日重复 AC 题目 {}, 不增加活跃度", userId, problemId);
+        String redisKey = PROBLEM_AC_SET_PREFIX + userId + ":" + LocalDate.now();
+        if (Boolean.TRUE.equals(stringRedisTemplate.opsForSet().add(redisKey, String.valueOf(problemId)))) {
+            UserActivityLog log = new UserActivityLog();
+            log.setUserId(userId);
+            // 【精准修复点】直接赋值 LocalDate
+            log.setActivityDate(LocalDate.now());
+            log.setAcCount(1);
+            userActivityLogMapper.upsertActivityLog(log);
         }
     }
 }

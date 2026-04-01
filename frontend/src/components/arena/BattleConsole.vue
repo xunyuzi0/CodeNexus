@@ -13,23 +13,19 @@
           <div class="relative shrink-0 w-11 h-11 flex items-center justify-center">
             <div
               v-if="player.status === 'IDLE'"
-              class="absolute inset-0 rounded-full border border-zinc-700/50 animate-idle-breath"
+              class="absolute inset-0 rounded-full border-[2.5px] border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)] animate-idle-breath"
             ></div>
 
             <div
               v-else-if="player.status === 'TYPING'"
-              class="absolute inset-0 rounded-full border border-white/60 transition-all duration-300"
-              :class="{
-                'border-blue-300/80 shadow-[0_0_15px_rgba(147,197,253,0.5)]': player.cpm > 300,
-              }"
-              :style="{ animation: `pulse ${getTypingDuration(player.cpm)} infinite` }"
+              class="absolute inset-0 rounded-full border-[2.5px] border-white shadow-[0_0_20px_rgba(255,255,255,0.6)] animate-typing-pulse"
+              :style="{ animationDuration: getTypingDuration(player.cpm) }"
             ></div>
 
             <div
               v-else-if="player.status === 'PING'"
               class="absolute inset-0 rounded-full border-2 border-blue-400 shadow-[0_0_20px_#60a5fa] animate-ping-flash"
             ></div>
-
             <svg
               v-else-if="player.status === 'RUNNING_TESTS'"
               class="absolute inset-0 w-full h-full animate-spin-slow text-yellow-500"
@@ -57,34 +53,29 @@
                 class="opacity-50"
               />
             </svg>
-
             <div
               v-else-if="player.status === 'TEST_FAILED'"
               class="absolute inset-0 rounded-full border-2 border-orange-500 animate-fail-flash"
             ></div>
-
             <div
               v-else-if="player.status === 'TEST_PASSED'"
               class="absolute inset-0 rounded-full border-2 border-emerald-500 shadow-[0_0_15px_#10b981] animate-pass-glow"
             ></div>
-
             <div
               v-else-if="player.status === 'SUBMITTING'"
               class="absolute inset-0 rounded-full border-2 border-purple-400 shadow-[0_0_20px_#c084fc] animate-submit-flash"
             ></div>
-
             <div
               v-else-if="player.status === 'SUBMIT_FAILED'"
               class="absolute inset-0 rounded-full border-2 border-red-500 shadow-[0_0_25px_#ef4444] animate-err-burst"
             ></div>
-
             <div
               v-else-if="player.status === 'PASSED'"
               class="absolute inset-0 rounded-full border-2 border-[#FFb700] shadow-[0_0_30px_#FFb700] animate-ac-burst"
             ></div>
 
             <img
-              :src="player.avatar"
+              :src="player.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.id}`"
               alt="avatar"
               class="w-9 h-9 rounded-full bg-zinc-950 border border-white/10 object-cover relative z-10 transition-transform duration-300"
               :class="{
@@ -118,10 +109,7 @@
           <span class="text-zinc-500"
             >代码: <span class="text-zinc-300">{{ formatNumber(player.loc) }}</span> 行</span
           >
-          <span
-            class="text-zinc-500 transition-colors"
-            :class="{ 'text-blue-300 font-bold': player.status === 'TYPING' && player.cpm > 300 }"
-          >
+          <span class="text-zinc-500 transition-colors">
             手速: <span class="text-zinc-300">{{ formatNumber(player.cpm) }}</span> 次/分
           </span>
         </div>
@@ -163,7 +151,10 @@
         ></div>
       </div>
 
-      <div class="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col gap-3 relative z-20">
+      <div
+        ref="logContainer"
+        class="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col gap-3 relative z-20"
+      >
         <TransitionGroup name="list">
           <div v-for="log in logs" :key="log.id" class="flex items-start gap-2 group">
             <span class="text-[10px] text-zinc-700 font-mono shrink-0 mt-0.5">
@@ -192,11 +183,11 @@
         v-for="(ping, index) in tacticalPings"
         :key="index"
         @click="emitPing(ping)"
-        :disabled="cdTimer > 0"
+        :disabled="cdTimer > 0 || isBattleEnded"
         :title="ping.label"
         class="relative p-3 rounded-xl bg-zinc-900/80 border border-white/5 text-zinc-400 transition-all duration-300 flex items-center justify-center group focus:outline-none"
         :class="
-          cdTimer > 0
+          cdTimer > 0 || isBattleEnded
             ? 'opacity-40 cursor-not-allowed'
             : 'hover:text-white hover:border-[#FF4C00]/40 hover:bg-[#FF4C00]/10 hover:shadow-[0_0_15px_rgba(255,76,0,0.15)] active:scale-95'
         "
@@ -204,7 +195,7 @@
         <component
           :is="ping.icon"
           class="w-5 h-5 transition-transform duration-300"
-          :class="{ 'group-hover:scale-110': cdTimer === 0 }"
+          :class="{ 'group-hover:scale-110': cdTimer === 0 && !isBattleEnded }"
         />
         <div
           v-if="cdTimer > 0"
@@ -218,10 +209,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useSessionStorage } from '@vueuse/core'
 import { Bug, Coffee, Rocket } from 'lucide-vue-next'
 
-// === 类型定义 ===
 type PlayerStatus =
   | 'IDLE'
   | 'TYPING'
@@ -234,7 +225,7 @@ type PlayerStatus =
   | 'PASSED'
 type LogPrefix = 'INFO' | 'MSG ' | 'EXEC' | 'FAIL' | 'PASS' | 'SUB ' | 'ERR ' | ' AC '
 
-interface Player {
+export interface Player {
   id: string
   name: string
   avatar: string
@@ -244,7 +235,7 @@ interface Player {
   isMe: boolean
 }
 
-interface BattleLog {
+export interface BattleLog {
   id: number
   timestamp: string
   prefix: LogPrefix
@@ -263,45 +254,28 @@ interface PingConfig {
   gradientFrom: string
 }
 
-// === Emit 事件声明 ===
+// 🐛 核心修复：接收外部传来的 isBattleEnded 属性
+const props = defineProps<{
+  players: Player[]
+  logs: BattleLog[]
+  roomCode: string
+  isBattleEnded?: boolean
+}>()
+
 const emit = defineEmits<{
   (e: 'ping', type: string): void
 }>()
 
-// === 数据状态 ===
-const players = ref<Player[]>([
-  {
-    id: 'p_1',
-    name: 'Code_Commander',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=transparent',
-    status: 'TYPING',
-    loc: 42,
-    cpm: 215,
-    isMe: true,
-  },
-  {
-    id: 'p_2',
-    name: 'Shadow_Strike',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Annie&backgroundColor=transparent',
-    status: 'IDLE',
-    loc: 108,
-    cpm: 0,
-    isMe: false,
-  },
-])
-
-const logs = ref<BattleLog[]>([
-  { id: 1, timestamp: '14:02:41', prefix: 'INFO', message: '沙箱容器初始化完毕，对局开始。' },
-])
+const logContainer = ref<HTMLElement | null>(null)
 
 const tacticalPings: PingConfig[] = [
   {
     type: 'bug',
     icon: Bug,
     label: '嘲讽: 祝你遇到 Bug',
-    myLog: '你向对方发送了一只 Bug 🐛',
+    myLog: '我方向对方发送了一只 Bug 🐛',
     enemyLog: '对方向你发送了一只 Bug 🐛',
-    myHolo: '🐛 你向对方发送了一只 Bug',
+    myHolo: '🐛 我方向对方发送了一只 Bug',
     enemyHolo: '🐛 对方向你发送了一只 Bug',
     color: 'text-emerald-500',
     gradientFrom: 'from-emerald-500',
@@ -310,9 +284,9 @@ const tacticalPings: PingConfig[] = [
     type: 'coffee',
     icon: Coffee,
     label: '悠闲: 我去喝咖啡了',
-    myLog: '你向对方展示了悠闲的咖啡 ☕',
+    myLog: '我方向对方展示了悠闲的咖啡 ☕',
     enemyLog: '对方觉得你需要喝杯咖啡冷静一下 ☕',
-    myHolo: '☕ 你向对方展示了悠闲的咖啡',
+    myHolo: '☕ 我方向对方展示了悠闲的咖啡',
     enemyHolo: '☕ 对方觉得你需要喝杯咖啡冷静一下',
     color: 'text-blue-400',
     gradientFrom: 'from-blue-400',
@@ -321,20 +295,45 @@ const tacticalPings: PingConfig[] = [
     type: 'rocket',
     icon: Rocket,
     label: '竞速: 准备提交起飞',
-    myLog: '你向对方暗示你快提交了🚀',
-    enemyLog: '对方向你暗示他快提交了🚀',
-    myHolo: '🚀 你向对方暗示你快提交了',
+    myLog: '我方向对方暗示你快提交了 🚀',
+    enemyLog: '对方向你暗示他快提交了 🚀',
+    myHolo: '🚀 我方向对方暗示你快提交了',
     enemyHolo: '🚀 对方向你暗示他快提交了',
     color: 'text-[#FF4C00]',
     gradientFrom: 'from-[#FF4C00]',
   },
 ]
 
+const cdUnlockTime = useSessionStorage<number>(`nexus_battle_ping_cd_${props.roomCode}`, 0)
 const cdTimer = ref(0)
+let cdInterval: number | null = null
 const activeHolo = ref<{ config: PingConfig; isMe: boolean } | null>(null)
 let holoTimeout: number | null = null
 
-// === 核心方法 ===
+const updateCdTimer = () => {
+  const now = Date.now()
+  if (cdUnlockTime.value > now) {
+    cdTimer.value = Math.ceil((cdUnlockTime.value - now) / 1000)
+  } else {
+    cdTimer.value = 0
+    if (cdInterval) {
+      clearInterval(cdInterval)
+      cdInterval = null
+    }
+  }
+}
+
+onMounted(() => {
+  updateCdTimer()
+  if (cdTimer.value > 0) {
+    cdInterval = window.setInterval(updateCdTimer, 1000)
+  }
+})
+
+onUnmounted(() => {
+  if (cdInterval) clearInterval(cdInterval)
+  if (holoTimeout) clearTimeout(holoTimeout)
+})
 
 const getPrefixText = (prefix: LogPrefix) => {
   switch (prefix) {
@@ -375,21 +374,14 @@ const getLogColor = (prefix: LogPrefix) => {
 }
 
 const getTypingDuration = (cpm: number) => {
-  if (cpm > 350) return '0.2s'
-  if (cpm > 100) return '1s'
-  return '2.5s'
+  const minDuration = 0.4
+  const maxDuration = 3.0
+  const duration = minDuration + (maxDuration - minDuration) * Math.exp(-cpm / 350)
+  return `${duration.toFixed(2)}s`
 }
 
 const formatNumber = (num: number) => num.toString().padStart(3, '0')
-
-const getNowTime = () => {
-  const now = new Date()
-  return `${formatNumber(now.getHours())}:${formatNumber(now.getMinutes())}:${formatNumber(now.getSeconds())}`
-}
-
-const addLog = (prefix: LogPrefix, message: string) => {
-  logs.value.push({ id: Date.now(), timestamp: getNowTime(), prefix, message })
-}
+const formatTimeNum = (num: number) => num.toString().padStart(2, '0')
 
 const showHologram = (config: PingConfig, isMe: boolean) => {
   if (holoTimeout) clearTimeout(holoTimeout)
@@ -401,111 +393,59 @@ const showHologram = (config: PingConfig, isMe: boolean) => {
 }
 
 const emitPing = (ping: PingConfig) => {
-  if (cdTimer.value > 0) return
+  // 🐛 双保险：在函数内部再次验证是否被冻结
+  if (cdTimer.value > 0 || props.isBattleEnded) return
 
-  cdTimer.value = 20
-  const interval = setInterval(() => {
-    cdTimer.value--
-    if (cdTimer.value <= 0) clearInterval(interval)
-  }, 1000)
+  cdUnlockTime.value = Date.now() + 20000
+  updateCdTimer()
+
+  if (!cdInterval) {
+    cdInterval = window.setInterval(updateCdTimer, 1000)
+  }
 
   emit('ping', ping.type)
-  addLog('MSG ', ping.myLog)
+
+  const now = new Date()
+  const timeStr = `${formatTimeNum(now.getHours())}:${formatTimeNum(now.getMinutes())}:${formatTimeNum(now.getSeconds())}`
+  props.logs.push({ id: Date.now(), timestamp: timeStr, prefix: 'MSG ', message: ping.myLog })
+
   showHologram(ping, true)
 }
 
-// === 史诗级剧本：对手 Mock 演示引擎 ===
-onMounted(() => {
-  setInterval(() => {
-    const me = players.value[0]
-    if (me) {
-      me.cpm = Math.floor(Math.random() * 80) + 120
-      me.loc += Math.random() > 0.7 ? 1 : 0
+watch(
+  () => props.logs.length,
+  () => {
+    nextTick(() => {
+      if (logContainer.value) {
+        logContainer.value.scrollTo({
+          top: logContainer.value.scrollHeight,
+          behavior: 'smooth',
+        })
+      }
+    })
+  },
+)
+
+watch(
+  () => props.players[1]?.status,
+  (newStatus) => {
+    if (newStatus === 'PING') {
+      nextTick(() => {
+        const lastLog = props.logs[props.logs.length - 1]
+        let config: PingConfig = tacticalPings[0]!
+        if (lastLog?.message.includes('咖啡')) config = tacticalPings[1]!
+        if (lastLog?.message.includes('起飞') || lastLog?.message.includes('提交'))
+          config = tacticalPings[2]!
+
+        showHologram(config, false)
+      })
     }
-  }, 2000)
-
-  const enemy = players.value[1]
-  if (!enemy) return // 解决 TS18048 可能为未定义
-
-  let step = 0
-
-  const scriptInterval = setInterval(() => {
-    step++
-    switch (step) {
-      case 2:
-        enemy.status = 'TYPING'
-        enemy.cpm = 380
-        enemy.loc = 45
-        break
-      case 5:
-        enemy.status = 'IDLE'
-        enemy.cpm = 0
-        break
-      case 8:
-        enemy.status = 'PING'
-        const pingConfig = tacticalPings[1]
-        if (pingConfig) {
-          addLog('MSG ', pingConfig.enemyLog)
-          showHologram(pingConfig, false)
-        }
-        setTimeout(() => {
-          enemy.status = 'TYPING'
-          enemy.cpm = 150
-        }, 1500)
-        break
-      case 12:
-        enemy.status = 'RUNNING_TESTS'
-        enemy.cpm = 0
-        addLog('EXEC', '对手启动了本地测试用例...')
-        break
-      case 14:
-        enemy.status = 'TEST_FAILED'
-        addLog('FAIL', '测试未通过 (用例 2/5 失败)！')
-        setTimeout(() => {
-          enemy.status = 'TYPING'
-          enemy.cpm = 200
-        }, 1000)
-        break
-      case 18:
-        enemy.status = 'RUNNING_TESTS'
-        enemy.cpm = 0
-        addLog('EXEC', '对手再次启动了本地测试用例...')
-        break
-      case 20:
-        enemy.status = 'TEST_PASSED'
-        addLog('PASS', '警告：对手本地测试用例全部通过！')
-        setTimeout(() => {
-          enemy.status = 'IDLE'
-        }, 3000)
-        break
-      case 22:
-        enemy.status = 'SUBMITTING'
-        addLog('SUB ', '对手提交了解答，云端正在进行最终判题...')
-        break
-      case 25:
-        enemy.status = 'SUBMIT_FAILED'
-        addLog('ERR ', '提交被驳回：解答错误 (WA: 3/10)！')
-        setTimeout(() => {
-          enemy.status = 'TYPING'
-          enemy.cpm = 450
-          enemy.loc += 2
-        }, 1500)
-        break
-      case 28:
-        enemy.status = 'SUBMITTING'
-        addLog('SUB ', '对手再次提交了解答...')
-        break
-      case 31:
-        enemy.status = 'PASSED'
-        addLog(' AC ', '战斗结束：对手已成功 AC！')
-        clearInterval(scriptInterval)
-        break
-    }
-  }, 1000)
-})
+  },
+)
 </script>
 
 <style scoped>
+/* 原有动画保持不变，这里省略以保持整洁 */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -513,7 +453,6 @@ onMounted(() => {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .list-enter-active,
 .list-leave-active {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -526,24 +465,43 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(-15px);
 }
-
 .animate-spin-slow {
   animation: spin 3s linear infinite;
 }
-
 @keyframes idle-breath {
   0%,
   100% {
-    opacity: 0.1;
+    opacity: 0.4;
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   }
   50% {
     opacity: 0.8;
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
   }
 }
 .animate-idle-breath {
-  animation: idle-breath 4s ease-in-out infinite;
+  animation: idle-breath 3.5s ease-in-out infinite;
 }
-
+@keyframes typing-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+  }
+}
+.animate-typing-pulse {
+  animation-name: typing-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
 @keyframes ping-flash {
   0% {
     transform: scale(1);
@@ -559,7 +517,6 @@ onMounted(() => {
 .animate-ping-flash {
   animation: ping-flash 1s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
-
 @keyframes fail-flash {
   0%,
   100% {
@@ -577,7 +534,6 @@ onMounted(() => {
 .animate-fail-flash {
   animation: fail-flash 0.8s ease-in-out;
 }
-
 @keyframes pass-glow {
   0%,
   100% {
@@ -590,7 +546,6 @@ onMounted(() => {
 .animate-pass-glow {
   animation: pass-glow 3s ease-in-out forwards;
 }
-
 @keyframes submit-flash {
   0%,
   100% {
@@ -605,7 +560,6 @@ onMounted(() => {
 .animate-submit-flash {
   animation: submit-flash 0.3s linear infinite;
 }
-
 @keyframes err-burst {
   0% {
     transform: scale(1);
@@ -621,7 +575,6 @@ onMounted(() => {
 .animate-err-burst {
   animation: err-burst 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-
 @keyframes err-shake {
   0%,
   100% {
@@ -639,7 +592,6 @@ onMounted(() => {
 .animate-err-shake {
   animation: err-shake 0.4s ease-in-out;
 }
-
 @keyframes ac-burst {
   0% {
     transform: scale(0.8);
@@ -660,7 +612,6 @@ onMounted(() => {
 .animate-ac-burst {
   animation: ac-burst 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-
 @keyframes ac-shake {
   0% {
     transform: scale(1);
@@ -681,7 +632,6 @@ onMounted(() => {
 .animate-ac-shake {
   animation: ac-shake 0.4s ease-in-out forwards;
 }
-
 .holo-enter-active,
 .holo-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -696,7 +646,6 @@ onMounted(() => {
   transform: scale(1.1) translateY(-20px);
   filter: blur(10px);
 }
-
 @keyframes holo-float {
   0%,
   100% {
@@ -709,8 +658,6 @@ onMounted(() => {
 .animate-holo-float {
   animation: holo-float 3s ease-in-out infinite;
 }
-
-/* cspell:disable-next-line */
 .bg-scanline {
   background: linear-gradient(to bottom, transparent 50%, rgba(255, 255, 255, 0.05) 51%);
   background-size: 100% 4px;

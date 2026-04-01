@@ -24,9 +24,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // 注册竞技场大厅的长连接端点
-        registry.addHandler(arenaWebSocketHandler, "/api/ws/arena/{roomCode}")
-                .addInterceptors(arenaWsAuthInterceptor)
-                .setAllowedOrigins("*"); // 允许跨域连接
+        registry.addHandler(arenaWebSocketHandler, "/api/ws/arena/*") // 必须是 /*，不能写 {roomCode}
+                .setAllowedOriginPatterns("*") // 确保允许跨域握手
+                .addInterceptors(arenaWsAuthInterceptor);
     }
 }

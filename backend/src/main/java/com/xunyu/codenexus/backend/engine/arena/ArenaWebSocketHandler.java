@@ -103,14 +103,12 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
                     break;
 
                 case "TELEMETRY_SYNC":
-                    // [核心并发优化] 盲路由 (Blind Routing)
-                    // 后端不解析具体的高频数据，原封不动地多播给房间内的对手
-                    broadcastToRoom(roomCode, userId, payload);
-                    break;
-
                 case "BATTLE_LOG":
-                    // 玩家主动发送的交互日志（如：发呆警告），直接多播
-                    broadcastToRoom(roomCode, userId, payload);
+                    // [跨端 Bug 修复核心] 拦截盲路由，强行注入发送者的 userId。
+                    // 确保前端卡片状态机能根据此 ID 准确更新敌方的遥测数据与战术日志。
+                    data.set("userId", userId);
+                    String enrichedPayload = buildMessage(action, data);
+                    broadcastToRoom(roomCode, userId, enrichedPayload);
                     break;
             }
         } catch (Exception e) {
@@ -304,7 +302,7 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
 
     private String buildMessage(String action, JSONObject data) {
         // 为了兼容旧逻辑，此处依然生成 action 字段，前端同时解析即可
-        return JSONUtil.createObj().set("action", action).set("data", data).toString();
+        return JSONUtil.createObj().set("type", action).set("action", action).set("data", data).toString();
     }
 
     private String extractRoomCode(WebSocketSession session) {

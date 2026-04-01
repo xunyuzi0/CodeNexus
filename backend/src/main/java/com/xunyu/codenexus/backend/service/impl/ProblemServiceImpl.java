@@ -96,7 +96,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             ProblemVO vo = new ProblemVO();
             BeanUtils.copyProperties(problem, vo);
 
-            // 【核心修正 1】：统一列表页 displayId 的兜底与 1000 偏移量对齐
+            // 统一列表页 displayId 的兜底与 1000 偏移量对齐
             if (!StringUtils.hasText(vo.getDisplayId())) {
                 vo.setDisplayId("P-" + (problem.getId() + 1000));
             }
@@ -132,19 +132,18 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         BeanUtils.copyProperties(problem, vo);
 
         // 2. 字段桥接处理
-        // 【核心修正 2】：统一详情页 displayId 的兜底与 1000 偏移量对齐
         if (!StringUtils.hasText(vo.getDisplayId())) {
             vo.setDisplayId("P-" + (problem.getId() + 1000));
         }
-        // 将底层 description 映射为前端所需的 content
         vo.setContent(problem.getDescription());
 
-        // 3. 计算全局通过率 (保留一位小数百分比格式)
+        // 🐛 核心修复：统一前后端契约，由前端统一进行 *100 的格式化。
+        // 这里剥离掉之前的 * 100，直接输出 0~1 的小数。彻底解决详情页通过率 5000% 的双重放大 Bug。
         if (problem.getSubmitNum() == null || problem.getSubmitNum() == 0) {
             vo.setPassRate(0.0);
         } else {
-            double rate = (double) problem.getAcceptedNum() / problem.getSubmitNum() * 100;
-            vo.setPassRate(Math.round(rate * 10.0) / 10.0);
+            double rate = (double) problem.getAcceptedNum() / problem.getSubmitNum();
+            vo.setPassRate(rate);
         }
 
         // 4. 基于 UserContext 探测用户做题状态
@@ -154,10 +153,8 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             stateWrapper.eq(UserProblemState::getUserId, userId)
                     .eq(UserProblemState::getProblemId, id);
             UserProblemState stateObj = userProblemStateMapper.selectOne(stateWrapper);
-            // 映射状态 (0->未开始, 1->尝试过, 2->已通过)
             vo.setUserState(stateObj != null ? stateObj.getState() : 0);
         } else {
-            // 未登录的游客模式兜底：未开始
             vo.setUserState(0);
         }
 

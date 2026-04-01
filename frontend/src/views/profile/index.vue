@@ -125,7 +125,7 @@
 import { ref, computed } from 'vue'
 import { User, Shield, Settings } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
-import { updateProfile } from '@/api/user' // [新增] 引入真实接口
+import { updateProfile } from '@/api/user'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
 import ProfileTab from './tabs/ProfileTab.vue'
@@ -154,18 +154,19 @@ const displayBio = computed(() => {
 
 const displayRank = computed(() => {
   const info = userStore.userInfo as any
-  return info?.globalRank ? info.globalRank.toLocaleString() : '-'
+  return info?.globalRank !== undefined ? info.globalRank.toLocaleString() : '-'
 })
 
+// [修复隐式布尔转换问题]: 精确判断!== undefined，使得0也能正常渲染0%
 const displayWinRate = computed(() => {
   const info = userStore.userInfo as any
-  return info?.winRate ? `${info.winRate}%` : '-'
+  return info && info.winRate !== undefined ? `${info.winRate}%` : '0%'
 })
 
 // --- 头像逻辑 (已接入真实后端) ---
 const showAvatarDialog = ref(false)
 const selectedAvatarSeed = ref('')
-const isUpdatingAvatar = ref(false) // [新增] 防止重复提交状态
+const isUpdatingAvatar = ref(false)
 
 const PRESET_AVATARS = [
   'Felix',
@@ -192,7 +193,6 @@ const PRESET_AVATARS = [
 
 const getAvatarUrl = (seed: string) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`
 
-// [关键修改]: 将该函数改为异步请求并处理后端联调逻辑
 const handleAvatarUpdate = async () => {
   if (!selectedAvatarSeed.value) return
 
@@ -200,13 +200,9 @@ const handleAvatarUpdate = async () => {
   isUpdatingAvatar.value = true
 
   try {
-    // 1. 调用真实接口发送更新请求 (通过 PATCH 或 PUT 到后端)
     await updateProfile({ avatarUrl: newAvatarUrl })
-
-    // 2. 更新成功后，必须重新拉取最新信息，以触发全局的头像同步刷新
     await userStore.fetchUserProfile()
 
-    // 3. 关闭弹窗并重置状态
     showAvatarDialog.value = false
     selectedAvatarSeed.value = ''
   } catch (error) {

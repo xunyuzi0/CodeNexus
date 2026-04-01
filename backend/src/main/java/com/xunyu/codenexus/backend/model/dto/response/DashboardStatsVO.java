@@ -1,47 +1,29 @@
-// src/main/java/com/xunyu/codenexus/backend/model/dto/response/DashboardStatsVO.java
 package com.xunyu.codenexus.backend.model.dto.response;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
- * 仪表盘核心统计数据出参 VO
- *
- * @author CodeNexusBuilder
+ * 仪表盘统计数据输出对象 (全量字段对齐)
  */
 @Data
 public class DashboardStatsVO {
-    /**
-     * 今日是否已打卡充能
-     */
-    private Boolean isCheckedInToday;
-
-    /**
-     * 当前连续打卡天数
-     */
-    private Integer continuousCheckInDays;
-
-    /**
-     * 当前排位分
-     */
+    // 基础信息
     private Integer rankScore;
-
-    /**
-     * 本周排位分变化量 (带正负号)
-     */
+    private Integer solvedCount;
+    private Integer continuousCheckInDays; // 注意：前端要求的是 CheckIn (大写 I)
+    private Boolean isCheckedInToday;
+    private Integer totalProblems;
+    private Integer globalRank;
     private Integer weeklyScoreChange;
 
-    /**
-     * 全站排名
-     */
-    private Integer globalRank;
+    // 天梯竞技字段
+    private Integer arenaScore;
+    private Integer arenaMatches;
+    private Integer arenaWins;
+    private Double winRate; // 胜率百分比，如 65.5
 
-    /**
-     * 已解决(AC)的题目总数
-     */
-    private Integer solvedCount;
-
-    /**
-     * 全站可用题目总数
-     */
-    private Integer totalProblems;
+    // 热力图数据
+    private List<HeatmapItemVO> checkinHeatmap;
 }

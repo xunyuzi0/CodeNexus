@@ -339,7 +339,6 @@ import JudgePanel from '@/components/code/JudgePanel.vue'
 import { runCode, submitCode, getSubmissionStatus, type Problem } from '@/api/problem'
 import type { RunCodeResult } from '@/api/problem'
 
-// --- Interfaces & Types ---
 interface TestCase {
   inputs: Record<string, string>
 }
@@ -351,9 +350,9 @@ const modelValue = defineModel<string>({ required: true })
 const props = withDefaults(
   defineProps<{
     isMaximized?: boolean
-    problem?: any // 兼容后端真实 Problem 数据格式
-    readOnly?: boolean // 是否为只读模式（如竞技场战败后查看代码）
-    isBattleMode?: boolean // 是否处于竞技场模式
+    problem?: any
+    readOnly?: boolean
+    isBattleMode?: boolean
   }>(),
   {
     isMaximized: false,
@@ -368,16 +367,16 @@ const emit = defineEmits([
   'submit-start',
   'submit-fail',
   'run-start',
+  'run-success',
+  'run-fail',
   'run-end',
 ])
 
-// Console & Layout
 const isConsoleOpen = ref(true)
 const paneSizes = reactive({ editor: 70, console: 30 })
 const lastConsoleSize = ref(30)
 const activeConsoleTab = ref<'testcase' | 'result'>('testcase')
 
-// Test Cases
 const testCases = ref<TestCase[]>([])
 const activeCaseIndex = ref(0)
 
@@ -421,13 +420,11 @@ watch(
   { immediate: true },
 )
 
-// Execution Results
 const isRunning = ref(false)
 const isSubmitting = ref(false)
 const runResults = ref<RunCodeResult[]>([])
 const activeResultIndex = ref(0)
 
-// Judge Panel State
 const showJudgePanel = ref(false)
 const judgeStatus = ref<'judging' | 'accepted' | 'rejected'>('judging')
 const checkpoints = ref<any[]>([])
@@ -445,7 +442,6 @@ onUnmounted(() => {
   clearPollTimer()
 })
 
-// --- Actions ---
 const handleResize = (event: { min: number; max: number; size: number }[]) => {
   if (event && event.length >= 2 && event[0] && event[1]) {
     paneSizes.editor = event[0].size
@@ -496,7 +492,6 @@ const handleRemoveTestCase = (index: number) => {
 
 const handleRun = async () => {
   if (isRunning.value || props.readOnly) return
-  // 提取真实 ID：优先从属性获取（适配竞技场），兜底从路由获取（适配个人刷题）
   const problemId = props.problem?.id || route.params.id
   if (!problemId) return
 
@@ -506,7 +501,7 @@ const handleRun = async () => {
   runResults.value = []
   activeResultIndex.value = 0
 
-  emit('run-start') // 向竞技场抛出事件，记录日志
+  emit('run-start')
 
   try {
     const formattedInputs = testCases.value.map((tc) => Object.values(tc.inputs).join('\n'))
@@ -517,8 +512,20 @@ const handleRun = async () => {
       inputs: formattedInputs,
     })
     runResults.value = res
+
+    if (res && res.length > 0) {
+      const isAllAC = res.every((r: any) => r.status === 'AC')
+      if (isAllAC) {
+        emit('run-success')
+      } else {
+        emit('run-fail')
+      }
+    } else {
+      emit('run-fail')
+    }
   } catch (error) {
     console.error('运行代码失败:', error)
+    emit('run-fail')
   } finally {
     isRunning.value = false
     emit('run-end')
@@ -536,7 +543,7 @@ const handleSubmit = async () => {
   checkpoints.value = []
   clearPollTimer()
 
-  emit('submit-start') // 向竞技场抛出开始提交的事件
+  emit('submit-start')
 
   try {
     const submissionId = await submitCode(problemId, {
@@ -564,10 +571,17 @@ const handleSubmit = async () => {
 
           judgeStatus.value = hasError ? 'rejected' : 'accepted'
 
+          // 🐛 核心修复：如果是对战模式且通过，自动等待 1.5 秒后关闭检测点窗口
+          // 这 1.5 秒的时间将恰好对应 BattleRoom 发出胜利结束游戏的过渡时间，实现双端丝滑交接！
           if (hasError) {
-            emit('submit-fail') // 抛出错误事件
+            emit('submit-fail')
           } else {
-            emit('success') // 抛出成功事件（AC）
+            if (props.isBattleMode) {
+              setTimeout(() => {
+                showJudgePanel.value = false
+              }, 1500)
+            }
+            emit('success')
           }
         }
       } catch (err) {
@@ -586,7 +600,6 @@ const handleSubmit = async () => {
   }
 }
 
-// --- Helpers ---
 const getStatusText = (status: string) => {
   if (status === 'AC') return 'Accepted'
   if (status === 'WA') return 'Wrong Answer'

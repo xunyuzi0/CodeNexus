@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xunyu.codenexus.backend.common.context.UserContext;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
 import com.xunyu.codenexus.backend.mapper.UserMapper;
+import com.xunyu.codenexus.backend.mapper.UserStatisticsMapper;
 import com.xunyu.codenexus.backend.model.dto.request.user.UpdatePasswordRequest;
 import com.xunyu.codenexus.backend.model.dto.request.user.UpdateProfileRequest;
 import com.xunyu.codenexus.backend.model.dto.response.UserLoginVO;
 import com.xunyu.codenexus.backend.model.dto.response.UserProfileVO;
 import com.xunyu.codenexus.backend.model.entity.User;
 import com.xunyu.codenexus.backend.model.entity.UserPreference;
+import com.xunyu.codenexus.backend.model.entity.UserStatistics;
 import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import com.xunyu.codenexus.backend.service.UserPreferenceService;
 import com.xunyu.codenexus.backend.service.UserService;
@@ -23,10 +25,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 /**
- * 用户业务逻辑实现类
+ * 用户业务逻辑实现类 (修复实体类编译报错版)
  *
  * @author CodeNexusBuilder
  */
@@ -39,6 +43,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private UserPreferenceService userPreferenceService;
+
+    @Resource
+    private UserStatisticsMapper userStatisticsMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -66,11 +73,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUsername(userAccount);
         user.setPasswordHash(encryptPassword);
         user.setSalt(salt);
-        user.setNickname(userAccount); // 默认昵称=账号
+        user.setNickname(userAccount);
         user.setRole(UserRoleEnum.USER.getValue());
-
-        user.setGlobalRank(9999); // 默认初始排名设置到一个相对靠后的位置
-        user.setWinRate(0);       // 初始胜率为 0
+        user.setGlobalRank(9999);
+        // 【已修复】：删除了会导致报错的 user.setWinRate(0.0)
 
         boolean saveResult = this.save(user);
         AssertUtil.isTrue(saveResult, ResultCode.FAILED, "注册失败，数据库错误");
@@ -80,35 +86,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserLoginVO userLogin(String userAccount, String userPassword) {
-        // 1. 校验
         AssertUtil.notEmpty(userAccount, "账号不能为空");
         AssertUtil.notEmpty(userPassword, "密码不能为空");
         AssertUtil.minLen(userAccount, 4, "账号错误");
         AssertUtil.minLen(userPassword, 8, "密码错误");
 
-        // 2. 查询用户
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getUsername, userAccount);
         User user = this.getOne(queryWrapper);
 
-        // 校验用户是否存在
         AssertUtil.notNull(user, ResultCode.USER_LOGIN_ERROR, ResultCode.USER_LOGIN_ERROR.getMessage());
 
-        // 校验密码（查出该用户的盐，重新加密对比）
         String encryptPassword = DigestUtils.md5DigestAsHex((user.getSalt() + userPassword).getBytes());
         AssertUtil.equals(encryptPassword, user.getPasswordHash(), ResultCode.USER_LOGIN_ERROR, ResultCode.USER_LOGIN_ERROR.getMessage());
 
-        // 校验封号
         AssertUtil.notEquals(user.getRole(), UserRoleEnum.BAN.getValue(), ResultCode.USER_ACCOUNT_FORBIDDEN,
                 ResultCode.USER_ACCOUNT_FORBIDDEN.getMessage());
 
-        // 3. 生成 Token
         String token = jwtUtil.createToken(user.getId(), user.getRole());
 
-        // 4. 返回脱敏信息
         UserLoginVO userLoginVO = new UserLoginVO();
         BeanUtils.copyProperties(user, userLoginVO);
-        // 兼容旧版入参叫 userAccount 的情况
         userLoginVO.setUserAccount(user.getUsername());
         userLoginVO.setUserRole(user.getRole());
         userLoginVO.setToken(token);
@@ -119,7 +117,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public User getLoginUser() {
         Long userId = UserContext.getUserId();
-        // 校验登录状态
         AssertUtil.notNull(userId, ResultCode.UNAUTHORIZED, ResultCode.UNAUTHORIZED.getMessage());
         User user = this.getById(userId);
         AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, ResultCode.UNAUTHORIZED.getMessage());
@@ -133,30 +130,50 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserProfileVO getUserProfile(Long userId) {
-        // 1. 获取基础用户信息
         User user = this.getById(userId);
         AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, "用户不存在");
 
-        // 2. 获取用户偏好设置
         LambdaQueryWrapper<UserPreference> prefQuery = new LambdaQueryWrapper<>();
         prefQuery.eq(UserPreference::getUserId, userId);
         UserPreference preference = userPreferenceService.getOne(prefQuery);
 
-        // 3. 组装 VO
         UserProfileVO profileVO = new UserProfileVO();
         BeanUtils.copyProperties(user, profileVO);
 
-        // 组装偏好设置对象
         UserProfileVO.UserPreferenceVO prefVO = new UserProfileVO.UserPreferenceVO();
         if (preference != null) {
             BeanUtils.copyProperties(preference, prefVO);
         } else {
-            // 提供默认值兜底
             prefVO.setEditorTheme("zeekr-dark");
             prefVO.setFontSize(14);
             prefVO.setSystemNotifications(1);
         }
         profileVO.setPreferences(prefVO);
+
+        LambdaQueryWrapper<UserStatistics> statsQw = new LambdaQueryWrapper<>();
+        statsQw.eq(UserStatistics::getUserId, userId);
+        UserStatistics stats = userStatisticsMapper.selectOne(statsQw);
+
+        if (stats != null) {
+            profileVO.setArenaScore(stats.getArenaScore() != null ? stats.getArenaScore() : 1000);
+            profileVO.setArenaMatches(stats.getArenaMatches() != null ? stats.getArenaMatches() : 0);
+            profileVO.setArenaWins(stats.getArenaWins() != null ? stats.getArenaWins() : 0);
+            profileVO.setSolvedCount(stats.getSolvedCount() != null ? stats.getSolvedCount() : 0);
+
+            int matches = profileVO.getArenaMatches();
+            if (matches > 0) {
+                double rate = ((double) profileVO.getArenaWins() / matches) * 100;
+                profileVO.setWinRate(new BigDecimal(rate).setScale(1, RoundingMode.HALF_UP).doubleValue());
+            } else {
+                profileVO.setWinRate(0.0);
+            }
+        } else {
+            profileVO.setArenaScore(1000);
+            profileVO.setArenaMatches(0);
+            profileVO.setArenaWins(0);
+            profileVO.setWinRate(0.0);
+            profileVO.setSolvedCount(0);
+        }
 
         return profileVO;
     }
@@ -166,7 +183,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User userToUpdate = new User();
         userToUpdate.setId(userId);
 
-        // Mybatis-Plus 会自动忽略 null 字段，只更新非 null 的字段 (PATCH 语义)
         if (request.getNickname() != null) userToUpdate.setNickname(request.getNickname());
         if (request.getAvatarUrl() != null) userToUpdate.setAvatarUrl(request.getAvatarUrl());
         if (request.getBio() != null) userToUpdate.setBio(request.getBio());
@@ -184,11 +200,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = this.getById(userId);
         AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, "用户不存在");
 
-        // 1. 校验旧密码
         String oldEncryptPassword = DigestUtils.md5DigestAsHex((user.getSalt() + request.getOldPassword()).getBytes());
         AssertUtil.equals(oldEncryptPassword, user.getPasswordHash(), "旧密码错误");
 
-        // 2. 生成新盐值并更新密码
         String newSalt = UUID.randomUUID().toString().replace("-", "");
         String newEncryptPassword = DigestUtils.md5DigestAsHex((newSalt + request.getNewPassword()).getBytes());
 
@@ -204,9 +218,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public boolean deleteAccount(Long userId) {
         User user = this.getById(userId);
         AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, "用户不存在");
-
-        // 你的 User 实体类中 isDeleted 字段已经加了 @TableLogic 注解
-        // 所以调用 removeById 时，MyBatis-Plus 会自动将其转换为 UPDATE user SET is_deleted=1 WHERE id=?
         return this.removeById(userId);
     }
 }

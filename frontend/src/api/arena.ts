@@ -1,94 +1,50 @@
-/**
- * src/api/arena.ts
- * 竞技场模块 API 定义
- * -----------------
- */
-import { request } from '@/utils/request'
+import request from '@/utils/request'
 
-// ==========================================
-// 模块一：房间管理 (Room Management)
-// ==========================================
-
-export interface CreateRoomParams {
-  roomType: number // 1-私人邀请, 2-公开大厅
-  password?: string
-  problemId?: number | null
-  type?: number // [兼容补丁]: 防止后端实体类实际叫 type
-}
-
-export interface JoinRoomParams {
-  password?: string
-}
-
-export interface RoomValidityResponse {
-  isValid: boolean
-  roomType: number
-  status: 'WAITING' | 'BATTLING' | 'FINISHED' | 'DISMISSED'
-  problemId: number
-  message: string
-}
-
-/**
- * 创建私人/公开房间
- */
-export function createRoom(data: CreateRoomParams) {
-  return request<{ roomCode: string }>({
-    url: '/api/arena/room',
-    method: 'POST',
-    data,
-  })
-}
-
-/**
- * [新增]: 加入私人房间
- * 前端先调此接口落盘，成功后再跳转大厅
- */
-export function joinRoom(roomCode: string, data?: JoinRoomParams) {
-  return request<boolean>({
-    url: `/api/arena/room/${roomCode}/join`,
-    method: 'POST',
-    data: data || {},
-  })
-}
-
-/**
- * 检查房间有效性与验票前置守卫
- */
-export function checkRoomValidity(roomCode: string, ticket?: string) {
-  return request<RoomValidityResponse>({
-    url: `/api/arena/room/${roomCode}/validity`,
-    method: 'GET',
-    params: { ticket },
-  })
-}
-
-// ==========================================
-// 模块二：天梯高并发匹配 (Matchmaking System)
-// ==========================================
-
-export interface MatchStatusResponse {
+export interface MatchStatus {
   status: 'MATCHING' | 'SUCCESS' | 'FAILED'
   roomCode?: string
   ticket?: string
 }
 
-export function joinMatchmaking() {
-  return request<boolean>({
-    url: '/api/arena/match',
-    method: 'POST',
+export interface RoomValidity {
+  isValid: boolean
+  message?: string
+  roomType?: number
+  status?: string
+  problemId?: number
+}
+
+// === 1. 私人房间 (熟人开黑) ===
+export const createRoom = () => {
+  return request.post<any, string>('/arena/room')
+}
+
+export const createPrivateRoom = createRoom
+
+export const checkRoomValidity = (roomCode: string, ticket?: string) => {
+  return request.get<any, RoomValidity>(`/arena/room/${roomCode}/validity`, {
+    params: { ticket },
   })
 }
 
-export function cancelMatchmaking() {
-  return request<boolean>({
-    url: '/api/arena/match',
-    method: 'DELETE',
-  })
+export const joinRoom = (roomCode: string, ticket?: string) => {
+  return checkRoomValidity(roomCode, ticket)
 }
 
-export function getMatchStatus() {
-  return request<MatchStatusResponse>({
-    url: '/api/arena/match/status',
-    method: 'GET',
-  })
+// === 2. 天梯匹配 (全服排位) ===
+export const joinMatchmaking = () => {
+  return request.post<any, void>('/arena/match')
+}
+
+export const leaveMatchmaking = () => {
+  return request.delete<any, void>('/arena/match')
+}
+
+export const getMatchStatus = () => {
+  return request.get<any, MatchStatus>('/arena/match/status')
+}
+
+// 🐛 核心修复：增加获取对手最终提交代码的接口契约
+export const getOpponentCode = (roomCode: string) => {
+  return request.get<any, string>(`/arena/room/${roomCode}/opponent-code`)
 }

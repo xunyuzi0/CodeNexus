@@ -1,6 +1,6 @@
 /**
  * src/types/api.ts
- * 全局 API 类型定义
+ * 全局 API 类型定义 (合并天梯胜率系统最终版)
  * -----------------
  * 包含通用响应结构、用户信息模型、登录结果等核心类型。
  */
@@ -23,6 +23,11 @@ export interface UserInfo {
   rankScore?: number // 排位分
   totalSolved?: number // 解题数
   globalRank?: number // 全球排名
+  // 兼容前端直接访问旧数据结构时的扩展字段，防 ts 报错
+  arenaScore?: number
+  arenaMatches?: number
+  arenaWins?: number
+  winRate?: number
 }
 
 // 3. 登录接口返回的数据结构
@@ -62,6 +67,12 @@ export interface UserProfileVO {
   phone: string
   role: string // 对应旧版的 userRole
   preferences: UserPreference // 嵌套的偏好设置
+  // --- 天梯竞技新增 ---
+  arenaScore: number
+  arenaMatches: number
+  arenaWins: number
+  winRate: number
+  solvedCount: number
 }
 
 // 7. 前端表单提交请求入参 (DTO)
@@ -83,4 +94,40 @@ export interface UpdatePreferenceRequest {
 export interface UpdatePasswordRequest {
   oldPassword: string
   newPassword: string
+}
+
+// ==========================================
+// 大盘与热力图、打卡接口定义 (Dashboard) 新增
+// ==========================================
+
+export interface HeatmapItemVO {
+  date: string
+  submissionCount: number
+  level: number
+}
+
+export interface DashboardStatsVO {
+  // 基础刷题与活跃数据
+  rankScore: number
+  solvedCount: number
+  continuousCheckInDays: number
+  isCheckedInToday: boolean
+  totalProblems: number
+  globalRank: number
+  weeklyScoreChange: number
+
+  // 天梯竞技大盘数据
+  arenaScore: number
+  arenaMatches: number
+  arenaWins: number
+  winRate: number
+
+  // 活跃度热力图
+  checkinHeatmap?: HeatmapItemVO[]
+}
+
+export interface CheckInVO {
+  success: boolean
+  continuousCheckInDays: number
+  reward: string
 }

@@ -146,7 +146,7 @@
         :initial="{ opacity: 0, x: 20 }"
         :enter="{ opacity: 1, x: 0, transition: { duration: 400, delay: 150 } }"
       >
-        <div class="p-6 border-b border-white/5 bg-white/[0.02]">
+        <div class="p-4 md:p-6 border-b border-white/5 bg-white/[0.02]">
           <h3 class="text-xs font-bold text-zinc-500 tracking-wider flex items-center gap-2">
             <Activity class="w-4 h-4" /> 核心指标
           </h3>
@@ -154,16 +154,16 @@
 
         <div class="flex-1 flex flex-col divide-y divide-white/5">
           <div
-            class="flex-1 p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
           >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-zinc-400 font-medium">战力评分</span>
+            <div class="flex items-center justify-between mb-1 md:mb-2">
+              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">战力评分</span>
               <Trophy
-                class="w-4 h-4 text-[#FF4C00] opacity-50 group-hover/item:opacity-100 transition-opacity"
+                class="w-3 h-3 md:w-4 md:h-4 text-[#FF4C00] opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
             <div
-              class="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,76,0,0.3)]"
+              class="text-2xl md:text-4xl font-black font-mono text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,76,0,0.3)]"
             >
               {{ stats.rankScore }}
             </div>
@@ -185,18 +185,18 @@
           </div>
 
           <div
-            class="flex-1 p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
           >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-zinc-400 font-medium">全站排名</span>
+            <div class="flex items-center justify-between mb-1 md:mb-2">
+              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">全站排名</span>
               <Crown
-                class="w-4 h-4 text-yellow-500 opacity-50 group-hover/item:opacity-100 transition-opacity"
+                class="w-3 h-3 md:w-4 md:h-4 text-yellow-500 opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
-            <div class="text-3xl font-bold font-mono text-zinc-200 tracking-tighter">
+            <div class="text-xl md:text-3xl font-bold font-mono text-zinc-200 tracking-tighter">
               #{{ stats.globalRank }}
             </div>
-            <div class="w-full bg-zinc-800 h-1 rounded-full mt-3 overflow-hidden">
+            <div class="w-full bg-zinc-800 h-1 rounded-full mt-2 md:mt-3 overflow-hidden">
               <div
                 class="h-full bg-yellow-600 shadow-[0_0_10px_#ca8a04] transition-all duration-1000"
                 :style="{ width: rankProgress }"
@@ -205,19 +205,41 @@
           </div>
 
           <div
-            class="flex-1 p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
           >
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-zinc-400 font-medium">解题总量</span>
-              <Target
-                class="w-4 h-4 text-blue-400 opacity-50 group-hover/item:opacity-100 transition-opacity"
+            <div class="flex items-center justify-between mb-1 md:mb-2">
+              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">对战胜率</span>
+              <Swords
+                class="w-3 h-3 md:w-4 md:h-4 text-emerald-400 opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
             <div class="flex items-baseline gap-2">
-              <span class="text-3xl font-bold font-mono text-white tracking-tighter">{{
+              <span
+                class="text-xl md:text-3xl font-bold font-mono text-emerald-400 tracking-tighter"
+                >{{ stats.winRate || 0 }}<span class="text-sm md:text-lg">%</span></span
+              >
+              <span class="text-[10px] md:text-xs text-zinc-600 font-mono"
+                >胜 {{ stats.arenaWins || 0 }} / 局 {{ stats.arenaMatches || 0 }}</span
+              >
+            </div>
+          </div>
+
+          <div
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+          >
+            <div class="flex items-center justify-between mb-1 md:mb-2">
+              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">解题总量</span>
+              <Target
+                class="w-3 h-3 md:w-4 md:h-4 text-blue-400 opacity-50 group-hover/item:opacity-100 transition-opacity"
+              />
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-xl md:text-3xl font-bold font-mono text-white tracking-tighter">{{
                 stats.solvedCount
               }}</span>
-              <span class="text-xs text-zinc-600 font-mono">/ {{ stats.totalProblems }}</span>
+              <span class="text-[10px] md:text-xs text-zinc-600 font-mono"
+                >/ {{ stats.totalProblems }}</span
+              >
             </div>
           </div>
         </div>
@@ -469,6 +491,7 @@ const displayName = computed(() => {
 })
 
 // --- Dashboard 核心数据集成 ---
+// 修改点 2：为 stats 初始化所有的天梯默认字段，防止 ts 报错和 undefined 闪烁
 const stats = ref<DashboardStatsVO>({
   isCheckedInToday: false,
   continuousCheckInDays: 0,
@@ -477,6 +500,10 @@ const stats = ref<DashboardStatsVO>({
   globalRank: 9999,
   solvedCount: 0,
   totalProblems: 0,
+  arenaScore: 1000,
+  arenaMatches: 0,
+  arenaWins: 0,
+  winRate: 0,
 })
 
 const isCheckedIn = ref(false)
@@ -506,7 +533,6 @@ const handleCheckIn = async () => {
     if (res.success) {
       isCheckedIn.value = true
       checkInDays.value = res.continuousCheckInDays
-      // 打卡成功后，主动重新拉取一下热力图，刷新活跃度
       generateHeatmapData()
     }
   } catch (error) {
@@ -562,7 +588,6 @@ const handleConfirm = async () => {
 const currentYear = ref(new Date().getFullYear())
 const currentPeriod = ref(new Date().getMonth() < 6 ? 0 : 1)
 
-// 更新数据结构，加入 count 属性
 interface HeatmapItem {
   date: string | null
   level: number
@@ -607,14 +632,11 @@ const levelTextColors = [
   'text-white',
 ]
 
-// 修改热力图生成算法
 const generateHeatmapData = async () => {
   try {
     const year = currentYear.value
-    // 从后端获取当前年份的真实数据
     const backendData = await getActivityHeatmap(year)
 
-    // 将后端数据转为 Map，以 YYYY-MM-DD 为 key，存储 { level, count }
     const dataMap = new Map(
       (backendData || []).map((item) => [
         item.date,
@@ -631,7 +653,6 @@ const generateHeatmapData = async () => {
 
     const data: HeatmapItem[] = []
 
-    // 补齐周一开头的空白占位
     let startDay = startDate.getDay()
     if (startDay === 0) startDay = 7
     const paddingCount = startDay - 1
@@ -639,16 +660,13 @@ const generateHeatmapData = async () => {
       data.push({ date: null, level: 0, count: 0 })
     }
 
-    // 生成网格数据
     const tempDate = new Date(startDate)
     while (tempDate <= endDate) {
-      // 避免时区导致日期错误，安全格式化为 YYYY-MM-DD
       const y = tempDate.getFullYear()
       const m = String(tempDate.getMonth() + 1).padStart(2, '0')
       const d = String(tempDate.getDate()).padStart(2, '0')
       const dateStr = `${y}-${m}-${d}`
 
-      // 从后端数据匹配，没有就是 0
       const record = dataMap.get(dateStr) || { level: 0, count: 0 }
       data.push({ date: dateStr, level: record.level, count: record.count })
 
