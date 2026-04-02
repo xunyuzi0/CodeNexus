@@ -52,7 +52,7 @@
       </div>
 
       <h2 class="text-2xl font-black italic tracking-widest text-white mb-3 uppercase">
-        {{ isMatched ? 'TARGET LOCKED' : 'SEARCHING' }}
+        {{ isMatched ? '目标锁定' : '正在扫描' }}
       </h2>
       <p
         class="text-zinc-500 font-mono text-sm tracking-widest mb-12 h-5 flex items-center justify-center"
@@ -74,7 +74,7 @@
         >
           <Loader2 v-if="isCanceling" class="w-4 h-4 animate-spin" />
           <X v-else class="w-4 h-4" />
-          {{ isCanceling ? 'ABORTING...' : 'ABORT MATCH' }}
+          {{ isCanceling ? '中止中...' : '中止匹配' }}
         </span>
       </button>
     </div>

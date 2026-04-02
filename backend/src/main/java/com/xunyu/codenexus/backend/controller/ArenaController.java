@@ -2,6 +2,7 @@ package com.xunyu.codenexus.backend.controller;
 
 import com.xunyu.codenexus.backend.aop.auth.Protector;
 import com.xunyu.codenexus.backend.common.result.Result;
+import com.xunyu.codenexus.backend.common.result.ResultCode;
 import com.xunyu.codenexus.backend.model.dto.request.arena.RoomCreateRequest;
 import com.xunyu.codenexus.backend.model.dto.response.arena.MatchStatusVO;
 import com.xunyu.codenexus.backend.model.dto.response.arena.RoomCreateVO;
@@ -9,6 +10,7 @@ import com.xunyu.codenexus.backend.model.dto.response.arena.RoomValidityVO;
 import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import com.xunyu.codenexus.backend.service.ArenaMatchService;
 import com.xunyu.codenexus.backend.service.ArenaRoomService;
+import com.xunyu.codenexus.backend.service.ArenaSettlementService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -33,6 +35,9 @@ public class ArenaController {
     @Resource
     private ArenaMatchService arenaMatchService;
 
+    @Resource
+    private ArenaSettlementService arenaSettlementService;
+
     // ==========================================
     // 1. 房间管理模块 (Room Management)
     // ==========================================
@@ -47,6 +52,11 @@ public class ArenaController {
         return Result.success(vo, "房间创建成功");
     }
 
+
+    // ==========================================
+    // 2. 天梯匹配模块 (Matchmaking System)
+    // ==========================================
+
     /**
      * 进入前校验房间状态与验票 (Lobby 前置守卫)
      * 天梯匹配玩家必须携带有效 ticket，普通邀请房间可以为空
@@ -60,11 +70,6 @@ public class ArenaController {
         RoomValidityVO vo = arenaRoomService.checkRoomValidity(roomCode, ticket);
         return Result.success(vo);
     }
-
-
-    // ==========================================
-    // 2. 天梯匹配模块 (Matchmaking System)
-    // ==========================================
 
     /**
      * 加入天梯匹配池
@@ -108,5 +113,21 @@ public class ArenaController {
         String password = body != null ? body.get("password") : null;
         boolean result = arenaRoomService.joinPrivateRoom(roomCode, password);
         return Result.success(result, "加入房间成功");
+    }
+
+    @PostMapping("/settle")
+    public Result<Void> forceSettleMatch(@RequestBody java.util.Map<String, Object> params) {
+        String roomCode = (String) params.get("roomCode");
+        Object winnerObj = params.get("winnerId");
+
+        // 🚀 这里改成了你的系统中真实存在的 VALIDATE_FAILED
+        if (roomCode == null || winnerObj == null) {
+            return Result.error(ResultCode.VALIDATE_FAILED.getCode(), "对战结算参数不完整");
+        }
+
+        Long winnerId = Long.valueOf(winnerObj.toString());
+        // 只传房间号和赢家ID，让 Service 层自己去找败者
+        arenaSettlementService.settleMatch(roomCode, winnerId);
+        return Result.success();
     }
 }

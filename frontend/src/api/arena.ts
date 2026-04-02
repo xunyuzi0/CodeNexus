@@ -48,3 +48,8 @@ export const getMatchStatus = () => {
 export const getOpponentCode = (roomCode: string) => {
   return request.get<any, string>(`/arena/room/${roomCode}/opponent-code`)
 }
+
+// 结算接口
+export function forceSettleMatch(data: { roomCode: string; winnerId: number }) {
+  return request.post('/arena/settle', data)
+}

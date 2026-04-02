@@ -3,108 +3,120 @@ package com.xunyu.codenexus.backend.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.xunyu.codenexus.backend.engine.arena.ArenaWebSocketHandler;
-import com.xunyu.codenexus.backend.mapper.ArenaRoomMapper;
-import com.xunyu.codenexus.backend.mapper.ArenaRoomUserMapper;
+import com.xunyu.codenexus.backend.mapper.UserMapper;
 import com.xunyu.codenexus.backend.mapper.UserStatisticsMapper;
-import com.xunyu.codenexus.backend.model.entity.ArenaRoom;
-import com.xunyu.codenexus.backend.model.entity.ArenaRoomUser;
+import com.xunyu.codenexus.backend.model.entity.User;
 import com.xunyu.codenexus.backend.model.entity.UserStatistics;
 import com.xunyu.codenexus.backend.service.ArenaSettlementService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 
-/**
- * 天梯对战结算引擎实现类
- *
- * @author CodeNexusBuilder
- */
 @Slf4j
 @Service
 public class ArenaSettlementServiceImpl implements ArenaSettlementService {
 
     @Resource
-    private ArenaRoomMapper arenaRoomMapper;
-
-    @Resource
-    private ArenaRoomUserMapper arenaRoomUserMapper;
-
-    @Resource
     private UserStatisticsMapper userStatisticsMapper;
-
+    @Resource
+    private UserMapper userMapper;
     @Resource
     private ArenaWebSocketHandler arenaWebSocketHandler;
+    @Resource
+    private JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void settleMatch(String roomCode, Long winnerId) {
-        // 1. 查询房间，防并发重复结算 (如果有两个人同时提交 AC)
-        LambdaQueryWrapper<ArenaRoom> roomQw = new LambdaQueryWrapper<>();
-        roomQw.eq(ArenaRoom::getRoomCode, roomCode).eq(ArenaRoom::getIsDeleted, 0);
-        ArenaRoom room = arenaRoomMapper.selectOne(roomQw);
+        String roomSql = "SELECT id, status FROM arena_room WHERE room_code = ?";
+        List<Map<String, Object>> rooms = jdbcTemplate.queryForList(roomSql, roomCode);
+        if (rooms.isEmpty()) return;
 
-        if (room == null || "FINISHED".equals(room.getStatus())) {
-            log.warn("[天梯结算] 房间 {} 不存在或已结算，跳过", roomCode);
+        Long roomId = ((Number) rooms.get(0).get("id")).longValue();
+        String status = (String) rooms.get(0).get("status");
+
+        if ("FINISHED".equals(status)) return;
+        jdbcTemplate.update("UPDATE arena_room SET status = 'FINISHED' WHERE id = ?", roomId);
+
+        // 🎯 核心碾压逻辑：抛弃数据库，直接读取 WebSocket 内存黑匣子！
+        Set<Long> historyUsers = arenaWebSocketHandler.getRoomHistory(roomCode);
+        List<Long> userIds = new ArrayList<>(historyUsers);
+
+        if (userIds.size() < 2) {
+            log.warn("[天梯结算] 房间 {} 玩家数据严重缺失 (内存记录仅 {} 人)，无法计算Elo", roomCode, userIds.size());
             return;
         }
 
-        // 2. 将房间状态推进为 FINISHED，锁死对局
-        room.setStatus("FINISHED");
-        arenaRoomMapper.updateById(room);
-
-        // 3. 获取房间内所有玩家
-        LambdaQueryWrapper<ArenaRoomUser> ruQw = new LambdaQueryWrapper<>();
-        ruQw.eq(ArenaRoomUser::getRoomId, room.getId()).eq(ArenaRoomUser::getIsDeleted, 0);
-        List<ArenaRoomUser> roomUsers = arenaRoomUserMapper.selectList(ruQw);
-
-        // 4. 计算积分并落地
-        for (ArenaRoomUser ru : roomUsers) {
-            Long userId = ru.getUserId();
-            boolean isWinner = userId.equals(winnerId);
-
-            // 确保统计记录存在
-            LambdaQueryWrapper<UserStatistics> statsQw = new LambdaQueryWrapper<>();
-            statsQw.eq(UserStatistics::getUserId, userId).eq(UserStatistics::getIsDeleted, 0);
-            UserStatistics stats = userStatisticsMapper.selectOne(statsQw);
-
-            if (stats == null) {
-                stats = new UserStatistics();
-                stats.setUserId(userId);
-                stats.setSolvedCount(0);
-                stats.setContinuousCheckinDays(0);
-                stats.setArenaScore(1000);
-                stats.setArenaMatches(0);
-                stats.setArenaWins(0);
-                userStatisticsMapper.insert(stats);
+        // 精准推导败者 ID
+        Long loserId = null;
+        for (Long uid : userIds) {
+            if (!uid.equals(winnerId)) {
+                loserId = uid;
+                break;
             }
-
-            // 【计分规则】胜者 +50分，败者 -30分
-            int scoreChange = isWinner ? 50 : -30;
-
-            LambdaUpdateWrapper<UserStatistics> updateWrapper = new LambdaUpdateWrapper<>();
-            // 总对局数 +1，更新积分（用 GREATEST 防跌破 0 分）
-            updateWrapper.eq(UserStatistics::getId, stats.getId())
-                    .setSql("arena_matches = arena_matches + 1")
-                    .setSql("arena_score = GREATEST(arena_score + " + scoreChange + ", 0)");
-
-            if (isWinner) {
-                updateWrapper.setSql("arena_wins = arena_wins + 1");
-            }
-
-            userStatisticsMapper.update(null, updateWrapper);
         }
 
-        log.info("[天梯结算] 房间 {} 结算完成！胜者: {}, 分数已更新。", roomCode, winnerId);
+        Map<Long, Integer> currentRatings = new HashMap<>();
+        for (Long uid : userIds) {
+            User u = userMapper.selectById(uid);
+            currentRatings.put(uid, (u != null && u.getRatingScore() != null) ? u.getRatingScore() : 1000);
+        }
 
-        // 5. 推送结算系统广播到前端对战面板
-        arenaWebSocketHandler.pushSystemBattleLog(
-                roomCode,
-                "SUCCESS",
-                "🏆 MATCH FINISHED! 玩家 " + winnerId + " 率先 AC 夺得胜利！天梯积分已结算。",
-                null
-        );
+        int winnerDisplayChange = 0;
+        int loserDisplayChange = 0;
+
+        for (Long userId : userIds) {
+            boolean isWinner = userId.equals(winnerId);
+            int myRating = currentRatings.getOrDefault(userId, 1000);
+            int opRating = currentRatings.getOrDefault(isWinner ? loserId : winnerId, 1000);
+
+            double expectedScore = 1.0 / (1.0 + Math.pow(10, (opRating - myRating) / 400.0));
+            int scoreChange = (int) Math.round(32 * ((isWinner ? 1.0 : 0.0) - expectedScore));
+
+            if (isWinner) winnerDisplayChange = scoreChange;
+            else loserDisplayChange = scoreChange;
+
+            int finalAbsoluteScore = Math.max(myRating + scoreChange, 0);
+
+            LambdaQueryWrapper<UserStatistics> statsQw = new LambdaQueryWrapper<>();
+            statsQw.eq(UserStatistics::getUserId, userId).eq(UserStatistics::getIsDeleted, 0);
+            if (!userStatisticsMapper.exists(statsQw)) {
+                UserStatistics initStats = new UserStatistics();
+                initStats.setUserId(userId);
+                initStats.setArenaScore(1000);
+                initStats.setArenaMatches(0);
+                initStats.setArenaWins(0);
+                userStatisticsMapper.insert(initStats);
+            }
+
+            LambdaUpdateWrapper<UserStatistics> statsUpdate = new LambdaUpdateWrapper<>();
+            statsUpdate.eq(UserStatistics::getUserId, userId);
+            String sqlSet = "arena_matches = IFNULL(arena_matches, 0) + 1, arena_score = " + finalAbsoluteScore;
+            if (isWinner) sqlSet += ", arena_wins = IFNULL(arena_wins, 0) + 1";
+            statsUpdate.setSql(sqlSet);
+            userStatisticsMapper.update(null, statsUpdate);
+
+            UserStatistics latestStats = userStatisticsMapper.selectOne(statsQw);
+            if (latestStats != null) {
+                int matches = latestStats.getArenaMatches();
+                int wins = latestStats.getArenaWins();
+                int newWinRate = matches > 0 ? (int) Math.round((double) wins / matches * 100) : 0;
+
+                LambdaUpdateWrapper<User> userUpdate = new LambdaUpdateWrapper<>();
+                userUpdate.eq(User::getId, userId)
+                        .set(User::getRatingScore, finalAbsoluteScore)
+                        .set(User::getWinRate, newWinRate);
+                userMapper.update(null, userUpdate);
+            }
+        }
+
+        log.info("[天梯结算] 房间 {} 结算完毕！Elo变动: 胜者({}), 败者({})", roomCode, winnerDisplayChange, loserDisplayChange);
+        String settlementMsg = String.format("🏆 MATCH FINISHED! 玩家 %d 率先 AC 夺得胜利！", winnerId);
+        arenaWebSocketHandler.pushSystemBattleLog(roomCode, "SUCCESS", settlementMsg, null);
+        arenaWebSocketHandler.pushSettlementEvent(roomCode, winnerId, winnerDisplayChange, loserDisplayChange);
     }
 }

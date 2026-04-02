@@ -7,24 +7,15 @@
       class="absolute inset-0 z-50 bg-[#050505] flex flex-col items-center justify-center"
     >
       <Loader2 class="w-10 h-10 text-[#FF4C00] animate-spin mb-4" />
-      <p class="text-zinc-500 font-mono tracking-[0.2em] animate-pulse">VERIFYING ROOM TICKET...</p>
+      <p class="text-zinc-500 font-mono tracking-[0.2em] animate-pulse">正在核验安全凭证...</p>
     </div>
 
     <header
-      class="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md relative z-20"
+      class="h-16 flex items-center justify-between px-4 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md relative z-20"
     >
       <div class="flex items-center gap-3">
-        <button
-          @click="handleLeaveRoom"
-          class="p-2 rounded-full hover:bg-white/10 transition-colors group"
-        >
-          <LogOut class="w-5 h-5 text-zinc-400 group-hover:text-white" />
-        </button>
-        <span class="font-mono text-sm tracking-widest text-zinc-500">
-          ROOM_ID: <span class="text-zinc-200 font-bold">{{ roomCode }}</span>
-        </span>
+        <ArenaExitButton @click="handleLeaveRoom" />
       </div>
-      <div class="font-black italic text-xl tracking-tighter text-[#FF4C00]">CODENEXUS ARENA</div>
     </header>
 
     <div class="flex-1 flex items-center justify-center relative z-10 px-8">
@@ -58,11 +49,7 @@
               "
             ></div>
             <img
-              :src="
-                (userStore as any).avatar ||
-                userStore.userInfo?.userAvatar ||
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=Me'
-              "
+              :src="userStore.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Me'"
               class="w-full h-full rounded-full object-cover p-2 bg-zinc-950"
             />
             <div
@@ -73,10 +60,10 @@
             </div>
           </div>
           <h3 class="text-2xl font-bold tracking-tight mb-2">
-            {{ userStore.userInfo?.userName || userStore.userInfo?.userAccount || '我方特工' }}
+            {{ userStore.nickname || '我方特工' }}
           </h3>
           <p class="text-zinc-500 font-mono text-xs tracking-widest uppercase">
-            {{ myStatus.isReady ? 'READY TO ENGAGE' : 'STANDBY' }}
+            {{ myStatus.isReady ? '已准备' : '待命中' }}
           </p>
         </div>
 
@@ -119,11 +106,11 @@
             class="text-2xl font-bold tracking-tight mb-2"
             :class="opponent ? 'text-white' : 'text-zinc-600'"
           >
-            {{ opponent ? opponent.name : 'WAITING FOR ENEMY...' }}
+            {{ opponent ? opponent.name : '等待对手接入...' }}
           </h3>
           <p class="text-zinc-500 font-mono text-xs tracking-widest uppercase">
-            <span v-if="!opponent" class="animate-pulse">SEARCHING NETWORK...</span>
-            <span v-else>{{ opponent.isReady ? 'READY TO ENGAGE' : 'STANDBY' }}</span>
+            <span v-if="!opponent" class="animate-pulse">正在扫描网络...</span>
+            <span v-else>{{ opponent.isReady ? '已准备' : '待命中' }}</span>
           </p>
         </div>
       </div>
@@ -144,7 +131,7 @@
       >
         <span class="relative z-10 flex items-center gap-2">
           <Power class="w-5 h-5" />
-          {{ myStatus.isReady ? 'CANCEL READY' : 'INITIATE PROTOCOL' }}
+          {{ myStatus.isReady ? '取消准备' : '准备战斗' }}
         </span>
       </button>
     </div>
@@ -154,7 +141,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Swords, UserMinus, Check, LogOut, Power, Loader2 } from 'lucide-vue-next'
+import { Swords, UserMinus, Check, Power, Loader2 } from 'lucide-vue-next'
+// 引入 ArenaExitButton
+import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
 import { useUserStore } from '@/stores/user'
 import { checkRoomValidity } from '@/api/arena'
 import { BattleWebSocket } from '@/utils/battle-ws'

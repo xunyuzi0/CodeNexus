@@ -71,7 +71,8 @@
             <img
               :src="
                 (userStore as any).avatar ||
-                userStore.userInfo?.userAvatar ||
+                (userStore.userInfo as any)?.avatarUrl ||
+                (userStore.userInfo as any)?.userAvatar ||
                 'https://api.dicebear.com/7.x/avataaars/svg?seed=Me'
               "
               alt="User"
@@ -189,9 +190,30 @@
           <h2 class="text-4xl font-black italic tracking-tighter text-white mb-2">
             {{ battleStatus === 'VICTORY' ? 'VICTORY' : 'DEFEAT' }}
           </h2>
-          <p class="text-zinc-400 font-medium mb-8">
+          <p class="text-zinc-400 font-medium mb-4">
             {{ battleStatus === 'VICTORY' ? '恭喜！你击败了对手' : '很遗憾，对手抢先一步' }}
           </p>
+
+          <div v-if="myScoreChange !== null" class="mb-8 flex flex-col items-center">
+            <span class="text-xs text-zinc-500 font-mono tracking-widest uppercase mb-1">
+              天梯排位分 (Elo Rating)
+            </span>
+            <span
+              class="text-5xl font-black font-mono tracking-tighter"
+              :class="
+                myScoreChange >= 0
+                  ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                  : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+              "
+            >
+              {{ myScoreChange > 0 ? '+' : '' }}{{ myScoreChange }}
+            </span>
+          </div>
+          <div v-else class="mb-8 h-[88px] flex items-center justify-center">
+            <div
+              class="w-5 h-5 border-2 border-zinc-700 border-t-[#FF4C00] rounded-full animate-spin"
+            ></div>
+          </div>
 
           <div class="flex flex-col gap-3 w-full">
             <Button
@@ -363,6 +385,8 @@ import { useSessionStorage } from '@vueuse/core'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 
+import { forceSettleMatch } from '@/api/arena'
+
 import {
   Timer,
   Loader2,
@@ -462,7 +486,10 @@ const battlePlayers = ref<any[]>([
   {
     id: 'me',
     name: userStore.nickname || '我方',
-    avatar: (userStore as any).avatar || userStore.userInfo?.userAvatar,
+    avatar:
+      (userStore as any).avatar ||
+      (userStore.userInfo as any)?.avatarUrl ||
+      (userStore.userInfo as any)?.userAvatar,
     status: 'IDLE',
     loc: 0,
     cpm: 0,
@@ -471,6 +498,8 @@ const battlePlayers = ref<any[]>([
   { id: 'enemy', name: '连接中...', avatar: '', status: 'IDLE', loc: 0, cpm: 0, isMe: false },
 ])
 const battleLogs = useSessionStorage<any[]>(`nexus_battle_logs_${roomCode.value}`, [])
+
+const myScoreChange = ref<number | null>(null) // 新增响应式变量记录排位分变动
 
 const formattedTime = computed(() => {
   const m = Math.floor(timer.value / 60)
@@ -612,6 +641,16 @@ const startAbsoluteTimeEngine = () => {
 
 const setupWebSocket = () => {
   battleWs = new BattleWebSocket(roomCode.value, userStore.token!)
+
+  // ---> 新增这段监听后端发来的 SETTLEMENT 事件，加入 as any 绕过类型检查 <---
+  battleWs.on('MATCH_SETTLED' as any, (payload: any) => {
+    const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
+    if (String(payload.winnerId) === String(myId)) {
+      myScoreChange.value = payload.winnerChange
+    } else {
+      myScoreChange.value = payload.loserChange
+    }
+  })
 
   battleWs.on('SYNC_ROOM', (data: any) => {
     const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
@@ -774,7 +813,7 @@ const handleSubmitFail = () => {
   }, 2500)
 }
 
-const handleSuccess = () => {
+const handleSuccess = async () => {
   if (battleStatus.value !== 'FIGHTING') return
   pushLocalLog(' AC ', '我方突破防线，成功 AC！')
   if (battlePlayers.value[0]) battlePlayers.value[0].status = 'PASSED'
@@ -783,6 +822,19 @@ const handleSuccess = () => {
     message: '对方突破防线，成功 AC！',
     code: editorCode.value,
   })
+
+  // 🚀 正规军出击：使用 Axios 拦截器，完美携带 Bearer Token
+  try {
+    const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
+
+    await forceSettleMatch({
+      roomCode: roomCode.value,
+      winnerId: Number(myId),
+    })
+  } catch (e) {
+    console.error('前端请求结算系统失败', e)
+  }
+
   setTimeout(() => endGame('VICTORY', '您已率先攻破题目！'), 1500)
 }
 
@@ -792,9 +844,6 @@ const handleTacticalPing = (type: string) => {
   if (type === 'bug') message = '向你发送了一只 Bug 🐛'
   if (type === 'coffee') message = '觉得你需要喝杯咖啡冷静一下 ☕'
   if (type === 'rocket') message = '暗示他即将发起最终提交 🚀'
-
-  // 🐛 核心修复：直接删除了这里导致冗余的本地 pushLocalLog。
-  // 因为 BattleConsole.vue 已经直接操作 props.logs 推送了更加优雅且带专属格式的本地日志！
 
   if (battlePlayers.value[0]) battlePlayers.value[0].status = 'PING'
   battleWs?.send('BATTLE_LOG', { logType: 'MSG ', message: '对方' + message })
@@ -808,7 +857,13 @@ const endGame = (result: BattleStatus, reason?: string) => {
   battleStatus.value = result
   showSettlement.value = true
   if (gameTimerInterval) clearInterval(gameTimerInterval)
-  if (battleWs) battleWs.disconnect()
+
+  // 延迟两秒再断开 WebSocket，让分数子弹飞一会！
+  if (battleWs) {
+    setTimeout(() => {
+      battleWs!.disconnect()
+    }, 2000)
+  }
 }
 
 const getNowTime = () => {

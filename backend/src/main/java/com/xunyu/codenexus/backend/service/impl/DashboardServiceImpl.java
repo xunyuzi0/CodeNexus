@@ -132,47 +132,62 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDate today = LocalDate.now();
         String lockKey = CHECKIN_LOCK_PREFIX + userId + ":" + today.toString();
 
+        // 1. 获取 Redis 防并发锁
         Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(lockKey, "1", 12, TimeUnit.HOURS);
-        if (Boolean.FALSE.equals(locked)) throw new BusinessException("今日已打卡，请勿重复操作");
-
-        UserStatistics stats = userStatisticsMapper.selectOne(new LambdaQueryWrapper<UserStatistics>().eq(UserStatistics::getUserId, userId));
-        boolean isNew = (stats == null);
-        if (isNew) {
-            stats = new UserStatistics();
-            stats.setUserId(userId);
-            stats.setSolvedCount(0);
-            stats.setContinuousCheckinDays(1);
-        } else {
-            LocalDate lastCheckin = toLocalDate(stats.getLastCheckinDate());
-            AssertUtil.isFalse(today.equals(lastCheckin), "今日已完成充能");
-            LocalDate yesterday = today.minusDays(1);
-            stats.setContinuousCheckinDays(yesterday.equals(lastCheckin) ? stats.getContinuousCheckinDays() + 1 : 1);
+        if (Boolean.FALSE.equals(locked)) {
+            throw new BusinessException("今日已打卡，请勿重复操作");
         }
 
-        // 【精准修复点】保存 UserStatistics 时将 LocalDate 转为 Date
-        stats.setLastCheckinDate(toDate(today));
-        if (isNew) userStatisticsMapper.insert(stats);
-        else userStatisticsMapper.updateById(stats);
+        try {
+            // --- 下面全是你原本的业务逻辑 ---
+            UserStatistics stats = userStatisticsMapper.selectOne(new LambdaQueryWrapper<UserStatistics>().eq(UserStatistics::getUserId, userId));
+            boolean isNew = (stats == null);
+            if (isNew) {
+                stats = new UserStatistics();
+                stats.setUserId(userId);
+                stats.setSolvedCount(0);
+                stats.setContinuousCheckinDays(1);
+            } else {
+                LocalDate lastCheckin = toLocalDate(stats.getLastCheckinDate());
+                AssertUtil.isFalse(today.equals(lastCheckin), "今日已完成充能");
+                LocalDate yesterday = today.minusDays(1);
+                stats.setContinuousCheckinDays(yesterday.equals(lastCheckin) ? stats.getContinuousCheckinDays() + 1 : 1);
+            }
 
-        int reward = 5;
-        User user = userMapper.selectById(userId);
-        user.setRatingScore(user.getRatingScore() + reward);
-        userMapper.updateById(user);
-        stringRedisTemplate.opsForZSet().add(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId), user.getRatingScore());
+            // 【精准修复点】保存 UserStatistics 时将 LocalDate 转为 Date
+            stats.setLastCheckinDate(toDate(today));
+            if (isNew) userStatisticsMapper.insert(stats);
+            else userStatisticsMapper.updateById(stats);
 
-        UserActivityLog log = new UserActivityLog();
-        log.setUserId(userId);
-        // 【精准修复点】保存 UserActivityLog 时直接使用 LocalDate，不转换
-        log.setActivityDate(today);
-        log.setIsCheckin(1);
-        log.setScoreChange(reward);
-        userActivityLogMapper.upsertActivityLog(log);
+            int reward = 5;
+            User user = userMapper.selectById(userId);
+            user.setRatingScore(user.getRatingScore() + reward);
+            userMapper.updateById(user);
+            stringRedisTemplate.opsForZSet().add(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId), user.getRatingScore());
 
-        CheckInVO vo = new CheckInVO();
-        vo.setSuccess(true);
-        vo.setContinuousCheckInDays(stats.getContinuousCheckinDays());
-        vo.setReward("充能成功！获得 " + reward + " 点天梯分");
-        return vo;
+            UserActivityLog log = new UserActivityLog();
+            log.setUserId(userId);
+            log.setActivityDate(today);
+            log.setIsCheckin(1);
+            log.setScoreChange(reward);
+            // 👇 核心修复：显式赋予 0，防止 MyBatis 传入 Null 触发数据库报错
+            log.setAcCount(0);
+
+            userActivityLogMapper.upsertActivityLog(log);
+
+            CheckInVO vo = new CheckInVO();
+            vo.setSuccess(true);
+            vo.setContinuousCheckInDays(stats.getContinuousCheckinDays());
+            vo.setReward("充能成功！获得 " + reward + " 点天梯分");
+            return vo;
+
+        } catch (Exception e) {
+            // 2. 【核心防御】一旦执行过程中出现任何异常（导致事务回滚），必须手动把 Redis 里的锁删掉！
+            // 这样用户再次点击时，就不会被脏锁拦截了。
+            stringRedisTemplate.delete(lockKey);
+            log.error("用户打卡发生异常，已释放防并发锁: {}", userId, e);
+            throw e; // 继续向上抛出异常，让 Spring 触发事务回滚和全局异常处理
+        }
     }
 
     @Override
