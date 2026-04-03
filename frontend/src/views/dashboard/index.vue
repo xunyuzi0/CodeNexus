@@ -1,11 +1,9 @@
 <template>
   <div
-    class="relative p-6 md:p-8 font-sans transition-all duration-300"
-    :class="[
-      isFixedMode
-        ? 'h-[calc(100vh-80px)] overflow-hidden'
-        : 'min-h-[calc(100vh-80px)] overflow-y-auto',
-    ]"
+    :class="cn(
+      'relative p-6 md:p-8 font-sans transition-all duration-300',
+      isFixedMode ? 'h-[calc(100vh-80px)] overflow-hidden' : 'min-h-[calc(100vh-80px)] overflow-y-auto'
+    )"
   >
     <div
       class="fixed top-[-20%] left-[10%] w-[500px] h-[500px] bg-[#FF4C00]/10 blur-[120px] rounded-full pointer-events-none z-0 mix-blend-screen"
@@ -37,8 +35,10 @@
       class="relative z-10 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 auto-rows-[minmax(180px,auto)] gap-6"
     >
       <div
-        class="group md:col-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-8 flex flex-col justify-between hover:border-[#FF4C00]/30 transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,76,0,0.1)] opacity-0"
-        :class="isFixedMode ? 'h-full' : 'min-h-[240px]'"
+        :class="cn(
+          'group md:col-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-8 flex flex-col justify-between hover:border-[#FF4C00]/30 transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,76,0,0.1)] opacity-0',
+          isFixedMode ? 'h-full' : 'min-h-[240px]'
+        )"
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 50 } }"
@@ -81,8 +81,10 @@
       </div>
 
       <div
-        class="md:col-span-1 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-1 hover:border-[#FF4C00]/30 transition-all duration-500 group opacity-0"
-        :class="isFixedMode ? 'h-full' : 'min-h-[240px]'"
+        :class="cn(
+          'md:col-span-1 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-1 hover:border-[#FF4C00]/30 transition-all duration-500 group opacity-0',
+          isFixedMode ? 'h-full' : 'min-h-[240px]'
+        )"
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
@@ -140,8 +142,10 @@
       </div>
 
       <div
-        class="md:col-span-1 md:row-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 flex flex-col hover:border-[#FF4C00]/30 transition-all duration-500 hover:translate-y-[-2px] hover:shadow-xl opacity-0"
-        :class="isFixedMode ? 'h-full' : 'min-h-[500px]'"
+        :class="cn(
+          'md:col-span-1 md:row-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 flex flex-col hover:border-[#FF4C00]/30 transition-all duration-500 hover:translate-y-[-2px] hover:shadow-xl opacity-0',
+          isFixedMode ? 'h-full' : 'min-h-[500px]'
+        )"
         v-motion
         :initial="{ opacity: 0, x: 20 }"
         :enter="{ opacity: 1, x: 0, transition: { duration: 400, delay: 150 } }"
@@ -168,19 +172,20 @@
               {{ stats.rankScore }}
             </div>
             <div
-              class="text-[10px] font-medium mt-1 flex items-center gap-1"
-              :class="stats.weeklyScoreChange >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+              :class="cn(
+                'text-[10px] font-medium mt-1 flex items-center gap-1',
+                (stats.weeklyScoreChange || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'
+              )"
             >
               <span
-                v-if="stats.weeklyScoreChange >= 0"
+                v-if="(stats.weeklyScoreChange || 0) >= 0"
                 class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] border-b-emerald-500"
               ></span>
               <span
                 v-else
                 class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-rose-500"
               ></span>
-              本周变化 {{ stats.weeklyScoreChange >= 0 ? '+' : ''
-              }}{{ Math.abs(stats.weeklyScoreChange) }}
+              本周变化 {{ (stats.weeklyScoreChange || 0) > 0 ? '+' : '' }}{{ Math.abs(stats.weeklyScoreChange || 0) }}
             </div>
           </div>
 
@@ -246,8 +251,10 @@
       </div>
 
       <div
-        class="md:col-span-2 relative rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-6 hover:border-[#FF4C00]/30 transition-all duration-500 group/heatmap flex flex-col opacity-0"
-        :class="isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]'"
+        :class="cn(
+          'md:col-span-2 relative rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-6 hover:border-[#FF4C00]/30 transition-all duration-500 group/heatmap flex flex-col opacity-0',
+          isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]'
+        )"
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 200 } }"
@@ -308,20 +315,18 @@
                 <div
                   v-for="(item, index) in heatmapData"
                   :key="index"
-                  class="w-4 h-4 rounded-[3px] transition-colors duration-200 relative group/cell"
-                  :class="[
+                  :class="cn(
+                    'w-4 h-4 rounded-[3px] transition-colors duration-200 relative group/cell',
                     item.date ? heatmapColors[item.level] : 'bg-transparent pointer-events-none',
-                    item.date && item.level > 0
-                      ? 'border border-white/5'
-                      : 'border border-transparent',
-                  ]"
+                    item.date && item.level > 0 ? 'border border-white/5' : 'border border-transparent'
+                  )"
                 >
                   <div
                     v-if="item.date"
                     class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-900 border border-white/20 rounded-md text-xs text-zinc-200 font-mono whitespace-nowrap opacity-0 group-hover/cell:opacity-100 transition-opacity duration-200 pointer-events-none z-50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] select-none min-w-max"
                   >
                     <span class="text-zinc-400">{{ item.date }}:</span>
-                    <span class="font-bold ml-1" :class="levelTextColors[item.level]"
+                    <span :class="cn('font-bold ml-1', levelTextColors[item.level])"
                       >{{ item.count }} 活跃度</span
                     >
                     <div
@@ -336,8 +341,10 @@
       </div>
 
       <div
-        class="md:col-span-1 relative rounded-3xl p-0 flex flex-col gap-2 bg-transparent border-none shadow-none opacity-0"
-        :class="isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]'"
+        :class="cn(
+          'md:col-span-1 relative rounded-3xl p-0 flex flex-col gap-2 bg-transparent border-none shadow-none opacity-0',
+          isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]'
+        )"
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 250 } }"
@@ -403,17 +410,14 @@
     >
       <div class="text-center">
         <div
-          class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 border"
-          :class="
-            actionType === 'RANKED'
-              ? 'bg-purple-500/10 border-purple-500/20'
-              : 'bg-[#FF4C00]/10 border-[#FF4C00]/20'
-          "
+          :class="cn(
+            'w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 border',
+            actionType === 'RANKED' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-[#FF4C00]/10 border-[#FF4C00]/20'
+          )"
         >
           <component
             :is="dialogConfig.icon"
-            class="w-8 h-8"
-            :class="actionType === 'RANKED' ? 'text-purple-500' : 'text-[#FF4C00]'"
+            :class="cn('w-8 h-8', actionType === 'RANKED' ? 'text-purple-500' : 'text-[#FF4C00]')"
           />
         </div>
         <p class="text-zinc-400 text-sm leading-relaxed" v-html="dialogConfig.desc"></p>
@@ -434,6 +438,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useNow, useDateFormat, useWindowSize } from '@vueuse/core'
+import { cn } from '@/lib/utils' // 【全栈规范】：严格引入 cn() 动态类名工具
 import {
   Zap,
   Trophy,
@@ -491,7 +496,6 @@ const displayName = computed(() => {
 })
 
 // --- Dashboard 核心数据集成 ---
-// 修改点 2：为 stats 初始化所有的天梯默认字段，防止 ts 报错和 undefined 闪烁
 const stats = ref<DashboardStatsVO>({
   isCheckedInToday: false,
   continuousCheckInDays: 0,

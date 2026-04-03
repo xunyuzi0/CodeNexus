@@ -120,7 +120,16 @@ public class DashboardServiceImpl implements DashboardService {
                 .eq("user_id", userId)
                 .ge("activity_date", today.minusDays(7));
         List<Map<String, Object>> sumResult = userActivityLogMapper.selectMaps(logWrapper);
-        vo.setWeeklyScoreChange(sumResult != null ? ((Number) sumResult.get(0).get("total_change")).intValue() : 0);
+
+        // 👇 核心修复：极致安全的防御性取值，彻底杜绝 IndexOutOfBounds 和 NullPointerException
+        int weeklyChange = 0;
+        if (sumResult != null && !sumResult.isEmpty()) {
+            Map<String, Object> firstRow = sumResult.get(0);
+            if (firstRow != null && firstRow.get("total_change") != null) {
+                weeklyChange = ((Number) firstRow.get("total_change")).intValue();
+            }
+        }
+        vo.setWeeklyScoreChange(weeklyChange);
 
         return vo;
     }

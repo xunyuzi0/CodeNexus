@@ -33,7 +33,7 @@ public interface ProblemService extends IService<Problem> {
 
     /**
      * 获取“每日一练”推荐题目
-     * 智能推荐逻辑：基于当前用户的段位分映射难度，并过滤掉已 AC 的题目
+     * 智能推荐逻辑：基于当前用户的段位分映射难度，并严格过滤掉近 7 天内已 AC 的题目
      *
      * @return 推荐题目的 ID
      */

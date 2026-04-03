@@ -94,4 +94,17 @@ public class ProblemController {
         Page<SubmissionHistoryVO> page = problemSubmissionService.getMySubmissions(problemId, request);
         return Result.success(page);
     }
+
+    /**
+     * 🎯 获取“每日一练”推荐题目 (Dashboard 专属)
+     * 强鉴权接口：必须登录，基于用户的段位分进行难度匹配，并引入近 7 天防重机制
+     *
+     * @return 推荐题目 ID
+     */
+    @GetMapping("/daily-practice")
+    @Protector(role = UserRoleEnum.USER)
+    public Result<Long> getDailyPracticeProblem() {
+        Long problemId = problemService.getDailyPracticeProblem();
+        return Result.success(problemId);
+    }
 }

@@ -5,7 +5,11 @@ export type BattleWsAction =
   | 'GAME_START'
   | 'BATTLE_LOG'
   | 'TELEMETRY_SYNC'
-  | 'READY' // 客户端发送用
+  | 'READY' // 客户端发送准备
+  | 'ESCAPE_LOBBY' // 客户端主动退出大厅
+  | 'SURRENDER' // 客户端主动投降
+  | 'PLAYER_ESCAPED' // 后端广播逃跑
+  | 'MATCH_SETTLED' // 后端广播结算
 
 export interface BattleWsPayload<T = any> {
   type: BattleWsAction

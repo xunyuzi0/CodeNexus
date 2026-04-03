@@ -24,8 +24,10 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -179,45 +181,62 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             targetDifficulty = 3; // 天梯传说 推 Hard
         }
 
-        // 2. 查出该用户已经 AC(状态为2) 的所有题目 ID
+        // 2. 查出该用户在【近 7 天内】已经 AC (状态为2) 的所有题目 ID
+        // 精准时间戳计算：当前时间减去 7 天毫秒数
+        Date sevenDaysAgo = new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
+
         LambdaQueryWrapper<UserProblemState> stateWrapper = new LambdaQueryWrapper<>();
         stateWrapper.select(UserProblemState::getProblemId)
                 .eq(UserProblemState::getUserId, userId)
-                .eq(UserProblemState::getState, 2);
-        List<UserProblemState> acStates = userProblemStateMapper.selectList(stateWrapper);
-        List<Long> acProblemIds = acStates.stream().map(UserProblemState::getProblemId).collect(Collectors.toList());
+                .eq(UserProblemState::getState, 2)
+                .ge(UserProblemState::getUpdateTime, sevenDaysAgo); // 【核心改造】：设置 7 天时间屏障
 
-        // 3. 构造智能推荐查询
-        LambdaQueryWrapper<Problem> problemWrapper = new LambdaQueryWrapper<>();
-        problemWrapper.select(Problem::getId)
-                .eq(Problem::getDifficulty, targetDifficulty);
-        if (!acProblemIds.isEmpty()) {
-            problemWrapper.notIn(Problem::getId, acProblemIds);
-        }
-        problemWrapper.last("ORDER BY RAND() LIMIT 1");
-
-        Problem recommendProblem = this.getOne(problemWrapper);
-
-        // 4. 兜底策略：如果符合该难度的题全做完了，取消难度限制
-        if (recommendProblem == null) {
-            LambdaQueryWrapper<Problem> fallbackWrapper = new LambdaQueryWrapper<>();
-            fallbackWrapper.select(Problem::getId);
-            if (!acProblemIds.isEmpty()) {
-                fallbackWrapper.notIn(Problem::getId, acProblemIds);
-            }
-            fallbackWrapper.last("ORDER BY RAND() LIMIT 1");
-            recommendProblem = this.getOne(fallbackWrapper);
+        List<Object> acIdObjs = userProblemStateMapper.selectObjs(stateWrapper);
+        List<Long> recentAcIds = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(acIdObjs)) {
+            recentAcIds = acIdObjs.stream().map(obj -> ((Number) obj).longValue()).collect(Collectors.toList());
         }
 
-        // 5. 极端兜底：如果所有题都刷完了，全表随机抽
-        if (recommendProblem == null) {
-            LambdaQueryWrapper<Problem> extremeFallback = new LambdaQueryWrapper<>();
-            extremeFallback.select(Problem::getId).last("ORDER BY RAND() LIMIT 1");
-            recommendProblem = this.getOne(extremeFallback);
+        // 3. 执行高性能的【内存级随机抽取算法】
+        Long recommendProblemId = pickRandomProblemId(targetDifficulty, recentAcIds);
+
+        // 4. 兜底策略1：如果该难度的题全在最近 7 天被刷完了，取消难度限制
+        if (recommendProblemId == null) {
+            recommendProblemId = pickRandomProblemId(null, recentAcIds);
         }
 
-        AssertUtil.notNull(recommendProblem, "当前题库为空，无法获取推荐题目");
+        // 5. 极端兜底策略2：如果全库所有的题目都在最近 7 天内被刷完了，全库无限制随机抽取
+        if (recommendProblemId == null) {
+            recommendProblemId = pickRandomProblemId(null, null);
+        }
 
-        return recommendProblem.getId();
+        AssertUtil.notNull(recommendProblemId, "当前题库为空，无法获取推荐题目");
+
+        return recommendProblemId;
+    }
+
+    /**
+     * 高性能内存级 O(1) 随机抽取算法 (摒弃 ORDER BY RAND)
+     */
+    private Long pickRandomProblemId(Integer difficulty, List<Long> excludeIds) {
+        LambdaQueryWrapper<Problem> wrapper = new LambdaQueryWrapper<>();
+        // 核心优化：只查询 ID 列，避免把 description 等长文本拉进内存
+        wrapper.select(Problem::getId);
+
+        if (difficulty != null) {
+            wrapper.eq(Problem::getDifficulty, difficulty);
+        }
+        if (!CollectionUtils.isEmpty(excludeIds)) {
+            wrapper.notIn(Problem::getId, excludeIds);
+        }
+
+        List<Object> idObjs = this.listObjs(wrapper);
+        if (CollectionUtils.isEmpty(idObjs)) {
+            return null;
+        }
+
+        // 线程安全的极速乱序选取
+        int randomIndex = ThreadLocalRandom.current().nextInt(idObjs.size());
+        return ((Number) idObjs.get(randomIndex)).longValue();
     }
 }

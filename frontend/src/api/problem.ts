@@ -240,9 +240,11 @@ export async function getSubmissionStatus(
 }
 
 // 获取每日推荐题目
+// 获取每日推荐题目
 export async function getDailyRecommendProblem(): Promise<number> {
   const res = await request<number>({
-    url: '/api/problem/recommend/daily',
+    // 🎯 核心修复：对齐后端的 RESTful 规范路径，去掉多余的 /recommend 并加上 s
+    url: '/api/problems/daily-practice',
     method: 'GET',
   })
   return res

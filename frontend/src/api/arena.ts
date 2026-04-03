@@ -15,8 +15,10 @@ export interface RoomValidity {
 }
 
 // === 1. 私人房间 (熟人开黑) ===
-export const createRoom = () => {
-  return request.post<any, string>('/arena/room')
+// 🎯 核心修复：接收 data 参数，并将其透传给 axios 的 post 请求体中
+export const createRoom = (data?: any) => {
+  // 同时修复泛型返回值，使其能够正确接收后端返回的 RoomCreateVO (包含 roomCode)
+  return request.post<any, any>('/arena/room', data)
 }
 
 export const createPrivateRoom = createRoom

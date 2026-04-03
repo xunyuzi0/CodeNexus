@@ -2,6 +2,31 @@
   <div
     class="h-screen w-full bg-[#050505] text-white flex flex-col relative overflow-hidden select-none"
   >
+    <ArenaDialog
+      v-model="escapeAlert.show"
+      title="对局已中止"
+      cancel-text="回到主页"
+      confirm-text="继续匹配"
+      @cancel="forceGoHome"
+      @confirm="handleContinueMatch"
+    >
+      <div class="text-center flex flex-col items-center">
+        <AlertTriangle class="w-12 h-12 text-red-500/80 mb-4" />
+        <p class="text-zinc-300 font-medium mb-6 text-base">{{ escapeAlert.message }}</p>
+
+        <div
+          v-if="escapeAlert.scoreDetail"
+          class="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-zinc-900/80 border border-white/5 mb-2"
+        >
+          <span class="text-xs text-zinc-500 tracking-widest">排位扣分</span>
+          <div class="w-[1px] h-3 bg-zinc-700"></div>
+          <span class="text-base font-mono font-bold text-red-400">{{
+            escapeAlert.scoreDetail
+          }}</span>
+        </div>
+      </div>
+    </ArenaDialog>
+
     <div
       v-if="isVerifying"
       class="absolute inset-0 z-50 bg-[#050505] flex flex-col items-center justify-center"
@@ -11,11 +36,36 @@
     </div>
 
     <header
-      class="h-16 flex items-center justify-between px-4 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md relative z-20"
+      class="h-16 flex items-center px-4 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md relative z-20"
     >
-      <div class="flex items-center gap-3">
+      <div class="flex-1 flex items-center">
         <ArenaExitButton @click="handleLeaveRoom" />
       </div>
+
+      <div
+        class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-full border border-white/5 hover:border-[#FF4C00]/30 transition-colors group cursor-default shadow-sm"
+      >
+        <span class="text-zinc-500 text-[10px] font-bold tracking-widest uppercase">Room</span>
+        <div class="w-[1px] h-3 bg-zinc-800"></div>
+        <span class="text-white font-mono font-bold tracking-widest text-sm">{{ roomCode }}</span>
+
+        <button
+          @click="copy(roomCode)"
+          class="p-1.5 rounded-md hover:bg-white/10 transition-colors focus:outline-none relative"
+          title="复制房间号"
+        >
+          <Check
+            v-if="copied"
+            class="w-3.5 h-3.5 text-emerald-500 animate-in zoom-in duration-200"
+          />
+          <Copy
+            v-else
+            class="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors animate-in zoom-in duration-200"
+          />
+        </button>
+      </div>
+
+      <div class="flex-1"></div>
     </header>
 
     <div class="flex-1 flex items-center justify-center relative z-10 px-8">
@@ -141,9 +191,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Swords, UserMinus, Check, Power, Loader2 } from 'lucide-vue-next'
-// 引入 ArenaExitButton
+import { Swords, UserMinus, Check, Power, Loader2, AlertTriangle, Copy } from 'lucide-vue-next'
+import { useClipboard } from '@vueuse/core' // 引入 VueUse 剪贴板库
 import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
+import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 import { useUserStore } from '@/stores/user'
 import { checkRoomValidity } from '@/api/arena'
 import { BattleWebSocket } from '@/utils/battle-ws'
@@ -153,8 +204,10 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const roomCode = ref(route.params.roomId as string)
-// 从地址栏拿出门票
 const ticket = ref(route.query.ticket as string)
+
+// 剪贴板 API
+const { copy, copied } = useClipboard({ legacy: true })
 
 const isVerifying = ref(true)
 
@@ -165,6 +218,13 @@ const myStatus = reactive({
 const opponent = ref<any>(null)
 let battleWs: BattleWebSocket | null = null
 
+// 逃跑警告状态
+const escapeAlert = reactive({
+  show: false,
+  message: '',
+  scoreDetail: '', // 扣分明细字段
+})
+
 const initLobby = async () => {
   if (!roomCode.value) {
     router.replace('/arena')
@@ -172,10 +232,8 @@ const initLobby = async () => {
   }
 
   try {
-    // 验票，携带 ticket
     const validity = await checkRoomValidity(roomCode.value, ticket.value)
 
-    // 【核心修复】：判断 isValid
     if (!validity.isValid) {
       alert(validity.message || '房间已失效或门票无效')
       router.replace('/arena')
@@ -200,7 +258,9 @@ const setupWebSocket = () => {
   battleWs = new BattleWebSocket(roomCode.value, token)
 
   battleWs.on('SYNC_ROOM', (data: any) => {
-    const enemy = data.players?.find((p: any) => p.userId !== userStore.userInfo?.id)
+    const enemy = data.players?.find(
+      (p: any) => String(p.userId) !== String(userStore.userInfo?.id),
+    )
     if (enemy) {
       opponent.value = {
         id: enemy.userId,
@@ -212,7 +272,7 @@ const setupWebSocket = () => {
   })
 
   battleWs.on('PLAYER_JOINED', (data: any) => {
-    if (data.userId !== userStore.userInfo?.id) {
+    if (String(data.userId) !== String(userStore.userInfo?.id)) {
       opponent.value = {
         id: data.userId,
         name: data.nickname || data.userName,
@@ -223,9 +283,9 @@ const setupWebSocket = () => {
   })
 
   battleWs.on('PLAYER_READY', (data: any) => {
-    if (data.userId === userStore.userInfo?.id) {
+    if (String(data.userId) === String(userStore.userInfo?.id)) {
       myStatus.isReady = data.isReady
-    } else if (opponent.value && opponent.value.id === data.userId) {
+    } else if (opponent.value && String(opponent.value.id) === String(data.userId)) {
       opponent.value.isReady = data.isReady
     }
   })
@@ -242,6 +302,21 @@ const setupWebSocket = () => {
     }, 1000)
   })
 
+  // 监听后端发来的逃跑事件
+  battleWs.on('PLAYER_ESCAPED', (data: any) => {
+    const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
+    const deducted = data.deductedScore || 20
+
+    if (String(data.escapeeId) === String(myId)) {
+      escapeAlert.message = '您已被系统判定为主动断线退出！'
+      escapeAlert.scoreDetail = `-${deducted}`
+    } else {
+      escapeAlert.message = '对手落荒而逃，系统已将其裁定为战败！'
+      escapeAlert.scoreDetail = `对方 -${deducted}`
+    }
+    escapeAlert.show = true
+  })
+
   battleWs.connect()
 }
 
@@ -251,9 +326,26 @@ const toggleReady = () => {
 }
 
 const handleLeaveRoom = () => {
-  if (battleWs) {
-    battleWs.disconnect()
+  if (opponent.value) {
+    if (battleWs) battleWs.send('ESCAPE_LOBBY')
+    escapeAlert.message = '您主动退出了备战大厅！'
+    escapeAlert.scoreDetail = `-20`
+    escapeAlert.show = true
+  } else {
+    forceGoHome()
   }
+}
+
+// 事件：点击“继续匹配”
+const handleContinueMatch = () => {
+  escapeAlert.show = false
+  if (battleWs) battleWs.disconnect()
+  router.replace('/battle/matchmaking')
+}
+
+// 事件：点击“回到主页” 或 点击对话框外部遮罩层
+const forceGoHome = () => {
+  if (battleWs) battleWs.disconnect()
   router.replace('/arena')
 }
 

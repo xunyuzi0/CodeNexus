@@ -38,7 +38,7 @@
               @click="close"
               class="flex-1 py-3 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
             >
-              取消
+              {{ cancelText }}
             </button>
             <button
               @click="confirm"
@@ -76,19 +76,23 @@ const props = withDefaults(
   defineProps<{
     modelValue: boolean
     title: string
+    cancelText?: string
     confirmText?: string
     confirmDisabled?: boolean
   }>(),
   {
+    cancelText: '取消',
     confirmText: '确定',
     confirmDisabled: false,
   },
 )
 
-const emit = defineEmits(['update:modelValue', 'confirm'])
+// 开放 cancel 事件给外层捕获
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 
 const close = () => {
   emit('update:modelValue', false)
+  emit('cancel')
 }
 
 const confirm = () => {
