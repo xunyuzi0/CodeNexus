@@ -678,7 +678,10 @@ const setupWebSocket = () => {
     if (enemy && enemyPlayer) {
       enemyPlayer.id = enemy.userId
       enemyPlayer.name = enemy.nickname
-      enemyPlayer.avatar = enemy.avatarUrl || enemy.userAvatar || ''
+      enemyPlayer.avatar =
+        enemy.avatarUrl ||
+        enemy.userAvatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${enemy.nickname}`
     }
   })
 
@@ -688,7 +691,10 @@ const setupWebSocket = () => {
     if (enemyPlayer && String(data.userId) !== String(myId)) {
       enemyPlayer.id = data.userId
       enemyPlayer.name = data.nickname
-      enemyPlayer.avatar = data.avatarUrl || data.userAvatar || ''
+      enemyPlayer.avatar =
+        data.avatarUrl ||
+        data.userAvatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.nickname}`
     }
   })
 

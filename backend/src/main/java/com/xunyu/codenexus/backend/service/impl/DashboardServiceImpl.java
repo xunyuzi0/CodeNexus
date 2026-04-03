@@ -111,8 +111,14 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         vo.setTotalProblems(Math.toIntExact(problemMapper.selectCount(new LambdaQueryWrapper<>())));
-        Long redisRank = stringRedisTemplate.opsForZSet().reverseRank(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId));
-        vo.setGlobalRank(redisRank != null ? redisRank.intValue() + 1 : user.getGlobalRank());
+
+        LambdaQueryWrapper<User> countWrapper = new LambdaQueryWrapper<>();
+        countWrapper.and(w -> w
+                .gt(User::getRatingScore, user.getRatingScore())
+                .or(w2 -> w2.eq(User::getRatingScore, user.getRatingScore()).lt(User::getId, user.getId()))
+        );
+        long realTimeRank = userMapper.selectCount(countWrapper) + 1;
+        vo.setGlobalRank((int) realTimeRank);
 
         // 【精准修复点】UserActivityLog 查询直接使用 LocalDate
         QueryWrapper<UserActivityLog> logWrapper = new QueryWrapper<>();

@@ -31,6 +31,9 @@ public class ArenaMatchEngine {
     private static final String MATCH_TIME_KEY = "codenexus:arena:match:time";
     private static final String LOCK_KEY = "codenexus:lock:matchmaking";
 
+    // 【新增】：对应的心跳键前缀
+    private static final String MATCH_ACTIVE_KEY_PREFIX = "codenexus:arena:match:active:";
+
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
@@ -69,6 +72,15 @@ public class ArenaMatchEngine {
         for (String userIdStr : waitingUsers) {
             if (matchedSet.contains(userIdStr)) continue;
 
+            // 【核心拦截网 1】：检查该主叫玩家是否存活
+            Boolean isAlive = stringRedisTemplate.hasKey(MATCH_ACTIVE_KEY_PREFIX + userIdStr);
+            if (Boolean.FALSE.equals(isAlive)) {
+                log.warn("[匹配引擎] 发现幽灵主叫玩家 {}，已物理超度", userIdStr);
+                stringRedisTemplate.opsForZSet().remove(MATCH_POOL_KEY, userIdStr);
+                stringRedisTemplate.opsForHash().delete(MATCH_TIME_KEY, userIdStr);
+                continue; // 玩家已死亡，直接跳过并超度
+            }
+
             Double myScore = stringRedisTemplate.opsForZSet().score(MATCH_POOL_KEY, userIdStr);
             if (myScore == null) continue;
 
@@ -106,6 +118,17 @@ public class ArenaMatchEngine {
     private String findOpponent(String userIdStr, Set<String> candidates, Set<String> matchedSet) {
         for (String candidate : candidates) {
             if (!candidate.equals(userIdStr) && !matchedSet.contains(candidate)) {
+
+                // 【核心拦截网 2】：匹配前最后一次确认被叫候选人是否存活！
+                Boolean isAlive = stringRedisTemplate.hasKey(MATCH_ACTIVE_KEY_PREFIX + candidate);
+                if (Boolean.FALSE.equals(isAlive)) {
+                    // 顺手超度幽灵，跳过该被叫候选人
+                    log.warn("[匹配引擎] 发现幽灵被叫玩家 {}，已物理超度", candidate);
+                    stringRedisTemplate.opsForZSet().remove(MATCH_POOL_KEY, candidate);
+                    stringRedisTemplate.opsForHash().delete(MATCH_TIME_KEY, candidate);
+                    continue;
+                }
+
                 return candidate;
             }
         }

@@ -279,6 +279,10 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
             LambdaQueryWrapper<ArenaRoom> qw = new LambdaQueryWrapper<>();
             qw.eq(ArenaRoom::getRoomCode, roomCode);
             ArenaRoom room = arenaRoomService.getOne(qw);
+
+            room.setStatus("FIGHTING");
+            arenaRoomService.updateById(room);
+
             broadcastToRoom(roomCode, null, buildMessage("GAME_START", JSONUtil.createObj().set("problemId", room.getProblemId()).set("startTime", System.currentTimeMillis() + 2000)));
             pushSystemBattleLog(roomCode, "INFO", "System: Game Started. May the code be with you.", null);
         }

@@ -80,7 +80,17 @@ public class RankServiceImpl implements RankService {
 
         // 3. 组装 VO 返回
         MyRankVO vo = new MyRankVO();
-        vo.setRank(user.getGlobalRank());
+
+        // 👇 【核心修复】：放弃静态 globalRank，采用实时 O(logN) 算法计算我的名次
+        // 实时名次 = (积分比我高的人) + (同分但 ID 比我小的人) + 1
+        LambdaQueryWrapper<User> countWrapper = new LambdaQueryWrapper<>();
+        countWrapper.and(w -> w
+                .gt(User::getRatingScore, user.getRatingScore())
+                .or(w2 -> w2.eq(User::getRatingScore, user.getRatingScore()).lt(User::getId, user.getId()))
+        );
+        long realTimeRank = userMapper.selectCount(countWrapper) + 1;
+
+        vo.setRank((int) realTimeRank);
         vo.setScore(user.getRatingScore());
         vo.setWinRate(user.getWinRate());
         vo.setTier(calculateTier(user.getRatingScore()));

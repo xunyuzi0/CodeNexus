@@ -18,11 +18,14 @@
           v-if="escapeAlert.scoreDetail"
           class="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-zinc-900/80 border border-white/5 mb-2"
         >
-          <span class="text-xs text-zinc-500 tracking-widest">排位扣分</span>
+          <span class="text-xs text-zinc-500 tracking-widest">排位结算</span>
           <div class="w-[1px] h-3 bg-zinc-700"></div>
-          <span class="text-base font-mono font-bold text-red-400">{{
-            escapeAlert.scoreDetail
-          }}</span>
+          <span
+            class="text-base font-mono font-bold"
+            :class="escapeAlert.scoreDetail.includes('-') ? 'text-red-400' : 'text-zinc-400'"
+          >
+            {{ escapeAlert.scoreDetail }}
+          </span>
         </div>
       </div>
     </ArenaDialog>
@@ -43,6 +46,19 @@
       </div>
 
       <div
+        v-if="isMatchMode"
+        class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 px-5 py-1.5 rounded-full backdrop-blur-xl border shadow-lg transition-all duration-500 bg-red-500/10 border-red-500/50 shadow-red-500/20 animate-pulse cursor-default"
+      >
+        <Timer class="w-4 h-4 text-red-500" />
+        <span class="font-mono text-base font-bold tracking-widest tabular-nums text-red-500">
+          00:{{ timeLeft.toString().padStart(2, '0') }}
+        </span>
+        <div class="w-[1px] h-3 bg-white/20"></div>
+        <span class="text-xs font-bold tracking-wider text-red-500">准备倒计时</span>
+      </div>
+
+      <div
+        v-else
         class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-full border border-white/5 hover:border-[#FF4C00]/30 transition-colors group cursor-default shadow-sm"
       >
         <span class="text-zinc-500 text-[10px] font-bold tracking-widest uppercase">Room</span>
@@ -191,8 +207,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Swords, UserMinus, Check, Power, Loader2, AlertTriangle, Copy } from 'lucide-vue-next'
-import { useClipboard } from '@vueuse/core' // 引入 VueUse 剪贴板库
+import {
+  Swords,
+  UserMinus,
+  Check,
+  Power,
+  Loader2,
+  AlertTriangle,
+  Timer,
+  Copy,
+} from 'lucide-vue-next'
+import { useClipboard } from '@vueuse/core'
 import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 import { useUserStore } from '@/stores/user'
@@ -206,10 +231,57 @@ const userStore = useUserStore()
 const roomCode = ref(route.params.roomId as string)
 const ticket = ref(route.query.ticket as string)
 
-// 剪贴板 API
 const { copy, copied } = useClipboard({ legacy: true })
 
 const isVerifying = ref(true)
+
+// 核心修复：标识当前是否是天梯匹配模式
+const isMatchMode = ref(false)
+
+// --- 倒计时核心逻辑 ---
+const timeLeft = ref(15)
+let countdownTimer: number | null = null
+
+const startTimer = () => {
+  countdownTimer = window.setInterval(() => {
+    if (timeLeft.value > 0) {
+      timeLeft.value--
+    } else {
+      handleTimeUp()
+    }
+  }, 1000)
+}
+
+const handleTimeUp = () => {
+  if (countdownTimer) clearInterval(countdownTimer)
+
+  if (myStatus.isReady && opponent.value?.isReady) {
+    return // 双方都已准备，等后端发 GAME_START 即可
+  }
+
+  // 情况 1: 双方都在挂机，双双未准备
+  if (!myStatus.isReady && (!opponent.value || !opponent.value.isReady)) {
+    escapeAlert.message = '倒计时结束，双方均未完成准备，房间已销毁'
+    escapeAlert.scoreDetail = '无扣分'
+    escapeAlert.show = true
+    if (battleWs) battleWs.disconnect()
+  }
+  // 情况 2: 对方准备了，我挂机没准备
+  else if (!myStatus.isReady && opponent.value?.isReady) {
+    if (battleWs) battleWs.send('ESCAPE_LOBBY') // 发送逃跑指令给后端扣分
+    escapeAlert.message = '未在规定时间内准备，被系统判定为逃跑！'
+    escapeAlert.scoreDetail = '-20'
+    escapeAlert.show = true
+  }
+  // 情况 3: 我准备了，对方挂机没准备
+  else if (myStatus.isReady && (!opponent.value || !opponent.value.isReady)) {
+    escapeAlert.message = '对手未在规定时间内准备，房间已销毁'
+    escapeAlert.scoreDetail = '无扣分 (对方扣除 20 分)'
+    escapeAlert.show = true
+    if (battleWs) battleWs.disconnect()
+  }
+}
+// ----------------------
 
 const myStatus = reactive({
   isReady: false,
@@ -222,7 +294,7 @@ let battleWs: BattleWebSocket | null = null
 const escapeAlert = reactive({
   show: false,
   message: '',
-  scoreDetail: '', // 扣分明细字段
+  scoreDetail: '',
 })
 
 const initLobby = async () => {
@@ -240,8 +312,16 @@ const initLobby = async () => {
       return
     }
 
+    // 【精准识别模式】：通过后端的 roomType 判定 (3 为天梯匹配)，或者通过 URL 中是否有 ticket 兜底判定
+    isMatchMode.value = validity.roomType === 3 || !!ticket.value
+
     isVerifying.value = false
     setupWebSocket()
+
+    // 【核心修复】：只有在匹配模式下，才启动 15 秒死亡倒计时
+    if (isMatchMode.value) {
+      startTimer()
+    }
   } catch (err) {
     console.error('房间校验异常:', err)
     router.replace('/arena')
@@ -291,6 +371,7 @@ const setupWebSocket = () => {
   })
 
   battleWs.on('GAME_START', (data: any) => {
+    if (countdownTimer) clearInterval(countdownTimer) // 游戏开始，取消倒计时
     setTimeout(() => {
       router.replace({
         path: `/battle/room/${roomCode.value}`,
@@ -304,6 +385,8 @@ const setupWebSocket = () => {
 
   // 监听后端发来的逃跑事件
   battleWs.on('PLAYER_ESCAPED', (data: any) => {
+    if (countdownTimer) clearInterval(countdownTimer) // 只要有人逃跑，立即停止倒计时
+
     const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
     const deducted = data.deductedScore || 20
 
@@ -326,12 +409,15 @@ const toggleReady = () => {
 }
 
 const handleLeaveRoom = () => {
-  if (opponent.value) {
+  // 【核心修复】：如果是匹配模式且对手已存在，逃跑需要扣分警告；如果是好友私有房间，随便退。
+  if (isMatchMode.value && opponent.value) {
     if (battleWs) battleWs.send('ESCAPE_LOBBY')
     escapeAlert.message = '您主动退出了备战大厅！'
     escapeAlert.scoreDetail = `-20`
     escapeAlert.show = true
   } else {
+    // 私有房间或无人情况，直接和平退出
+    if (battleWs) battleWs.send('ESCAPE_LOBBY')
     forceGoHome()
   }
 }
@@ -354,6 +440,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
   if (battleWs) {
     battleWs.disconnect()
   }
