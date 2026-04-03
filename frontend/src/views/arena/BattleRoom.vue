@@ -195,7 +195,7 @@
               {{
                 battleStatus === 'VICTORY'
                   ? '对手已弃权，我方不战而胜！'
-                  : '您已弃权逃跑，行动失败！'
+                  : '您已主动撤离，行动失败！'
               }}
             </template>
             <template v-else>
@@ -205,17 +205,20 @@
 
           <div v-if="myScoreChange !== null" class="mb-8 flex flex-col items-center">
             <span class="text-xs text-zinc-500 font-mono tracking-widest uppercase mb-1">
-              天梯排位分 (Elo Rating)
+              {{ isMatchMode ? '天梯排位分 (Elo Rating)' : '好友切磋 (不计排位)' }}
             </span>
             <span
               class="text-5xl font-black font-mono tracking-tighter"
               :class="
-                myScoreChange >= 0
-                  ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]'
-                  : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+                !isMatchMode
+                  ? 'text-zinc-400 drop-shadow-[0_0_15px_rgba(161,161,170,0.5)]'
+                  : myScoreChange >= 0
+                    ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                    : 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]'
               "
             >
-              {{ myScoreChange > 0 ? '+' : '' }}{{ myScoreChange }}
+              <template v-if="!isMatchMode">--</template>
+              <template v-else> {{ myScoreChange > 0 ? '+' : '' }}{{ myScoreChange }} </template>
             </span>
           </div>
           <div v-else class="mb-8 h-[88px] flex items-center justify-center">
@@ -226,10 +229,18 @@
 
           <div class="flex flex-col gap-3 w-full">
             <Button
+              v-if="isMatchMode"
               class="w-full bg-[#FF4C00] hover:bg-[#ff5f1f] text-white font-bold h-12 rounded-xl"
               @click="router.replace('/battle/matchmaking')"
             >
               <Swords class="w-4 h-4 mr-2" /> 寻找新匹配
+            </Button>
+            <Button
+              v-else
+              class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold h-12 rounded-xl border border-white/10"
+              @click="router.replace({ path: '/arena', query: { action: 'create' } })"
+            >
+              <RotateCcw class="w-4 h-4 mr-2" /> 重新创建房间
             </Button>
 
             <div class="grid grid-cols-2 gap-3 mt-1">
@@ -278,13 +289,16 @@
     <ArenaDialog
       v-model="showExitDialog"
       title="警告：正在进行对局"
-      confirm-text="投降并退出"
+      confirm-text="确认撤离"
       @confirm="confirmForceExit"
     >
       <div class="text-center space-y-4">
         <p class="text-zinc-400">
-          现在离开将被视为<span class="text-red-500 font-bold">逃跑判负</span
-          >，且会扣除排位积分。<br />确认要投降吗？
+          现在离开将被视为<span class="text-red-500 font-bold">主动战败</span>。<br />
+          <span class="text-sm text-zinc-500 mt-2 block">
+            * 若当前为天梯排位模式，系统将额外扣除积分惩罚。
+          </span>
+          <br />确认要撤离战场吗？
         </p>
       </div>
     </ArenaDialog>
@@ -477,6 +491,9 @@ const isLoading = ref(true)
 const showExitDialog = ref(false)
 const hasFavorited = ref(false)
 
+// 🎯 新增响应式标识，默认排位，在对局结算时会被后端精确覆写
+const isMatchMode = ref(true)
+
 const maximizedPane = ref<'none' | 'left' | 'middle'>('none')
 const paneSize = reactive({ left: 25, middle: 55, right: 20 })
 const lastSize = reactive({ left: 25, middle: 55, right: 20 })
@@ -509,7 +526,6 @@ const battlePlayers = ref<any[]>([
 const battleLogs = useSessionStorage<any[]>(`nexus_battle_logs_${roomCode.value}`, [])
 
 const myScoreChange = ref<number | null>(null)
-// 记录对战特殊原因
 const matchReason = ref<string>('')
 
 const formattedTime = computed(() => {
@@ -653,19 +669,23 @@ const startAbsoluteTimeEngine = () => {
 const setupWebSocket = () => {
   battleWs = new BattleWebSocket(roomCode.value, userStore.token!)
 
-  // 监听后端发来的 SETTLEMENT 事件
   battleWs.on('MATCH_SETTLED' as any, (payload: any) => {
     const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
     const isWinner = String(payload.winnerId) === String(myId)
+
+    // 🎯 核心逻辑拦截：捕获后端传递的 isRanked，动态调整 UI 面板呈现
+    if (payload.isRanked !== undefined) {
+      isMatchMode.value = payload.isRanked
+    }
+
     myScoreChange.value = isWinner ? payload.winnerChange : payload.loserChange
 
-    // 处理逃跑事件的特殊结算视图触发
     if (payload.reason === 'ESCAPE') {
       matchReason.value = 'ESCAPE'
       if (battleStatus.value === 'FIGHTING') {
         endGame(
           isWinner ? 'VICTORY' : 'DEFEAT',
-          isWinner ? '对手已弃权，我方不战而胜！' : '我方已弃权',
+          isWinner ? '对手已弃权，我方不战而胜！' : '我方已主动撤离',
         )
       }
     }
@@ -907,12 +927,11 @@ const handleExitClick = () => {
   else router.replace('/arena')
 }
 
-// 核心修复：投降时向后端发送弃权协议
 const confirmForceExit = () => {
   if (battleWs) battleWs.send('SURRENDER')
-  matchReason.value = 'ESCAPE' // 标记自己是逃跑者
+  matchReason.value = 'ESCAPE'
   showExitDialog.value = false
-  endGame('DEFEAT', '我方特工主动投降')
+  endGame('DEFEAT', '我方特工主动撤离')
 }
 
 const handlePractice = async () => {
@@ -950,15 +969,9 @@ const backToSettlement = () => {
   showSettlement.value = true
 }
 
-const handleResize = (event: { min: number; max: number; size: number }[]) => {
-  /* Resize 代码略 */
-}
-const toggleMaximizeLeft = () => {
-  /* 左侧放大代码略 */
-}
-const toggleMaximizeMiddle = () => {
-  /* 中间放大代码略 */
-}
+const handleResize = (event: { min: number; max: number; size: number }[]) => {}
+const toggleMaximizeLeft = () => {}
+const toggleMaximizeMiddle = () => {}
 </script>
 
 <style scoped>

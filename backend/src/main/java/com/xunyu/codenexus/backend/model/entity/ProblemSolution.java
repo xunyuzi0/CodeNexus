@@ -37,7 +37,7 @@ public class ProblemSolution {
     private String title;
 
     /**
-     * 题解正文(富文本/Markdown)
+     * 题解思路(富文本/Markdown)
      */
     private String content;
 
@@ -45,6 +45,9 @@ public class ProblemSolution {
      * 阅读量
      */
     private Integer viewCount;
+
+    // 新增：解题代码
+    private String code;
 
     /**
      * 创建时间

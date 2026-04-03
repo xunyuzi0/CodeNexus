@@ -14,10 +14,12 @@ import com.xunyu.codenexus.backend.model.dto.response.problem.SubmissionHistoryV
 import com.xunyu.codenexus.backend.model.entity.ProblemSubmission;
 import com.xunyu.codenexus.backend.model.entity.UserProblemState;
 import com.xunyu.codenexus.backend.model.entity.UserStatistics;
+import com.xunyu.codenexus.backend.service.DashboardService;
 import com.xunyu.codenexus.backend.service.ProblemSubmissionService;
 import com.xunyu.codenexus.backend.utils.AssertUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,11 @@ public class ProblemSubmissionServiceImpl extends ServiceImpl<ProblemSubmissionM
 
     @Resource
     private UserStatisticsMapper userStatisticsMapper;
+
+    // 🎯 核心修复：引入仪表盘服务，使用 @Lazy 防止 Spring 启动时由于循环依赖报错
+    @Resource
+    @Lazy
+    private DashboardService dashboardService;
 
     @Override
     public Page<SubmissionHistoryVO> getMySubmissions(Long problemId, SubmissionQueryRequest request) {
@@ -93,6 +100,10 @@ public class ProblemSubmissionServiceImpl extends ServiceImpl<ProblemSubmissionM
         if (updated && status != null && status == 1) {
             Long userId = submission.getUserId();
             Long problemId = submission.getProblemId();
+
+            // 🎯 核心修复：无论是否为首次 AC，只要今日 AC，都必须触发仪表盘热力图记录！
+            // 该方法内部有 Redis Set 去重，同一天重复 AC 同一题只记一次。
+            dashboardService.recordProblemAc(userId, problemId);
 
             // 联动更新 user_problem_state 表
             LambdaQueryWrapper<UserProblemState> stateQuery = new LambdaQueryWrapper<>();

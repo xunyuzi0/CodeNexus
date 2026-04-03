@@ -2,6 +2,7 @@ package com.xunyu.codenexus.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.xunyu.codenexus.backend.common.context.UserContext;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
 import com.xunyu.codenexus.backend.exception.BusinessException;
@@ -35,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * 仪表盘核心业务实现类
  * 修复：精准处理混合日期类型 (UserStatistics用Date，UserActivityLog用LocalDate)
+ * 修复：摒弃覆盖式 upsert，采用增量级原子 Update
+ * 修复：Redis opsForSet.add 返回类型 Long 的坑
  */
 @Slf4j
 @Service
@@ -91,7 +94,6 @@ public class DashboardServiceImpl implements DashboardService {
         vo.setSolvedCount(stats.getSolvedCount());
         vo.setContinuousCheckInDays(stats.getContinuousCheckinDays());
 
-        // 【精准修复点】仅对 stats.getLastCheckinDate 进行类型转换
         LocalDate today = LocalDate.now();
         LocalDate lastCheckin = toLocalDate(stats.getLastCheckinDate());
         vo.setIsCheckedInToday(today.equals(lastCheckin));
@@ -120,14 +122,12 @@ public class DashboardServiceImpl implements DashboardService {
         long realTimeRank = userMapper.selectCount(countWrapper) + 1;
         vo.setGlobalRank((int) realTimeRank);
 
-        // 【精准修复点】UserActivityLog 查询直接使用 LocalDate
         QueryWrapper<UserActivityLog> logWrapper = new QueryWrapper<>();
         logWrapper.select("IFNULL(SUM(score_change), 0) as total_change")
                 .eq("user_id", userId)
                 .ge("activity_date", today.minusDays(7));
         List<Map<String, Object>> sumResult = userActivityLogMapper.selectMaps(logWrapper);
 
-        // 👇 核心修复：极致安全的防御性取值，彻底杜绝 IndexOutOfBounds 和 NullPointerException
         int weeklyChange = 0;
         if (sumResult != null && !sumResult.isEmpty()) {
             Map<String, Object> firstRow = sumResult.get(0);
@@ -154,7 +154,6 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         try {
-            // --- 下面全是你原本的业务逻辑 ---
             UserStatistics stats = userStatisticsMapper.selectOne(new LambdaQueryWrapper<UserStatistics>().eq(UserStatistics::getUserId, userId));
             boolean isNew = (stats == null);
             if (isNew) {
@@ -169,7 +168,6 @@ public class DashboardServiceImpl implements DashboardService {
                 stats.setContinuousCheckinDays(yesterday.equals(lastCheckin) ? stats.getContinuousCheckinDays() + 1 : 1);
             }
 
-            // 【精准修复点】保存 UserStatistics 时将 LocalDate 转为 Date
             stats.setLastCheckinDate(toDate(today));
             if (isNew) userStatisticsMapper.insert(stats);
             else userStatisticsMapper.updateById(stats);
@@ -180,15 +178,24 @@ public class DashboardServiceImpl implements DashboardService {
             userMapper.updateById(user);
             stringRedisTemplate.opsForZSet().add(REDIS_GLOBAL_RANK_KEY, String.valueOf(userId), user.getRatingScore());
 
-            UserActivityLog log = new UserActivityLog();
-            log.setUserId(userId);
-            log.setActivityDate(today);
-            log.setIsCheckin(1);
-            log.setScoreChange(reward);
-            // 👇 核心修复：显式赋予 0，防止 MyBatis 传入 Null 触发数据库报错
-            log.setAcCount(0);
+            LambdaQueryWrapper<UserActivityLog> logQw = new LambdaQueryWrapper<>();
+            logQw.eq(UserActivityLog::getUserId, userId).eq(UserActivityLog::getActivityDate, today);
+            UserActivityLog dailyLog = userActivityLogMapper.selectOne(logQw);
 
-            userActivityLogMapper.upsertActivityLog(log);
+            if (dailyLog == null) {
+                dailyLog = new UserActivityLog();
+                dailyLog.setUserId(userId);
+                dailyLog.setActivityDate(today);
+                dailyLog.setIsCheckin(1);
+                dailyLog.setScoreChange(reward);
+                dailyLog.setAcCount(0);
+                userActivityLogMapper.insert(dailyLog);
+            } else {
+                LambdaUpdateWrapper<UserActivityLog> logUpd = new LambdaUpdateWrapper<>();
+                logUpd.eq(UserActivityLog::getId, dailyLog.getId())
+                        .setSql("is_checkin = 1, score_change = IFNULL(score_change, 0) + " + reward);
+                userActivityLogMapper.update(null, logUpd);
+            }
 
             CheckInVO vo = new CheckInVO();
             vo.setSuccess(true);
@@ -197,18 +204,15 @@ public class DashboardServiceImpl implements DashboardService {
             return vo;
 
         } catch (Exception e) {
-            // 2. 【核心防御】一旦执行过程中出现任何异常（导致事务回滚），必须手动把 Redis 里的锁删掉！
-            // 这样用户再次点击时，就不会被脏锁拦截了。
             stringRedisTemplate.delete(lockKey);
             log.error("用户打卡发生异常，已释放防并发锁: {}", userId, e);
-            throw e; // 继续向上抛出异常，让 Spring 触发事务回滚和全局异常处理
+            throw e;
         }
     }
 
     @Override
     public List<HeatmapItemVO> getActivityHeatmap(Integer year) {
         Long userId = UserContext.getUserId();
-        // 【精准修复点】UserActivityLog 查询直接使用 LocalDate
         List<UserActivityLog> logs = userActivityLogMapper.selectList(new LambdaQueryWrapper<UserActivityLog>()
                 .eq(UserActivityLog::getUserId, userId)
                 .between(UserActivityLog::getActivityDate, LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31)));
@@ -216,11 +220,14 @@ public class DashboardServiceImpl implements DashboardService {
         List<HeatmapItemVO> results = new ArrayList<>();
         for (UserActivityLog log : logs) {
             HeatmapItemVO vo = new HeatmapItemVO();
-            // 【精准修复点】直接调用 LocalDate 原生的 toString() 即可
             vo.setDate(log.getActivityDate().toString());
+
+            // 计算总活跃度 (签到算 1 次 + 当日 AC 题数)
             int count = (log.getIsCheckin() != null ? log.getIsCheckin() : 0) + (log.getAcCount() != null ? log.getAcCount() : 0);
             vo.setSubmissionCount(count);
-            vo.setLevel(count >= 9 ? 4 : count >= 6 ? 3 : count >= 3 ? 2 : count >= 1 ? 1 : 0);
+
+            // 0:无, 1档(低):>=1, 2档(中):>=2, 3档(高):>=5, 4档(极高):>=8
+            vo.setLevel(count >= 8 ? 4 : count >= 5 ? 3 : count >= 2 ? 2 : count >= 1 ? 1 : 0);
             results.add(vo);
         }
         return results;
@@ -229,13 +236,36 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public void recordProblemAc(Long userId, Long problemId) {
         String redisKey = PROBLEM_AC_SET_PREFIX + userId + ":" + LocalDate.now();
-        if (Boolean.TRUE.equals(stringRedisTemplate.opsForSet().add(redisKey, String.valueOf(problemId)))) {
-            UserActivityLog log = new UserActivityLog();
-            log.setUserId(userId);
-            // 【精准修复点】直接赋值 LocalDate
-            log.setActivityDate(LocalDate.now());
-            log.setAcCount(1);
-            userActivityLogMapper.upsertActivityLog(log);
+
+        // 🎯 核心大坑修复：Redis 的 add 操作返回的是 Long 类型，代表被成功加入 Set 的元素个数！
+        Long addedCount = stringRedisTemplate.opsForSet().add(redisKey, String.valueOf(problemId));
+
+        // 只有 > 0 时才表示这个题目今天是第一次被 AC
+        if (addedCount != null && addedCount > 0) {
+
+            stringRedisTemplate.expire(redisKey, 24, TimeUnit.HOURS);
+
+            LocalDate today = LocalDate.now();
+
+            LambdaQueryWrapper<UserActivityLog> logQw = new LambdaQueryWrapper<>();
+            logQw.eq(UserActivityLog::getUserId, userId).eq(UserActivityLog::getActivityDate, today);
+            UserActivityLog dailyLog = userActivityLogMapper.selectOne(logQw);
+
+            if (dailyLog == null) {
+                dailyLog = new UserActivityLog();
+                dailyLog.setUserId(userId);
+                dailyLog.setActivityDate(today);
+                dailyLog.setAcCount(1);
+                dailyLog.setIsCheckin(0);
+                dailyLog.setScoreChange(0);
+                userActivityLogMapper.insert(dailyLog);
+            } else {
+                LambdaUpdateWrapper<UserActivityLog> logUpd = new LambdaUpdateWrapper<>();
+                logUpd.eq(UserActivityLog::getId, dailyLog.getId())
+                        // 精准累加 ac_count，绝不触碰和覆盖 is_checkin 的值
+                        .setSql("ac_count = IFNULL(ac_count, 0) + 1");
+                userActivityLogMapper.update(null, logUpd);
+            }
         }
     }
 }

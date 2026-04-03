@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
@@ -86,7 +86,6 @@ import ProblemHeader from './components/ProblemHeader.vue'
 import ProblemDescription from './components/ProblemDescription.vue'
 import CodeWorkspace from './components/CodeWorkspace.vue'
 
-// 引入真实的 API
 import { getProblemDetail, type Problem } from '@/api/problem'
 
 const route = useRoute()
@@ -94,51 +93,11 @@ const route = useRoute()
 // --- Data State ---
 const loading = ref(true)
 const problem = ref<Problem | null>(null)
-
-// 默认应用 ACM 模式模板
-const code = ref(`import java.util.*;
-import java.io.*;
-
-public class Solution {
-
-    /**
-     * 核心算法逻辑写在这里
-     */
-    public void solve() {
-        // TODO: 在这里编写你的算法逻辑
-        
-    }
-
-    /**
-     * CodeNexus ACM 模式程序入口
-     * 请在此处解析标准输入 (Standard Input) 并打印标准输出 (Standard Output)
-     */
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        
-        // 示例：如果题目需要读取多行或特定格式的输入
-        /*
-        if (scanner.hasNextLine()) {
-            // 1. 读取并解析输入数据
-            String line = scanner.nextLine();
-            
-            // 2. 实例化并调用核心算法
-            Solution sol = new Solution();
-            // Object result = sol.solve(...);
-            
-            // 3. 按照题目要求的格式打印输出
-            // System.out.println(result);
-        }
-        */
-    }
-}
-`)
-
-// 控制计时器的开关状态
+const code = ref('')
 const isTimerPaused = ref(false)
 
 const handleProblemSuccess = () => {
-  isTimerPaused.value = true // 全通后暂停顶部的时间
+  isTimerPaused.value = true
 }
 
 // --- Layout State Management ---
@@ -185,8 +144,8 @@ const toggleMaximizeRight = () => {
   }
 }
 
-// --- Lifecycle ---
-onMounted(async () => {
+// 🎯 核心修复：将请求抽象为独立函数，以便支持多次切题调用
+const fetchProblemData = async () => {
   const problemId = route.params.id as string
   if (!problemId) return
 
@@ -194,12 +153,30 @@ onMounted(async () => {
   try {
     const data = await getProblemDetail(problemId)
     problem.value = data
+    // 切换题目时，重置代码模板并恢复计时器状态
+    code.value = `import java.util.*;\nimport java.io.*;\n\npublic class Solution {\n\n    /**\n     * 核心算法逻辑写在这里\n     */\n    public void solve() {\n        // TODO: 在这里编写你的算法逻辑\n        \n    }\n\n    /**\n     * CodeNexus ACM 模式程序入口\n     * 请在此处解析标准输入 (Standard Input) 并打印标准输出 (Standard Output)\n     */\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        \n        // 示例：如果题目需要读取多行或特定格式的输入\n        /*\n        if (scanner.hasNextLine()) {\n            // 1. 读取并解析输入数据\n            String line = scanner.nextLine();\n            \n            // 2. 实例化并调用核心算法\n            Solution sol = new Solution();\n            // Object result = sol.solve(...);\n            \n            // 3. 按照题目要求的格式打印输出\n            // System.out.println(result);\n        }\n        */\n    }\n}`
+    isTimerPaused.value = false
   } catch (error) {
     console.error('获取题目详情失败:', error)
   } finally {
     loading.value = false
   }
+}
+
+// --- Lifecycle & Watchers ---
+onMounted(() => {
+  fetchProblemData()
 })
+
+// 🎯 核心修复：监听路由参数变化，实现不刷新整个页面的无缝“换题”
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      fetchProblemData()
+    }
+  },
+)
 </script>
 
 <style>

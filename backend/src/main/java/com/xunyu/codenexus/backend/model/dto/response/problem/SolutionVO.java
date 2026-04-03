@@ -18,9 +18,13 @@ public class SolutionVO {
 
     private Long problemId;
 
+    private Long authorId;
+
     private String title;
 
     private String content;
+
+    private String code;
 
     /**
      * 作者名称 (联表查询 user 表得到)

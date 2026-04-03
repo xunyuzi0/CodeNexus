@@ -298,13 +298,26 @@ const errorMap: Record<string, { title: string; desc: string; icon: any }> = {
 
 onMounted(() => {
   const error = route.query.error as string
+  const action = route.query.action as string
 
+  // 1. 优先处理错误阻断弹窗
   if (error && errorMap[error]) {
     currentErrorData.value = errorMap[error]
     isErrorAlert.value = true
     showDialog.value = true
 
-    // 清除 URL 参数
+    // 清除 URL 参数防止刷新重复触发
+    router.replace({ path: '/arena', query: {} })
+    return
+  }
+
+  // 2. 处理跨页面路由传递的动作指令 (如: 从结算页重新创建)
+  if (action === 'create') {
+    // 延迟一帧触发，保证 UI 动画平滑过渡
+    nextTick(() => {
+      triggerAction('CREATE')
+    })
+    // 同样清除 URL 参数，保持地址栏纯净
     router.replace({ path: '/arena', query: {} })
   }
 })

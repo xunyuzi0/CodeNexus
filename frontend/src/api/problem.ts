@@ -43,8 +43,10 @@ export interface ProblemQuery {
 export interface ProblemSolution {
   id: number
   problemId: number
+  authorId: number
   title: string
   content: string
+  code: string
   authorName: string
   viewCount: number
   createTime: string
@@ -173,9 +175,10 @@ export async function getProblemDetail(id: number | string): Promise<Problem> {
 }
 
 // 获取官方题解
-export async function getProblemSolution(problemId: number | string): Promise<ProblemSolution> {
-  return await request<ProblemSolution>({
-    url: `/api/problems/${problemId}/solution`,
+// 获取题目的所有题解列表 (注意方法名是复数 Solutions)
+export async function getProblemSolutions(problemId: number | string): Promise<ProblemSolution[]> {
+  return await request<ProblemSolution[]>({
+    url: `/api/problems/${problemId}/solutions`,
     method: 'GET',
   })
 }
@@ -240,7 +243,6 @@ export async function getSubmissionStatus(
 }
 
 // 获取每日推荐题目
-// 获取每日推荐题目
 export async function getDailyRecommendProblem(): Promise<number> {
   const res = await request<number>({
     // 🎯 核心修复：对齐后端的 RESTful 规范路径，去掉多余的 /recommend 并加上 s
@@ -248,4 +250,48 @@ export async function getDailyRecommendProblem(): Promise<number> {
     method: 'GET',
   })
   return res
+}
+
+export function getRandomProblem() {
+  return request.get('/problems/random')
+}
+
+// 新增：发布题解
+export async function publishProblemSolution(
+  problemId: number | string,
+  data: { title: string; content: string },
+): Promise<void> {
+  return await request<void>({
+    url: `/api/problems/${problemId}/solutions`,
+    method: 'POST',
+    data,
+  })
+}
+
+// 修改我的题解
+export async function updateProblemSolution(
+  solutionId: number | string,
+  data: { title: string; content: string },
+): Promise<void> {
+  return await request<void>({
+    url: `/api/problems/solutions/${solutionId}`,
+    method: 'PUT',
+    data,
+  })
+}
+
+// 删除我的题解
+export async function deleteProblemSolution(solutionId: number | string): Promise<void> {
+  return await request<void>({
+    url: `/api/problems/solutions/${solutionId}`,
+    method: 'DELETE',
+  })
+}
+
+// 记录题解阅读量 (后端包含防刷机制)
+export async function recordSolutionView(solutionId: number | string): Promise<void> {
+  return await request<void>({
+    url: `/api/problems/solutions/${solutionId}/view`,
+    method: 'POST',
+  })
 }

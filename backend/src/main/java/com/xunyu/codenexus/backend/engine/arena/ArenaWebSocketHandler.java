@@ -184,52 +184,61 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
         ArenaRoom room = arenaRoomService.getOne(new LambdaQueryWrapper<ArenaRoom>().eq(ArenaRoom::getRoomCode, roomCode));
         if (room == null || "FINISHED".equals(room.getStatus())) return;
 
+        // 🎯 核心判断：是否是排位模式
+        boolean isRanked = room.getRoomType() != null && room.getRoomType() == 3;
+
         if (!STARTED_ROOMS.contains(roomCode)) {
             // LOBBY ESCAPE (大厅逃跑阶段)
             // 立即将房间状态标记完成，防止重复扣分
             room.setStatus("FINISHED");
             arenaRoomService.updateById(room);
 
-            // 🎯 核心修复：先获取玩家当前分数，精准计算实际扣除值（防止负数引发流水差异）
-            User escapee = userService.getById(escapeeId);
-            int currentScore = (escapee != null && escapee.getRatingScore() != null) ? escapee.getRatingScore() : 1000;
-            int actualDeducted = Math.min(currentScore, 20); // 最多扣除 20 分
+            int actualDeducted = 0;
 
-            if (actualDeducted > 0) {
-                // 1. 更新用户主表积分
-                LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
-                updateWrapper.eq(User::getId, escapeeId).set(User::getRatingScore, currentScore - actualDeducted);
-                userService.update(updateWrapper);
+            if (isRanked) {
+                // 🎯 核心修复：先获取玩家当前分数，精准计算实际扣除值（防止负数引发流水差异）
+                User escapee = userService.getById(escapeeId);
+                int currentScore = (escapee != null && escapee.getRatingScore() != null) ? escapee.getRatingScore() : 1000;
+                actualDeducted = Math.min(currentScore, 20); // 最多扣除 20 分
 
-                // 2. 将负分写入当天的活动日志表 (user_activity_log)！
-                LocalDate today = LocalDate.now();
-                LambdaQueryWrapper<UserActivityLog> logQw = new LambdaQueryWrapper<>();
-                logQw.eq(UserActivityLog::getUserId, escapeeId).eq(UserActivityLog::getActivityDate, today);
-                UserActivityLog dailyLog = userActivityLogMapper.selectOne(logQw);
+                if (actualDeducted > 0) {
+                    // 1. 更新用户主表积分
+                    LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+                    updateWrapper.eq(User::getId, escapeeId).set(User::getRatingScore, currentScore - actualDeducted);
+                    userService.update(updateWrapper);
 
-                if (dailyLog == null) {
-                    dailyLog = new UserActivityLog();
-                    dailyLog.setUserId(escapeeId);
-                    dailyLog.setActivityDate(today);
-                    dailyLog.setScoreChange(-actualDeducted); // 记录负数流水
-                    dailyLog.setIsCheckin(0);
-                    dailyLog.setAcCount(0);
-                    userActivityLogMapper.insert(dailyLog);
-                } else {
-                    LambdaUpdateWrapper<UserActivityLog> logUpd = new LambdaUpdateWrapper<>();
-                    logUpd.eq(UserActivityLog::getId, dailyLog.getId())
-                            .setSql("score_change = IFNULL(score_change, 0) - " + actualDeducted);
-                    userActivityLogMapper.update(null, logUpd);
+                    // 2. 将负分写入当天的活动日志表 (user_activity_log)！
+                    LocalDate today = LocalDate.now();
+                    LambdaQueryWrapper<UserActivityLog> logQw = new LambdaQueryWrapper<>();
+                    logQw.eq(UserActivityLog::getUserId, escapeeId).eq(UserActivityLog::getActivityDate, today);
+                    UserActivityLog dailyLog = userActivityLogMapper.selectOne(logQw);
+
+                    if (dailyLog == null) {
+                        dailyLog = new UserActivityLog();
+                        dailyLog.setUserId(escapeeId);
+                        dailyLog.setActivityDate(today);
+                        dailyLog.setScoreChange(-actualDeducted); // 记录负数流水
+                        dailyLog.setIsCheckin(0);
+                        dailyLog.setAcCount(0);
+                        userActivityLogMapper.insert(dailyLog);
+                    } else {
+                        LambdaUpdateWrapper<UserActivityLog> logUpd = new LambdaUpdateWrapper<>();
+                        logUpd.eq(UserActivityLog::getId, dailyLog.getId())
+                                .setSql("score_change = IFNULL(score_change, 0) - " + actualDeducted);
+                        userActivityLogMapper.update(null, logUpd);
+                    }
                 }
+                log.info("[大厅逃跑] 天梯模式玩家 {} 逃跑，已扣除 {} 排位分", escapeeId, actualDeducted);
+            } else {
+                log.info("[大厅逃跑] 私有房间玩家 {} 退出，不扣除排位分", escapeeId);
             }
 
-            log.info("[大厅逃跑] 玩家 {} 逃跑，已扣除 {} 排位分", escapeeId, actualDeducted);
-
-            // 通知剩余玩家触发前端警告弹窗，带上真实的扣除分值
+            // 通知剩余玩家触发前端警告弹窗，带上真实的扣除分值及 isRanked 标识
             broadcastToRoom(roomCode, null, buildMessage("PLAYER_ESCAPED",
                     JSONUtil.createObj()
                             .set("escapeeId", escapeeId)
-                            .set("deductedScore", actualDeducted)));
+                            .set("deductedScore", actualDeducted)
+                            .set("isRanked", isRanked)));
         } else {
             // BATTLE ESCAPE (战斗逃跑阶段)
             Set<Long> history = getRoomHistory(roomCode);
@@ -254,10 +263,14 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    // 重载方法支持传递结算原因
-    public void pushSettlementEvent(String roomCode, Long winnerId, int winnerChange, int loserChange, String StringReason) {
+    // 重载方法支持传递结算原因及排位标识
+    public void pushSettlementEvent(String roomCode, Long winnerId, int winnerChange, int loserChange, String StringReason, boolean isRanked) {
         try {
-            JSONObject data = JSONUtil.createObj().set("winnerId", winnerId).set("winnerChange", winnerChange).set("loserChange", loserChange);
+            JSONObject data = JSONUtil.createObj()
+                    .set("winnerId", winnerId)
+                    .set("winnerChange", winnerChange)
+                    .set("loserChange", loserChange)
+                    .set("isRanked", isRanked);
             if (StringReason != null) {
                 data.set("reason", StringReason);
             }

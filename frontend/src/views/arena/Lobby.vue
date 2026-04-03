@@ -4,18 +4,18 @@
   >
     <ArenaDialog
       v-model="escapeAlert.show"
-      title="对局已中止"
-      cancel-text="回到主页"
-      confirm-text="继续匹配"
-      @cancel="forceGoHome"
-      @confirm="handleContinueMatch"
+      :title="isMatchMode ? '对局已中止' : '房间已解散'"
+      :cancel-text="isMatchMode ? '回到主页' : '重新创建'"
+      :confirm-text="isMatchMode ? '继续匹配' : '回到主页'"
+      @cancel="isMatchMode ? forceGoHome() : handleRecreate()"
+      @confirm="isMatchMode ? handleContinueMatch() : forceGoHome()"
     >
       <div class="text-center flex flex-col items-center">
         <AlertTriangle class="w-12 h-12 text-red-500/80 mb-4" />
         <p class="text-zinc-300 font-medium mb-6 text-base">{{ escapeAlert.message }}</p>
 
         <div
-          v-if="escapeAlert.scoreDetail"
+          v-if="isMatchMode && escapeAlert.scoreDetail"
           class="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-zinc-900/80 border border-white/5 mb-2"
         >
           <span class="text-xs text-zinc-500 tracking-widest">排位结算</span>
@@ -235,7 +235,7 @@ const { copy, copied } = useClipboard({ legacy: true })
 
 const isVerifying = ref(true)
 
-// 核心修复：标识当前是否是天梯匹配模式
+// 标识当前是否是天梯匹配模式
 const isMatchMode = ref(false)
 
 // --- 倒计时核心逻辑 ---
@@ -259,22 +259,18 @@ const handleTimeUp = () => {
     return // 双方都已准备，等后端发 GAME_START 即可
   }
 
-  // 情况 1: 双方都在挂机，双双未准备
+  // 这里的倒计时逻辑仅存在于排位赛模式下，因此直接使用排位的硬编码扣分提醒即可
   if (!myStatus.isReady && (!opponent.value || !opponent.value.isReady)) {
     escapeAlert.message = '倒计时结束，双方均未完成准备，房间已销毁'
     escapeAlert.scoreDetail = '无扣分'
     escapeAlert.show = true
     if (battleWs) battleWs.disconnect()
-  }
-  // 情况 2: 对方准备了，我挂机没准备
-  else if (!myStatus.isReady && opponent.value?.isReady) {
+  } else if (!myStatus.isReady && opponent.value?.isReady) {
     if (battleWs) battleWs.send('ESCAPE_LOBBY') // 发送逃跑指令给后端扣分
     escapeAlert.message = '未在规定时间内准备，被系统判定为逃跑！'
     escapeAlert.scoreDetail = '-20'
     escapeAlert.show = true
-  }
-  // 情况 3: 我准备了，对方挂机没准备
-  else if (myStatus.isReady && (!opponent.value || !opponent.value.isReady)) {
+  } else if (myStatus.isReady && (!opponent.value || !opponent.value.isReady)) {
     escapeAlert.message = '对手未在规定时间内准备，房间已销毁'
     escapeAlert.scoreDetail = '无扣分 (对方扣除 20 分)'
     escapeAlert.show = true
@@ -312,13 +308,12 @@ const initLobby = async () => {
       return
     }
 
-    // 【精准识别模式】：通过后端的 roomType 判定 (3 为天梯匹配)，或者通过 URL 中是否有 ticket 兜底判定
+    // 判断是天梯还是私人房间
     isMatchMode.value = validity.roomType === 3 || !!ticket.value
 
     isVerifying.value = false
     setupWebSocket()
 
-    // 【核心修复】：只有在匹配模式下，才启动 15 秒死亡倒计时
     if (isMatchMode.value) {
       startTimer()
     }
@@ -371,7 +366,7 @@ const setupWebSocket = () => {
   })
 
   battleWs.on('GAME_START', (data: any) => {
-    if (countdownTimer) clearInterval(countdownTimer) // 游戏开始，取消倒计时
+    if (countdownTimer) clearInterval(countdownTimer)
     setTimeout(() => {
       router.replace({
         path: `/battle/room/${roomCode.value}`,
@@ -383,20 +378,34 @@ const setupWebSocket = () => {
     }, 1000)
   })
 
-  // 监听后端发来的逃跑事件
+  // 🎯 核心修复：根据接收到的后端 isRanked 标识，切分逃跑/解散弹窗文案
   battleWs.on('PLAYER_ESCAPED', (data: any) => {
-    if (countdownTimer) clearInterval(countdownTimer) // 只要有人逃跑，立即停止倒计时
+    if (countdownTimer) clearInterval(countdownTimer) // 只要有人退出，立即停止倒计时
 
     const myId = userStore.userInfo?.id || (userStore as any).id || (userStore as any).userId
-    const deducted = data.deductedScore || 20
+    const isMe = String(data.escapeeId) === String(myId)
+    const isRanked = data.isRanked !== undefined ? data.isRanked : isMatchMode.value
 
-    if (String(data.escapeeId) === String(myId)) {
-      escapeAlert.message = '您已被系统判定为主动断线退出！'
-      escapeAlert.scoreDetail = `-${deducted}`
+    if (isRanked) {
+      // 天梯排位模式下的逃跑文案与扣分显示
+      const deducted = data.deductedScore || 20
+      if (isMe) {
+        escapeAlert.message = '您已被系统判定为主动断线退出！'
+        escapeAlert.scoreDetail = `-${deducted}`
+      } else {
+        escapeAlert.message = '对手落荒而逃，系统已将其裁定为战败！'
+        escapeAlert.scoreDetail = `对方 -${deducted}`
+      }
     } else {
-      escapeAlert.message = '对手落荒而逃，系统已将其裁定为战败！'
-      escapeAlert.scoreDetail = `对方 -${deducted}`
+      // 私有建房模式下的离开/解散文案 (无扣分)
+      if (isMe) {
+        escapeAlert.message = '您主动退出了房间！'
+      } else {
+        escapeAlert.message = '好友已离开，房间已解散！'
+      }
+      escapeAlert.scoreDetail = ''
     }
+
     escapeAlert.show = true
   })
 
@@ -409,24 +418,39 @@ const toggleReady = () => {
 }
 
 const handleLeaveRoom = () => {
-  // 【核心修复】：如果是匹配模式且对手已存在，逃跑需要扣分警告；如果是好友私有房间，随便退。
-  if (isMatchMode.value && opponent.value) {
+  // 🎯 核心修复：无论是排位还是私有房间，只要有对手存在，离开都应触发弹窗和 WS 通知
+  // 没有对手的情况下可以直接退出不用管
+  if (opponent.value) {
     if (battleWs) battleWs.send('ESCAPE_LOBBY')
-    escapeAlert.message = '您主动退出了备战大厅！'
-    escapeAlert.scoreDetail = `-20`
+
+    if (isMatchMode.value) {
+      escapeAlert.message = '您主动退出了备战大厅！'
+      escapeAlert.scoreDetail = `-20`
+    } else {
+      escapeAlert.message = '您主动退出了房间！'
+      escapeAlert.scoreDetail = ''
+    }
     escapeAlert.show = true
   } else {
-    // 私有房间或无人情况，直接和平退出
+    // 房间里只有自己，直接走人
     if (battleWs) battleWs.send('ESCAPE_LOBBY')
     forceGoHome()
   }
 }
 
-// 事件：点击“继续匹配”
+// 事件：点击“继续匹配” (仅排位可见)
 const handleContinueMatch = () => {
   escapeAlert.show = false
   if (battleWs) battleWs.disconnect()
   router.replace('/battle/matchmaking')
+}
+
+// 🎯 事件：点击“重新创建” (仅私有房间可见)
+const handleRecreate = () => {
+  escapeAlert.show = false
+  if (battleWs) battleWs.disconnect()
+  // 携带有 action 标识，路由回 arena 大厅，可以在大厅侦听此参数自动呼出建房弹窗
+  router.replace({ path: '/arena', query: { action: 'create' } })
 }
 
 // 事件：点击“回到主页” 或 点击对话框外部遮罩层

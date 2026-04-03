@@ -27,7 +27,6 @@ public class ArenaSettlementServiceImpl implements ArenaSettlementService {
     private UserStatisticsMapper userStatisticsMapper;
     @Resource
     private UserMapper userMapper;
-    // 【核心修复引入】：注入活动日志映射器，用于记录分数变动流水
     @Resource
     private UserActivityLogMapper userActivityLogMapper;
     @Resource
@@ -38,22 +37,27 @@ public class ArenaSettlementServiceImpl implements ArenaSettlementService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void settleMatch(String roomCode, Long winnerId) {
-        String roomSql = "SELECT id, status FROM arena_room WHERE room_code = ?";
+        // 🎯 核心修复：连同 room_type 一起查出，确立排位屏障
+        String roomSql = "SELECT id, status, room_type FROM arena_room WHERE room_code = ?";
         List<Map<String, Object>> rooms = jdbcTemplate.queryForList(roomSql, roomCode);
         if (rooms.isEmpty()) return;
 
         Long roomId = ((Number) rooms.get(0).get("id")).longValue();
         String status = (String) rooms.get(0).get("status");
+        Integer roomType = rooms.get(0).get("room_type") != null ? ((Number) rooms.get(0).get("room_type")).intValue() : null;
 
         if ("FINISHED".equals(status)) return;
         jdbcTemplate.update("UPDATE arena_room SET status = 'FINISHED' WHERE id = ?", roomId);
 
-        // 🎯 核心碾压逻辑：抛弃数据库，直接读取 WebSocket 内存黑匣子！
+        // 判断是否为天梯排位模式 (3)
+        boolean isRanked = (roomType != null && roomType == 3);
+
+        // 读取 WebSocket 内存黑匣子
         Set<Long> historyUsers = arenaWebSocketHandler.getRoomHistory(roomCode);
         List<Long> userIds = new ArrayList<>(historyUsers);
 
         if (userIds.size() < 2) {
-            log.warn("[天梯结算] 房间 {} 玩家数据严重缺失 (内存记录仅 {} 人)，无法计算Elo", roomCode, userIds.size());
+            log.warn("[天梯结算] 房间 {} 玩家数据严重缺失 (内存记录仅 {} 人)，无法进行结算", roomCode, userIds.size());
             return;
         }
 
@@ -78,73 +82,77 @@ public class ArenaSettlementServiceImpl implements ArenaSettlementService {
 
         for (Long userId : userIds) {
             boolean isWinner = userId.equals(winnerId);
-            int myRating = currentRatings.getOrDefault(userId, 1000);
-            int opRating = currentRatings.getOrDefault(isWinner ? loserId : winnerId, 1000);
 
-            double expectedScore = 1.0 / (1.0 + Math.pow(10, (opRating - myRating) / 400.0));
-            int scoreChange = (int) Math.round(32 * ((isWinner ? 1.0 : 0.0) - expectedScore));
+            // 🎯 核心逻辑隔离：只有排位赛才计算积分和写入数据库
+            if (isRanked) {
+                int myRating = currentRatings.getOrDefault(userId, 1000);
+                int opRating = currentRatings.getOrDefault(isWinner ? loserId : winnerId, 1000);
 
-            int finalAbsoluteScore = Math.max(myRating + scoreChange, 0);
+                double expectedScore = 1.0 / (1.0 + Math.pow(10, (opRating - myRating) / 400.0));
+                int scoreChange = (int) Math.round(32 * ((isWinner ? 1.0 : 0.0) - expectedScore));
 
-            // 【细节优化】：计算"真实变动值"，防止极低分玩家扣成负数时，变动值展示和流水记录产生误差
-            int actualScoreChange = finalAbsoluteScore - myRating;
+                int finalAbsoluteScore = Math.max(myRating + scoreChange, 0);
+                int actualScoreChange = finalAbsoluteScore - myRating;
 
-            if (isWinner) winnerDisplayChange = actualScoreChange;
-            else loserDisplayChange = actualScoreChange;
+                if (isWinner) winnerDisplayChange = actualScoreChange;
+                else loserDisplayChange = actualScoreChange;
 
-            // 1. 更新统计表 (UserStatistics)
-            LambdaQueryWrapper<UserStatistics> statsQw = new LambdaQueryWrapper<>();
-            statsQw.eq(UserStatistics::getUserId, userId).eq(UserStatistics::getIsDeleted, 0);
-            if (!userStatisticsMapper.exists(statsQw)) {
-                UserStatistics initStats = new UserStatistics();
-                initStats.setUserId(userId);
-                initStats.setArenaScore(1000);
-                initStats.setArenaMatches(0);
-                initStats.setArenaWins(0);
-                userStatisticsMapper.insert(initStats);
-            }
+                // 1. 更新统计表 (UserStatistics)
+                LambdaQueryWrapper<UserStatistics> statsQw = new LambdaQueryWrapper<>();
+                statsQw.eq(UserStatistics::getUserId, userId).eq(UserStatistics::getIsDeleted, 0);
+                if (!userStatisticsMapper.exists(statsQw)) {
+                    UserStatistics initStats = new UserStatistics();
+                    initStats.setUserId(userId);
+                    initStats.setArenaScore(1000);
+                    initStats.setArenaMatches(0);
+                    initStats.setArenaWins(0);
+                    userStatisticsMapper.insert(initStats);
+                }
 
-            LambdaUpdateWrapper<UserStatistics> statsUpdate = new LambdaUpdateWrapper<>();
-            statsUpdate.eq(UserStatistics::getUserId, userId);
-            String sqlSet = "arena_matches = IFNULL(arena_matches, 0) + 1, arena_score = " + finalAbsoluteScore;
-            if (isWinner) sqlSet += ", arena_wins = IFNULL(arena_wins, 0) + 1";
-            statsUpdate.setSql(sqlSet);
-            userStatisticsMapper.update(null, statsUpdate);
+                LambdaUpdateWrapper<UserStatistics> statsUpdate = new LambdaUpdateWrapper<>();
+                statsUpdate.eq(UserStatistics::getUserId, userId);
+                String sqlSet = "arena_matches = IFNULL(arena_matches, 0) + 1, arena_score = " + finalAbsoluteScore;
+                if (isWinner) sqlSet += ", arena_wins = IFNULL(arena_wins, 0) + 1";
+                statsUpdate.setSql(sqlSet);
+                userStatisticsMapper.update(null, statsUpdate);
 
-            // 2. 更新用户表 (User)
-            UserStatistics latestStats = userStatisticsMapper.selectOne(statsQw);
-            if (latestStats != null) {
-                int matches = latestStats.getArenaMatches();
-                int wins = latestStats.getArenaWins();
-                int newWinRate = matches > 0 ? (int) Math.round((double) wins / matches * 100) : 0;
+                // 2. 更新用户表 (User)
+                UserStatistics latestStats = userStatisticsMapper.selectOne(statsQw);
+                if (latestStats != null) {
+                    int matches = latestStats.getArenaMatches();
+                    int wins = latestStats.getArenaWins();
+                    int newWinRate = matches > 0 ? (int) Math.round((double) wins / matches * 100) : 0;
 
-                LambdaUpdateWrapper<User> userUpdate = new LambdaUpdateWrapper<>();
-                userUpdate.eq(User::getId, userId)
-                        .set(User::getRatingScore, finalAbsoluteScore)
-                        .set(User::getWinRate, newWinRate);
-                userMapper.update(null, userUpdate);
-            }
+                    LambdaUpdateWrapper<User> userUpdate = new LambdaUpdateWrapper<>();
+                    userUpdate.eq(User::getId, userId)
+                            .set(User::getRatingScore, finalAbsoluteScore)
+                            .set(User::getWinRate, newWinRate);
+                    userMapper.update(null, userUpdate);
+                }
 
-            // 3. 🎯 核心修复：同步写入/累加今天的分数变化到 user_activity_log 表
-            LambdaQueryWrapper<UserActivityLog> logQw = new LambdaQueryWrapper<>();
-            logQw.eq(UserActivityLog::getUserId, userId).eq(UserActivityLog::getActivityDate, today);
-            UserActivityLog dailyLog = userActivityLogMapper.selectOne(logQw);
+                // 3. 记录日志 (UserActivityLog)
+                LambdaQueryWrapper<UserActivityLog> logQw = new LambdaQueryWrapper<>();
+                logQw.eq(UserActivityLog::getUserId, userId).eq(UserActivityLog::getActivityDate, today);
+                UserActivityLog dailyLog = userActivityLogMapper.selectOne(logQw);
 
-            if (dailyLog == null) {
-                // 如果今天还没有日志（没打卡、没做题），初始化一条并写入分数变化
-                dailyLog = new UserActivityLog();
-                dailyLog.setUserId(userId);
-                dailyLog.setActivityDate(today);
-                dailyLog.setScoreChange(actualScoreChange);
-                dailyLog.setIsCheckin(0);
-                dailyLog.setAcCount(0);
-                userActivityLogMapper.insert(dailyLog);
+                if (dailyLog == null) {
+                    dailyLog = new UserActivityLog();
+                    dailyLog.setUserId(userId);
+                    dailyLog.setActivityDate(today);
+                    dailyLog.setScoreChange(actualScoreChange);
+                    dailyLog.setIsCheckin(0);
+                    dailyLog.setAcCount(0);
+                    userActivityLogMapper.insert(dailyLog);
+                } else {
+                    LambdaUpdateWrapper<UserActivityLog> logUpd = new LambdaUpdateWrapper<>();
+                    logUpd.eq(UserActivityLog::getId, dailyLog.getId())
+                            .setSql("score_change = IFNULL(score_change, 0) + (" + actualScoreChange + ")");
+                    userActivityLogMapper.update(null, logUpd);
+                }
             } else {
-                // 如果今天已经有日志了，则利用数据库直写累加分数，防止并发覆盖
-                LambdaUpdateWrapper<UserActivityLog> logUpd = new LambdaUpdateWrapper<>();
-                logUpd.eq(UserActivityLog::getId, dailyLog.getId())
-                        .setSql("score_change = IFNULL(score_change, 0) + (" + actualScoreChange + ")");
-                userActivityLogMapper.update(null, logUpd);
+                // 非排位赛：分数变动展示为 0，跳过所有数据库场次与分数更新
+                winnerDisplayChange = 0;
+                loserDisplayChange = 0;
             }
         }
 
@@ -152,10 +160,11 @@ public class ArenaSettlementServiceImpl implements ArenaSettlementService {
         String reason = arenaWebSocketHandler.getMatchReason(roomCode);
         String msg = "ESCAPE".equals(reason) ? "对手已弃权，我方不战而胜！" : String.format("🏆 MATCH FINISHED! 玩家 %d 率先 AC 夺得胜利！", winnerId);
 
-        log.info("[天梯结算] 房间 {} 结算完毕！Elo变动: 胜者({}), 败者({}), 原因: {}", roomCode, winnerDisplayChange, loserDisplayChange, reason);
+        String modeLog = isRanked ? "[天梯结算]" : "[切磋结算]";
+        log.info("{} 房间 {} 结算完毕！变动: 胜者({}), 败者({}), 原因: {}", modeLog, roomCode, winnerDisplayChange, loserDisplayChange, reason);
 
         arenaWebSocketHandler.pushSystemBattleLog(roomCode, "SUCCESS", msg, null);
-        // 调用包含 reason 的新型推送协议
-        arenaWebSocketHandler.pushSettlementEvent(roomCode, winnerId, winnerDisplayChange, loserDisplayChange, reason);
+        // 推送结算事件 (携带当前对局是否是排位的标记)
+        arenaWebSocketHandler.pushSettlementEvent(roomCode, winnerId, winnerDisplayChange, loserDisplayChange, reason, isRanked);
     }
 }

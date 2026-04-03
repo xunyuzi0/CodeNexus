@@ -39,7 +39,7 @@
 
             <div class="flex items-center gap-4">
               <div class="text-xs font-mono text-zinc-500">
-                Checkpoints:
+                检查点:
                 {{
                   checkpoints.filter((c) => c.status !== 'pending' && c.status !== 'running').length
                 }}

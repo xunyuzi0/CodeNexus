@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xunyu.codenexus.backend.aop.auth.Protector;
 import com.xunyu.codenexus.backend.common.result.Result;
 import com.xunyu.codenexus.backend.model.dto.request.problem.ProblemQueryRequest;
+import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionAddRequest;
+import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionUpdateRequest;
 import com.xunyu.codenexus.backend.model.dto.request.problem.SubmissionQueryRequest;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemDetailVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemVO;
@@ -15,10 +17,10 @@ import com.xunyu.codenexus.backend.service.ProblemService;
 import com.xunyu.codenexus.backend.service.ProblemSolutionService;
 import com.xunyu.codenexus.backend.service.ProblemSubmissionService;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 题库中心接口控制器
@@ -66,19 +68,6 @@ public class ProblemController {
     }
 
     /**
-     * 获取题目官方题解 (Solution Tab)
-     * 无需 @Protector 鉴权，作为公开接口
-     *
-     * @param problemId 题目 ID
-     * @return 题解详情
-     */
-    @GetMapping("/{problemId}/solution")
-    public Result<SolutionVO> getProblemSolution(@PathVariable("problemId") Long problemId) {
-        SolutionVO solution = problemSolutionService.getProblemSolution(problemId);
-        return Result.success(solution);
-    }
-
-    /**
      * 获取我的历史提交记录 (Submissions Tab)
      * 强鉴权接口：必须登录方可访问，且只能获取自己的提交记录
      *
@@ -106,5 +95,59 @@ public class ProblemController {
     public Result<Long> getDailyPracticeProblem() {
         Long problemId = problemService.getDailyPracticeProblem();
         return Result.success(problemId);
+    }
+
+    /**
+     * 获取指定题目的所有题解列表 (按时间倒序)
+     * 规范化 RESTful 路径: 变更为复数 /solutions
+     */
+    @GetMapping("/{problemId}/solutions")
+    public Result<List<SolutionVO>> getProblemSolutions(@PathVariable Long problemId) {
+        List<SolutionVO> solutions = problemSolutionService.getProblemSolutionList(problemId);
+        return Result.success(solutions);
+    }
+
+    /**
+     * 发布新的题解
+     */
+    @Protector(role = UserRoleEnum.USER)
+    @PostMapping("/{problemId}/solutions")
+    public Result<Void> publishSolution(
+            @PathVariable Long problemId,
+            @RequestBody @Valid SolutionAddRequest request) {
+        problemSolutionService.publishSolution(problemId, request);
+        return Result.success();
+    }
+
+    /**
+     * 更新我的题解
+     */
+    @Protector(role = UserRoleEnum.USER)
+    @PutMapping("/solutions/{solutionId}")
+    public Result<Void> updateSolution(
+            @PathVariable Long solutionId,
+            @RequestBody @Valid SolutionUpdateRequest request) {
+        problemSolutionService.updateSolution(solutionId, request);
+        return Result.success();
+    }
+
+    /**
+     * 删除我的题解
+     */
+    @Protector(role = UserRoleEnum.USER)
+    @DeleteMapping("/solutions/{solutionId}")
+    public Result<Void> deleteSolution(@PathVariable Long solutionId) {
+        problemSolutionService.deleteSolution(solutionId);
+        return Result.success();
+    }
+
+    /**
+     * 记录题解阅读 (防刷去重)
+     */
+    @Protector(role = UserRoleEnum.USER)
+    @PostMapping("/solutions/{solutionId}/view")
+    public Result<Void> recordSolutionView(@PathVariable Long solutionId) {
+        problemSolutionService.recordView(solutionId);
+        return Result.success();
     }
 }

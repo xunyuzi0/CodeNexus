@@ -81,7 +81,7 @@
                         : 'border-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300'
                     "
                   >
-                    Case {{ index + 1 }}
+                    用例 {{ index + 1 }}
                     <X
                       v-if="activeCaseIndex === index && testCases.length > 1"
                       @click.stop="handleRemoveTestCase(index)"
@@ -128,9 +128,7 @@
                 class="h-full flex flex-col items-center justify-center space-y-4"
               >
                 <Loader2 class="w-8 h-8 text-[#FF4C00] animate-spin" />
-                <p class="text-xs text-zinc-500 font-mono animate-pulse">
-                  Running code in Sandbox...
-                </p>
+                <p class="text-xs text-zinc-500 font-mono animate-pulse">正在沙箱中执行代码...</p>
               </div>
               <div
                 v-else-if="runResults.length === 0"
@@ -167,7 +165,7 @@
                           : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
                       "
                     ></span>
-                    Case {{ idx + 1 }}
+                    用例 {{ idx + 1 }}
                   </button>
                 </div>
 
@@ -181,7 +179,7 @@
                     "
                   >
                     <span
-                      class="text-sm font-bold uppercase tracking-wider"
+                      class="text-sm font-bold tracking-wider"
                       :class="
                         runResults[activeResultIndex]!.status === 'AC'
                           ? 'text-emerald-500'
@@ -205,7 +203,7 @@
                           : 'text-rose-400/80'
                       "
                     >
-                      Runtime: {{ runResults[activeResultIndex]!.runtime || 'N/A' }}
+                      执行耗时: {{ runResults[activeResultIndex]!.runtime || '无' }}
                     </span>
                   </div>
 
@@ -213,9 +211,8 @@
                     class="bg-black/30 border border-white/10 rounded-xl p-4 font-mono text-xs space-y-4 shadow-inner"
                   >
                     <div class="space-y-1.5">
-                      <span
-                        class="text-zinc-500 block uppercase tracking-wider scale-90 origin-left"
-                        >Input</span
+                      <span class="text-zinc-500 block tracking-wider scale-90 origin-left"
+                        >输入内容</span
                       >
                       <div
                         class="text-zinc-300 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg whitespace-pre-wrap leading-relaxed"
@@ -224,9 +221,8 @@
                       </div>
                     </div>
                     <div class="space-y-1.5">
-                      <span
-                        class="text-zinc-500 block uppercase tracking-wider scale-90 origin-left"
-                        >Actual Output</span
+                      <span class="text-zinc-500 block tracking-wider scale-90 origin-left"
+                        >实际输出</span
                       >
                       <div
                         class="bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg"
@@ -240,14 +236,13 @@
                       </div>
                     </div>
                     <div class="space-y-1.5">
-                      <span
-                        class="text-zinc-500 block uppercase tracking-wider scale-90 origin-left"
-                        >Expected Output</span
+                      <span class="text-zinc-500 block tracking-wider scale-90 origin-left"
+                        >期望输出</span
                       >
                       <div
                         class="text-emerald-500 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg opacity-80"
                       >
-                        {{ runResults[activeResultIndex]!.expected ?? 'N/A (自测模式无对照组)' }}
+                        {{ runResults[activeResultIndex]!.expected ?? '无 (自测模式无对照组)' }}
                       </div>
                     </div>
                   </div>
@@ -310,7 +305,7 @@
       :mode="isBattleMode ? 'battle' : 'practice'"
       @close="showJudgePanel = false"
       @to-problems="router.push('/problems')"
-      @next-problem="router.push('/problems/2')"
+      @next-problem="handleNextProblem"
     />
   </div>
 </template>
@@ -336,7 +331,13 @@ import {
 import CodeEditor from '@/components/code/CodeEditor.vue'
 import JudgePanel from '@/components/code/JudgePanel.vue'
 
-import { runCode, submitCode, getSubmissionStatus, type Problem } from '@/api/problem'
+import {
+  runCode,
+  submitCode,
+  getSubmissionStatus,
+  getDailyRecommendProblem,
+  type Problem,
+} from '@/api/problem'
 import type { RunCodeResult } from '@/api/problem'
 
 interface TestCase {
@@ -441,6 +442,18 @@ const clearPollTimer = () => {
 onUnmounted(() => {
   clearPollTimer()
 })
+
+// 监听路由变化，清空沙箱状态
+watch(
+  () => route.params.id,
+  () => {
+    runResults.value = []
+    checkpoints.value = []
+    showJudgePanel.value = false
+    activeConsoleTab.value = 'testcase'
+    activeResultIndex.value = 0
+  },
+)
 
 const handleResize = (event: { min: number; max: number; size: number }[]) => {
   if (event && event.length >= 2 && event[0] && event[1]) {
@@ -571,8 +584,6 @@ const handleSubmit = async () => {
 
           judgeStatus.value = hasError ? 'rejected' : 'accepted'
 
-          // 🐛 核心修复：如果是对战模式且通过，自动等待 1.5 秒后关闭检测点窗口
-          // 这 1.5 秒的时间将恰好对应 BattleRoom 发出胜利结束游戏的过渡时间，实现双端丝滑交接！
           if (hasError) {
             emit('submit-fail')
           } else {
@@ -600,11 +611,35 @@ const handleSubmit = async () => {
   }
 }
 
+const isFetchingNext = ref(false)
+
+const handleNextProblem = async () => {
+  if (isFetchingNext.value || props.readOnly) return
+  isFetchingNext.value = true
+
+  try {
+    const nextId = await getDailyRecommendProblem()
+
+    // 如果成功获取到题目 ID，则隐藏弹窗并路由跳转
+    if (nextId) {
+      showJudgePanel.value = false
+      router.push(`/problems/${nextId}`)
+    } else {
+      console.warn('获取挑战题目失败，未返回有效 ID')
+    }
+  } catch (err) {
+    console.error('获取随机题目失败:', err)
+  } finally {
+    isFetchingNext.value = false
+  }
+}
+
+// 🎯 汉化点：将底部的运行结果状态翻译为纯正的中文提示
 const getStatusText = (status: string) => {
-  if (status === 'AC') return 'Accepted'
-  if (status === 'WA') return 'Wrong Answer'
-  if (status === 'TLE') return 'Time Limit Exceeded'
-  if (status === 'ERROR') return 'Runtime Error'
+  if (status === 'AC') return '执行通过'
+  if (status === 'WA') return '解答错误'
+  if (status === 'TLE') return '超出时间限制'
+  if (status === 'ERROR') return '运行错误'
   return status
 }
 </script>
