@@ -167,8 +167,9 @@
           :initial="{ opacity: 0 }"
           :enter="{ opacity: 1, transition: { duration: 1000, delay: 300 } }"
         >
-          基于 Docker 容器化技术的实时协同编程平台。<br />
-          Experience latency-free coding with military-grade security.
+          基于Docker沙箱的在线编程评测平台。<br />
+          Design and Implementation of an Online Programming Assessment Platform Based on Docker
+          Sandbox
         </p>
         <div
           class="absolute bottom-[-100px] left-0 text-xs text-zinc-400 dark:text-zinc-600 font-mono"

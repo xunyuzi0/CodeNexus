@@ -54,3 +54,8 @@ pnpm-debug.log*
 # 所有的私钥文件
 *.key
 *.pem
+
+#文件
+*前端.md
+*后端.md
+*项目介绍.md

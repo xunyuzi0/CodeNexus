@@ -1,9 +1,13 @@
 <template>
   <div
-    :class="cn(
-      'relative p-6 md:p-8 font-sans transition-all duration-300',
-      isFixedMode ? 'h-[calc(100vh-80px)] overflow-hidden' : 'min-h-[calc(100vh-80px)] overflow-y-auto'
-    )"
+    :class="
+      cn(
+        'relative p-6 md:p-8 font-sans transition-all duration-300',
+        isFixedMode
+          ? 'h-[calc(100vh-80px)] overflow-hidden'
+          : 'min-h-[calc(100vh-80px)] overflow-y-auto',
+      )
+    "
   >
     <div
       class="fixed top-[-20%] left-[10%] w-[500px] h-[500px] bg-[#FF4C00]/10 blur-[120px] rounded-full pointer-events-none z-0 mix-blend-screen"
@@ -35,10 +39,12 @@
       class="relative z-10 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 auto-rows-[minmax(180px,auto)] gap-6"
     >
       <div
-        :class="cn(
-          'group md:col-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-8 flex flex-col justify-between hover:border-[#FF4C00]/30 transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,76,0,0.1)] opacity-0',
-          isFixedMode ? 'h-full' : 'min-h-[240px]'
-        )"
+        :class="
+          cn(
+            'group md:col-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-8 flex flex-col justify-between hover:border-[#FF4C00]/30 transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,76,0,0.1)] opacity-0',
+            isFixedMode ? 'h-full' : 'min-h-[240px]',
+          )
+        "
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 50 } }"
@@ -81,10 +87,12 @@
       </div>
 
       <div
-        :class="cn(
-          'md:col-span-1 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-1 hover:border-[#FF4C00]/30 transition-all duration-500 group opacity-0',
-          isFixedMode ? 'h-full' : 'min-h-[240px]'
-        )"
+        :class="
+          cn(
+            'md:col-span-1 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-1 hover:border-[#FF4C00]/30 transition-all duration-500 group opacity-0',
+            isFixedMode ? 'h-full' : 'min-h-[240px]',
+          )
+        "
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
@@ -142,10 +150,12 @@
       </div>
 
       <div
-        :class="cn(
-          'md:col-span-1 md:row-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 flex flex-col hover:border-[#FF4C00]/30 transition-all duration-500 hover:translate-y-[-2px] hover:shadow-xl opacity-0',
-          isFixedMode ? 'h-full' : 'min-h-[500px]'
-        )"
+        :class="
+          cn(
+            'md:col-span-1 md:row-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 flex flex-col hover:border-[#FF4C00]/30 transition-all duration-500 hover:translate-y-[-2px] hover:shadow-xl opacity-0',
+            isFixedMode ? 'h-full' : 'min-h-[500px]',
+          )
+        "
         v-motion
         :initial="{ opacity: 0, x: 20 }"
         :enter="{ opacity: 1, x: 0, transition: { duration: 400, delay: 150 } }"
@@ -172,10 +182,12 @@
               {{ stats.rankScore }}
             </div>
             <div
-              :class="cn(
-                'text-[10px] font-medium mt-1 flex items-center gap-1',
-                (stats.weeklyScoreChange || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'
-              )"
+              :class="
+                cn(
+                  'text-[10px] font-medium mt-1 flex items-center gap-1',
+                  (stats.weeklyScoreChange || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500',
+                )
+              "
             >
               <span
                 v-if="(stats.weeklyScoreChange || 0) >= 0"
@@ -185,7 +197,8 @@
                 v-else
                 class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-rose-500"
               ></span>
-              本周变化 {{ (stats.weeklyScoreChange || 0) > 0 ? '+' : '' }}{{ Math.abs(stats.weeklyScoreChange || 0) }}
+              本周变化 {{ (stats.weeklyScoreChange || 0) > 0 ? '+' : ''
+              }}{{ Math.abs(stats.weeklyScoreChange || 0) }}
             </div>
           </div>
 
@@ -251,10 +264,12 @@
       </div>
 
       <div
-        :class="cn(
-          'md:col-span-2 relative rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-6 hover:border-[#FF4C00]/30 transition-all duration-500 group/heatmap flex flex-col opacity-0',
-          isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]'
-        )"
+        :class="
+          cn(
+            'md:col-span-2 relative rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-6 hover:border-[#FF4C00]/30 transition-all duration-500 group/heatmap flex flex-col opacity-0',
+            isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]',
+          )
+        "
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 200 } }"
@@ -315,11 +330,15 @@
                 <div
                   v-for="(item, index) in heatmapData"
                   :key="index"
-                  :class="cn(
-                    'w-4 h-4 rounded-[3px] transition-colors duration-200 relative group/cell',
-                    item.date ? heatmapColors[item.level] : 'bg-transparent pointer-events-none',
-                    item.date && item.level > 0 ? 'border border-white/5' : 'border border-transparent'
-                  )"
+                  :class="
+                    cn(
+                      'w-4 h-4 rounded-[3px] transition-colors duration-200 relative group/cell',
+                      item.date ? heatmapColors[item.level] : 'bg-transparent pointer-events-none',
+                      item.date && item.level > 0
+                        ? 'border border-white/5'
+                        : 'border border-transparent',
+                    )
+                  "
                 >
                   <div
                     v-if="item.date"
@@ -341,10 +360,12 @@
       </div>
 
       <div
-        :class="cn(
-          'md:col-span-1 relative rounded-3xl p-0 flex flex-col gap-2 bg-transparent border-none shadow-none opacity-0',
-          isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]'
-        )"
+        :class="
+          cn(
+            'md:col-span-1 relative rounded-3xl p-0 flex flex-col gap-2 bg-transparent border-none shadow-none opacity-0',
+            isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]',
+          )
+        "
         v-motion
         :initial="{ opacity: 0, y: 20 }"
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 250 } }"
@@ -392,10 +413,10 @@
             <div
               class="text-xs font-bold text-zinc-500 group-hover:text-zinc-300 tracking-wider transition-colors duration-300"
             >
-              每日一练
+              每日挑战
             </div>
             <div class="text-sm font-black text-white group-hover:text-white transition-colors">
-              随机挑战
+              智能刷题
             </div>
           </div>
         </button>
@@ -410,10 +431,14 @@
     >
       <div class="text-center">
         <div
-          :class="cn(
-            'w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 border',
-            actionType === 'RANKED' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-[#FF4C00]/10 border-[#FF4C00]/20'
-          )"
+          :class="
+            cn(
+              'w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 border',
+              actionType === 'RANKED'
+                ? 'bg-purple-500/10 border-purple-500/20'
+                : 'bg-[#FF4C00]/10 border-[#FF4C00]/20',
+            )
+          "
         >
           <component
             :is="dialogConfig.icon"
@@ -559,7 +584,7 @@ const dialogConfig = computed(() => {
   } else {
     return {
       title: '每日一练挑战',
-      desc: '系统将随机抽取一道适合您当前段位的题目。<br>练习模式不计入排位分，但会增加活跃度。',
+      desc: '系统将智能选取一道适合您的题目。<br>练习模式不计入排位分，但会增加活跃度。',
       confirmText: '立即开始',
       icon: Dices,
     }
