@@ -270,4 +270,16 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteFolderMapper, Favor
 
         return vo;
     }
+
+    @Override
+    public boolean updateFolderName(Long folderId, String name) {
+        Long userId = UserContext.getUserId();
+
+        FavoriteFolder folder = this.getById(folderId);
+        AssertUtil.notNull(folder, ResultCode.NOT_FOUND, "收藏夹不存在");
+        AssertUtil.equals(folder.getUserId(), userId, ResultCode.FORBIDDEN, "无权操作他人的收藏夹");
+
+        folder.setName(name);
+        return this.updateById(folder);
+    }
 }

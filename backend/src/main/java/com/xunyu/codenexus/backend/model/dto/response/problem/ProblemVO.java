@@ -24,6 +24,8 @@ public class ProblemVO {
 
     private List<String> tags;
 
+    private Integer status;
+
     private Double passRate;
 
     private Integer userState;

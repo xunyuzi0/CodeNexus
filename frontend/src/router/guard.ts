@@ -32,11 +32,25 @@ router.beforeEach(async (to, from, next) => {
     } else {
       const hasRoles = userStore.roles && userStore.roles.length > 0
       if (hasRoles) {
+        // 管理端路由守卫：非 ADMIN 角色禁止访问
+        if (to.meta.requiresAdmin && !userStore.roles.includes('admin')) {
+          next({ path: '/dashboard' })
+          return
+        }
+        // 管理员访问根路径时重定向到管理后台
+        if (userStore.roles.includes('admin') && (to.path === '/' || to.path === '/dashboard')) {
+          next({ path: '/admin', replace: true })
+          return
+        }
         next()
       } else {
         try {
-          // 【修复点】：这里改为调用最新的 fetchUserProfile
           await userStore.fetchUserProfile()
+          // 管理员拉取档案后重定向到管理后台
+          if (userStore.roles.includes('admin') && (to.path === '/' || to.path === '/dashboard')) {
+            next({ path: '/admin', replace: true })
+            return
+          }
           next({ ...to, replace: true })
         } catch (error) {
           console.error('[Router Guard] 获取用户信息失败，强制登出:', error)

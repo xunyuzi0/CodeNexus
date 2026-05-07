@@ -4,6 +4,7 @@ import cn.hutool.json.JSONUtil;
 import com.xunyu.codenexus.backend.engine.arena.ArenaWebSocketHandler;
 import com.xunyu.codenexus.backend.mapper.ProblemSubmissionMapper;
 import com.xunyu.codenexus.backend.mapper.ProblemTestcaseMapper;
+import com.xunyu.codenexus.backend.model.enums.ArenaRoomStatus;
 import com.xunyu.codenexus.backend.model.dto.response.problem.SubmitResponseVO;
 import com.xunyu.codenexus.backend.model.entity.ProblemSubmission;
 import com.xunyu.codenexus.backend.model.entity.ProblemTestcase;
@@ -99,7 +100,7 @@ public class JudgeDispatcher {
                 String statusSql = "SELECT status FROM arena_room WHERE room_code = ?";
                 String status = jdbcTemplate.queryForObject(statusSql, String.class, roomCode);
                 // 只要还没发奖 (FINISHED)，不管是 BATTLING 还是被误判的 DISMISSED，统统允许结算！
-                if (!"FINISHED".equals(status)) {
+                if (!ArenaRoomStatus.FINISHED.getValue().equals(status)) {
                     return roomCode;
                 }
             }

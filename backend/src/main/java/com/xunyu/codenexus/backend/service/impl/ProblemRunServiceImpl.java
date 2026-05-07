@@ -1,15 +1,19 @@
 package com.xunyu.codenexus.backend.service.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xunyu.codenexus.backend.common.context.UserContext;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
 import com.xunyu.codenexus.backend.engine.sandbox.DockerSandboxEngine;
+import com.xunyu.codenexus.backend.mapper.ProblemMapper;
 import com.xunyu.codenexus.backend.mapper.ProblemSubmissionMapper;
+import com.xunyu.codenexus.backend.mapper.UserProblemStateMapper;
 import com.xunyu.codenexus.backend.model.dto.request.problem.RunCodeRequest;
 import com.xunyu.codenexus.backend.model.dto.request.problem.SubmitCodeRequest;
 import com.xunyu.codenexus.backend.model.dto.response.problem.RunResultVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.SubmitResponseVO;
 import com.xunyu.codenexus.backend.model.entity.ProblemSubmission;
+import com.xunyu.codenexus.backend.model.entity.UserProblemState;
 import com.xunyu.codenexus.backend.service.ProblemRunService;
 import com.xunyu.codenexus.backend.utils.AssertUtil;
 import jakarta.annotation.Resource;
@@ -47,7 +51,13 @@ public class ProblemRunServiceImpl implements ProblemRunService {
     private DockerSandboxEngine dockerSandboxEngine;
 
     @Resource
+    private ProblemMapper problemMapper;
+
+    @Resource
     private ProblemSubmissionMapper problemSubmissionMapper;
+
+    @Resource
+    private UserProblemStateMapper userProblemStateMapper;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -115,7 +125,17 @@ public class ProblemRunServiceImpl implements ProblemRunService {
 
         Long submissionId = submission.getId();
 
-        // 2. 初始化 Redis 判题状态缓存 (预先填充，防止前端第一秒轮询拿不到数据报错)
+        // 2. 只有用户首次提交该题时才增加提交次数（避免重复提交导致通过率下降）
+        LambdaQueryWrapper<UserProblemState> stateQuery = new LambdaQueryWrapper<>();
+        stateQuery.eq(UserProblemState::getUserId, userId)
+                .eq(UserProblemState::getProblemId, problemId)
+                .eq(UserProblemState::getIsDeleted, 0);
+        UserProblemState existingState = userProblemStateMapper.selectOne(stateQuery);
+        if (existingState == null) {
+            problemMapper.updateSubmitNum(problemId);
+        }
+
+        // 3. 初始化 Redis 判题状态缓存 (预先填充，防止前端第一秒轮询拿不到数据报错)
         SubmitResponseVO initialStatus = new SubmitResponseVO();
         initialStatus.setStatus("JUDGING");
         initialStatus.setMessage("任务已进入评测队列，等待沙箱资源分配...");
@@ -127,7 +147,7 @@ public class ProblemRunServiceImpl implements ProblemRunService {
                 1, TimeUnit.HOURS // 缓存保留1小时即可，节省 Redis 内存
         );
 
-        // 3. 将任务投递到 Redis List 作为轻量级 MQ
+        // 4. 将任务投递到 Redis List 作为轻量级 MQ
         // 生产者从右侧 (RightPush) 进，后续我们写的消费者从左侧 (LeftPop) 阻塞拉取
         stringRedisTemplate.opsForList().rightPush(JUDGE_QUEUE_KEY, String.valueOf(submissionId));
 

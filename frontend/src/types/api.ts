@@ -131,3 +131,106 @@ export interface CheckInVO {
   continuousCheckInDays: number
   reward: string
 }
+
+// ==========================================
+// 管理端类型定义 (Admin Panel)
+// ==========================================
+
+export interface AdminUserVO {
+  id: number
+  username: string
+  nickname: string
+  avatarUrl: string
+  email: string
+  role: string
+  ratingScore: number
+  globalRank: number
+  createTime: string
+}
+
+export interface AdminUserDetailVO extends AdminUserVO {
+  phone: string
+  bio: string
+  solvedCount: number
+  arenaScore: number
+  arenaMatches: number
+  arenaWins: number
+  winRate: number
+  continuousCheckinDays: number
+  recentLoginLogs: {
+    id: number
+    loginIp: string
+    loginDevice: string
+    loginStatus: number
+    createTime: string
+  }[]
+}
+
+export interface AdminProblemVO {
+  id: number
+  displayId: string
+  title: string
+  difficulty: number
+  tags: string[]
+  status: number
+  submitNum: number
+  acceptedNum: number
+  passRate: number
+  createTime: string
+  updateTime: string
+}
+
+export interface AdminProblemDetailVO extends AdminProblemVO {
+  description: string
+  examples: { input: string; output: string; explanation?: string }[]
+  timeLimit: number
+  memoryLimit: number
+}
+
+export interface ProblemUpsertRequest {
+  title: string
+  description: string
+  difficulty: number
+  tags?: string[]
+  timeLimit?: number
+  memoryLimit?: number
+  examples?: { input: string; output: string; explanation?: string }[]
+  status?: number
+}
+
+export interface AdminArenaRoomVO {
+  id: number
+  roomCode: string
+  roomType: number
+  problemId: number
+  problemTitle: string
+  status: string
+  creatorId: number
+  creatorName: string
+  playerCount: number
+  createTime: string
+}
+
+export interface AdminStatsOverviewVO {
+  totalUsers: number
+  totalProblems: number
+  totalSubmissions: number
+  todayNewUsers: number
+  todaySubmissions: number
+  overallPassRate: number
+  activeUserCount: number
+  onlineRoomCount: number
+}
+
+export interface DailyTrendVO {
+  date: string
+  submissionCount: number
+  acceptedCount: number
+  newUserCount: number
+}
+
+export interface ActivityAnalysisVO {
+  difficultyDistribution: Record<string, number>
+  topProblems: { id: number; displayId: string; title: string; submitCount: number }[]
+  languageDistribution: Record<string, number>
+}

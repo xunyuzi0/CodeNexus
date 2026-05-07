@@ -78,6 +78,11 @@ public class Problem {
     private Integer acceptedNum;
 
     /**
+     * 题目状态: 0-草稿, 1-已上架, 2-已下架
+     */
+    private Integer status;
+
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)

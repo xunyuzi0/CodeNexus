@@ -41,6 +41,11 @@ public class ProblemDetailVO {
     private List<String> tags;
 
     /**
+     * 题目状态: 0-草稿, 1-已上架, 2-已下架
+     */
+    private Integer status;
+
+    /**
      * 题目通过率 (%)
      */
     private Double passRate;

@@ -27,6 +27,13 @@
             <h1 class="text-3xl font-black tracking-tight text-white flex items-center gap-3">
               <Folder class="w-8 h-8 text-[#FF4C00]" />
               {{ folderData.folder.name }}
+              <button
+                @click="openRenameDialog"
+                class="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all"
+                title="修改名称"
+              >
+                <Pencil class="w-4 h-4" />
+              </button>
             </h1>
           </div>
           <p class="text-zinc-500 text-sm font-medium tracking-wide pl-[52px]">
@@ -74,6 +81,29 @@
       </template>
     </div>
 
+    <!-- 修改名称弹窗 -->
+    <ArenaDialog
+      v-model="renameDialog.show"
+      title="修改收藏夹名称"
+      :confirm-text="renameDialog.saving ? '保存中...' : '确认修改'"
+      @confirm="confirmRename"
+    >
+      <div class="py-2">
+        <input
+          ref="renameInputRef"
+          v-model="renameDialog.name"
+          @keydown.enter="confirmRename"
+          class="w-full bg-zinc-900/80 border border-white/15 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-600"
+          placeholder="请输入新的收藏夹名称"
+          maxlength="30"
+        />
+        <p v-if="renameDialog.error" class="mt-2 text-red-400 text-xs">
+          {{ renameDialog.error }}
+        </p>
+      </div>
+    </ArenaDialog>
+
+    <!-- 删除收藏夹弹窗 -->
     <ArenaDialog
       v-model="deleteDialog.show"
       title="警告：删除收藏夹"
@@ -97,17 +127,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Folder, FolderOpen, Trash2, AlertCircle } from 'lucide-vue-next'
+import { ArrowLeft, Folder, FolderOpen, Trash2, AlertCircle, Pencil } from 'lucide-vue-next'
 import ProblemList from '@/components/problem/ProblemList.vue'
-import ArenaDialog from '@/components/arena/ArenaDialog.vue' // 引入统一个毛玻璃弹窗
+import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
-// API 引入
 import {
   getFolderDetail,
   deleteFolder,
   removeFavoriteProblem,
+  updateFolderName,
   type FavoriteFolder,
   type FavoriteProblem,
 } from '@/api/favorites'
@@ -119,20 +149,15 @@ const loading = ref(true)
 const folderId = Number(route.params.id)
 const folderData = ref<{ folder: FavoriteFolder; list: FavoriteProblem[] } | null>(null)
 
-// --- 弹窗状态管理 ---
-const deleteDialog = reactive({
-  show: false,
-  loading: false,
-})
-
-// --- Methods ---
+const deleteDialog = reactive({ show: false, loading: false })
+const renameDialog = reactive({ show: false, name: '', saving: false, error: '' })
+const renameInputRef = ref<HTMLInputElement | null>(null)
 
 const fetchDetail = async () => {
   if (!folderId) return
   loading.value = true
   try {
-    const res = await getFolderDetail(folderId)
-    folderData.value = res
+    folderData.value = await getFolderDetail(folderId)
   } catch (error) {
     console.error('获取收藏夹详情失败', error)
   } finally {
@@ -147,7 +172,6 @@ const handleEnterProblem = (id: number) => {
 const handleRemoveProblem = async (problemId: number) => {
   try {
     await removeFavoriteProblem(folderId, problemId)
-    // 乐观更新：直接从前端列表中移除，无需重新请求接口
     if (folderData.value) {
       folderData.value.list = folderData.value.list.filter((p) => p.id !== problemId)
       folderData.value.folder.count -= 1
@@ -157,20 +181,53 @@ const handleRemoveProblem = async (problemId: number) => {
   }
 }
 
-// 唤起删除弹窗
+// 修改名称
+const openRenameDialog = () => {
+  if (!folderData.value) return
+  renameDialog.name = folderData.value.folder.name
+  renameDialog.error = ''
+  renameDialog.show = true
+  nextTick(() => renameInputRef.value?.focus())
+}
+
+const confirmRename = async () => {
+  const trimmed = renameDialog.name.trim()
+  if (!trimmed) {
+    renameDialog.error = '名称不能为空'
+    return
+  }
+  if (folderData.value && trimmed === folderData.value.folder.name) {
+    renameDialog.show = false
+    return
+  }
+
+  renameDialog.saving = true
+  renameDialog.error = ''
+  try {
+    await updateFolderName(folderId, trimmed)
+    if (folderData.value) {
+      folderData.value.folder.name = trimmed
+    }
+    renameDialog.show = false
+  } catch (error) {
+    renameDialog.error = '修改失败，请重试'
+    console.error('修改名称失败', error)
+  } finally {
+    renameDialog.saving = false
+  }
+}
+
+// 删除收藏夹
 const openDeleteDialog = () => {
   deleteDialog.show = true
 }
 
-// 执行真正的删除请求
 const confirmDeleteFolder = async () => {
   if (deleteDialog.loading) return
-
   deleteDialog.loading = true
   try {
     await deleteFolder(folderId)
     deleteDialog.show = false
-    // 删除成功后重定向到收藏夹主页 (替换路由历史)
     router.replace('/favorites')
   } catch (error) {
     console.error('删除收藏夹失败', error)
@@ -179,7 +236,6 @@ const confirmDeleteFolder = async () => {
   }
 }
 
-// --- Lifecycle ---
 onMounted(() => {
   fetchDetail()
 })

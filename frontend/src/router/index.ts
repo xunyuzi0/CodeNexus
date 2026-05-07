@@ -52,6 +52,31 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/profile/index.vue'),
         meta: { title: '个人档案', icon: 'User' },
       },
+      // 管理端路由
+      {
+        path: 'admin',
+        name: 'AdminDashboard',
+        component: () => import('@/views/admin/index.vue'),
+        meta: { title: '管理后台', icon: 'Shield', requiresAdmin: true },
+      },
+      {
+        path: 'admin/users',
+        name: 'AdminUsers',
+        component: () => import('@/views/admin/users.vue'),
+        meta: { title: '用户管理', icon: 'Users', requiresAdmin: true },
+      },
+      {
+        path: 'admin/problems',
+        name: 'AdminProblems',
+        component: () => import('@/views/admin/problems.vue'),
+        meta: { title: '题库管理', icon: 'FileCode', requiresAdmin: true },
+      },
+      {
+        path: 'admin/arena',
+        name: 'AdminArena',
+        component: () => import('@/views/admin/arena.vue'),
+        meta: { title: '对战记录', icon: 'Swords', requiresAdmin: true },
+      },
     ],
   },
   // [NEW]: 独立的全屏刷题路由

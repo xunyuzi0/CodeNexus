@@ -57,4 +57,12 @@ public interface FavoriteService extends IService<FavoriteFolder> {
      * @return 收藏夹详情VO
      */
     FavoriteFolderVO getFolderDetail(Long folderId);
+
+    /**
+     * 修改收藏夹名称
+     *
+     * @param folderId 收藏夹ID
+     * @param name 新名称
+     */
+    boolean updateFolderName(Long folderId, String name);
 }

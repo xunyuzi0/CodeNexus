@@ -13,15 +13,15 @@
       <div class="h-1 w-8 bg-[#FF4C00] mx-auto mt-2 rounded-full shadow-[0_0_10px_#FF4C00]"></div>
     </div>
 
-    <nav class="w-full px-4 space-y-2 flex-1 w-[240px]">
+    <nav class="w-full px-4 space-y-2 flex-1 w-[240px] overflow-y-auto no-scrollbar">
       <template v-for="item in menuItems" :key="item.path">
         <RouterLink
           :to="item.path"
           class="group relative flex items-center h-12 px-4 rounded-lg transition-all duration-300 whitespace-nowrap"
-          :class="[route.path === item.path ? 'text-white' : 'text-zinc-500 hover:text-zinc-300']"
+          :class="[isActive(item) ? 'text-white' : 'text-zinc-500 hover:text-zinc-300']"
         >
           <div
-            v-if="route.path === item.path"
+            v-if="isActive(item)"
             class="absolute left-0 h-6 w-1 bg-[#FF4C00] rounded-r-full shadow-[0_0_15px_#FF4C00]"
           ></div>
 
@@ -29,14 +29,14 @@
             :is="item.icon"
             class="w-5 h-5 mr-4 transition-transform duration-300 group-hover:scale-110 shrink-0"
             :class="{
-              'text-[#FF4C00] drop-shadow-[0_0_5px_rgba(255,76,0,0.5)]': route.path === item.path,
+              'text-[#FF4C00] drop-shadow-[0_0_5px_rgba(255,76,0,0.5)]': isActive(item),
             }"
           />
 
           <span
             class="text-sm tracking-wide transition-all duration-300"
             :class="{
-              'font-bold drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]': route.path === item.path,
+              'font-bold drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]': isActive(item),
             }"
           >
             {{ item.name }}
@@ -52,23 +52,51 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-// [修改]: 引入 Star 图标
-import { LayoutDashboard, Code2, Swords, Trophy, User, Star } from 'lucide-vue-next'
+import {
+  LayoutDashboard,
+  Code2,
+  Swords,
+  Trophy,
+  User,
+  Star,
+  Shield,
+  Users,
+  FileCode,
+} from 'lucide-vue-next'
 import { useUiStore } from '@/stores/ui'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const uiStore = useUiStore()
+const userStore = useUserStore()
 const { isSidebarCollapsed } = storeToRefs(uiStore)
 
-// [修改]: 调整菜单顺序
-const menuItems = [
-  { name: '仪表盘', path: '/dashboard', icon: LayoutDashboard },
-  { name: '题库中心', path: '/problems', icon: Code2 },
-  { name: '我的收藏', path: '/favorites', icon: Star }, // 插入此处
-  { name: '竞技场', path: '/arena', icon: Swords },
-  { name: '排行榜', path: '/rank', icon: Trophy },
-  { name: '个人档案', path: '/profile', icon: User },
-]
+const menuItems = computed(() => {
+  if (userStore.roles.includes('admin')) {
+    return [
+      { name: '管理后台', path: '/admin', icon: Shield },
+      { name: '用户管理', path: '/admin/users', icon: Users },
+      { name: '题库管理', path: '/admin/problems', icon: FileCode },
+      { name: '对战记录', path: '/admin/arena', icon: Swords },
+    ]
+  }
+
+  return [
+    { name: '仪表盘', path: '/dashboard', icon: LayoutDashboard },
+    { name: '题库中心', path: '/problems', icon: Code2 },
+    { name: '我的收藏', path: '/favorites', icon: Star },
+    { name: '竞技场', path: '/arena', icon: Swords },
+    { name: '排行榜', path: '/rank', icon: Trophy },
+    { name: '个人档案', path: '/profile', icon: User },
+  ]
+})
+
+function isActive(item: { path: string }) {
+  // 管理后台首页需精确匹配，避免 /admin/users 等子路由也高亮
+  if (item.path === '/admin') return route.path === '/admin'
+  return route.path === item.path || route.path.startsWith(item.path + '/')
+}
 </script>

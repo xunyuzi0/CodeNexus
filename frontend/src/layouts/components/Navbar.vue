@@ -30,7 +30,7 @@
       <div class="flex items-center gap-3 pl-6 border-l border-white/10 relative" ref="dropdownRef">
         <div class="text-right hidden md:block">
           <p class="text-sm font-medium text-white">{{ userStore.nickname || 'Developer' }}</p>
-          <p class="text-xs text-zinc-500">Lv.1 User</p>
+          <p class="text-xs text-zinc-500">{{ isAdmin ? 'Admin' : 'User' }}</p>
         </div>
 
         <div class="relative group cursor-pointer" @click="toggleDropdown">
@@ -75,6 +75,7 @@
               </div>
 
               <button
+                v-if="!isAdmin"
                 @click="handleProfile"
                 class="w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors group"
               >
@@ -85,13 +86,14 @@
               </button>
 
               <button
-                @click="((showSettings = true), (isDropdownOpen = false))"
+                v-if="isAdmin"
+                @click="openPasswordDialog"
                 class="w-full flex items-center px-3 py-2.5 text-sm rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors group"
               >
-                <Settings
+                <KeyRound
                   class="w-4 h-4 mr-3 text-zinc-500 group-hover:text-[#FF4C00] transition-colors"
                 />
-                系统设置
+                修改密码
               </button>
 
               <div class="h-[1px] bg-zinc-200 dark:bg-white/5 my-1"></div>
@@ -109,20 +111,64 @@
       </div>
     </div>
 
-    <GlobalSettingsDialog v-model="showSettings" />
+    <!-- 修改密码弹窗 -->
+    <ArenaDialog
+      v-model="showPasswordDialog"
+      title="修改密码"
+      confirm-text="确认修改"
+      @confirm="handlePasswordConfirm"
+    >
+      <form autocomplete="off" @submit.prevent>
+        <!-- 隐藏 dummy 输入框吸收浏览器自动填充 -->
+        <input type="text" value="" class="absolute opacity-0 pointer-events-none" tabindex="-1" />
+        <input
+          type="password"
+          value=""
+          class="absolute opacity-0 pointer-events-none"
+          tabindex="-1"
+        />
+        <div class="space-y-4">
+          <input
+            v-model="pwdForm.old"
+            type="password"
+            placeholder="当前密码"
+            autocomplete="new-password"
+            class="w-full bg-zinc-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
+          />
+          <input
+            v-model="pwdForm.new"
+            type="password"
+            placeholder="新密码（至少 8 位）"
+            autocomplete="new-password"
+            class="w-full bg-zinc-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
+          />
+          <input
+            v-model="pwdForm.confirm"
+            type="password"
+            placeholder="确认新密码"
+            autocomplete="new-password"
+            class="w-full bg-zinc-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
+          />
+          <p v-if="pwdError" class="text-rose-400 text-xs">{{ pwdError }}</p>
+        </div>
+      </form>
+    </ArenaDialog>
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Sun, Moon, User, LogOut, Settings } from 'lucide-vue-next'
+import { Sun, Moon, User, LogOut, KeyRound } from 'lucide-vue-next'
 import { toggleTheme, isDark } from '@/composables/useTheme'
 import { useUserStore } from '@/stores/user'
-// [Changed] 引入新的 GlobalSettingsDialog
-import GlobalSettingsDialog from './GlobalSettingsDialog.vue'
+import { updatePassword } from '@/api/user'
+import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 
-const showSettings = ref(false)
+const showPasswordDialog = ref(false)
+const pwdError = ref('')
+const pwdForm = reactive({ old: '', new: '', confirm: '' })
+const isAdmin = computed(() => userStore.roles.includes('admin'))
 
 const route = useRoute()
 const router = useRouter()
@@ -153,6 +199,41 @@ const handleLogout = async () => {
   router.push('/login')
 }
 
+const openPasswordDialog = () => {
+  isDropdownOpen.value = false
+  pwdError.value = ''
+  pwdForm.old = ''
+  pwdForm.new = ''
+  pwdForm.confirm = ''
+  showPasswordDialog.value = true
+}
+
+const handlePasswordConfirm = async () => {
+  pwdError.value = ''
+
+  if (!pwdForm.old || !pwdForm.new || !pwdForm.confirm) {
+    pwdError.value = '请完整填写当前密码、新密码及确认密码'
+    return
+  }
+  if (pwdForm.new.length < 8) {
+    pwdError.value = '新密码长度必须至少为 8 个字符'
+    return
+  }
+  if (pwdForm.new !== pwdForm.confirm) {
+    pwdError.value = '两次输入的新密码不一致'
+    return
+  }
+
+  try {
+    await updatePassword({ oldPassword: pwdForm.old, newPassword: pwdForm.new })
+    showPasswordDialog.value = false
+    await userStore.logout()
+    router.push('/login')
+  } catch {
+    pwdError.value = '密码修改失败，请检查当前密码是否正确'
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', closeDropdown)
 })
@@ -161,3 +242,15 @@ onUnmounted(() => {
   document.removeEventListener('click', closeDropdown)
 })
 </script>
+
+<style scoped>
+/* 覆盖 Chrome 自动填充的背景色，保持暗色主题一致 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #18181b inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+  transition: background-color 5000s ease-in-out 0s;
+}
+</style>

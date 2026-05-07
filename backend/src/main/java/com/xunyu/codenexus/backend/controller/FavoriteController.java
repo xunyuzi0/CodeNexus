@@ -17,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 我的收藏模块接口控制器
@@ -100,5 +101,17 @@ public class FavoriteController {
     public Result<FavoriteFolderVO> getFolderDetail(@PathVariable("folderId") Long folderId) {
         FavoriteFolderVO detail = favoriteService.getFolderDetail(folderId);
         return Result.success(detail);
+    }
+
+    /**
+     * 修改收藏夹名称
+     */
+    @PutMapping("/folders/{folderId}/name")
+    @Protector(role = UserRoleEnum.USER)
+    public Result<Boolean> updateFolderName(
+            @PathVariable("folderId") Long folderId,
+            @RequestBody Map<String, String> body) {
+        boolean result = favoriteService.updateFolderName(folderId, body.get("name"));
+        return Result.success(result);
     }
 }

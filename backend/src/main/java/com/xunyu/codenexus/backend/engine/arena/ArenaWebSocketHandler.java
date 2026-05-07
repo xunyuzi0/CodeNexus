@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.xunyu.codenexus.backend.mapper.ArenaRoomUserMapper;
 import com.xunyu.codenexus.backend.mapper.UserActivityLogMapper;
+import com.xunyu.codenexus.backend.model.enums.ArenaRoomStatus;
 import com.xunyu.codenexus.backend.model.entity.ArenaRoom;
 import com.xunyu.codenexus.backend.model.entity.ArenaRoomUser;
 import com.xunyu.codenexus.backend.model.entity.User;
@@ -182,15 +183,15 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
 
     private void handlePlayerEscape(String roomCode, Long escapeeId) {
         ArenaRoom room = arenaRoomService.getOne(new LambdaQueryWrapper<ArenaRoom>().eq(ArenaRoom::getRoomCode, roomCode));
-        if (room == null || "FINISHED".equals(room.getStatus())) return;
+        if (room == null || ArenaRoomStatus.FINISHED.getValue().equals(room.getStatus())) return;
 
         // 🎯 核心判断：是否是排位模式
         boolean isRanked = room.getRoomType() != null && room.getRoomType() == 3;
 
         if (!STARTED_ROOMS.contains(roomCode)) {
             // LOBBY ESCAPE (大厅逃跑阶段)
-            // 立即将房间状态标记完成，防止重复扣分
-            room.setStatus("FINISHED");
+            // 立即将房间状态标记为已解散，防止重复扣分
+            room.setStatus(ArenaRoomStatus.DISMISSED.getValue());
             arenaRoomService.updateById(room);
 
             int actualDeducted = 0;
@@ -293,7 +294,7 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
             qw.eq(ArenaRoom::getRoomCode, roomCode);
             ArenaRoom room = arenaRoomService.getOne(qw);
 
-            room.setStatus("FIGHTING");
+            room.setStatus(ArenaRoomStatus.FIGHTING.getValue());
             arenaRoomService.updateById(room);
 
             broadcastToRoom(roomCode, null, buildMessage("GAME_START", JSONUtil.createObj().set("problemId", room.getProblemId()).set("startTime", System.currentTimeMillis() + 2000)));

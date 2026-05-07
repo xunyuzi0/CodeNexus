@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia' // [Added]
 import Lenis from 'lenis'
@@ -62,19 +62,20 @@ import Navbar from './components/Navbar.vue'
 import { useUiStore } from '@/stores/ui' // [Added]
 
 const scrollContainerRef = ref<HTMLElement | null>(null)
-let lenis: Lenis | null = null
+const lenisRef = ref<Lenis | null>(null)
 let rafId: number | null = null
 const router = useRouter()
 
 const uiStore = useUiStore() // [Added]
 const { isSidebarCollapsed } = storeToRefs(uiStore) // [Added]
 
-// ... (Lenis logic 保持不变) ...
+// 提供 Lenis 实例给子组件
+provide('lenis', lenisRef)
 
 // 初始化全局阻尼滚动
 onMounted(() => {
   if (scrollContainerRef.value) {
-    lenis = new Lenis({
+    lenisRef.value = new Lenis({
       wrapper: scrollContainerRef.value,
       content: scrollContainerRef.value.firstElementChild as HTMLElement,
       duration: 1.8,
@@ -84,21 +85,21 @@ onMounted(() => {
     })
 
     const raf = (time: number) => {
-      lenis?.raf(time)
+      lenisRef.value?.raf(time)
       rafId = requestAnimationFrame(raf)
     }
     rafId = requestAnimationFrame(raf)
 
     router.afterEach(() => {
       nextTick(() => {
-        lenis?.scrollTo(0, { immediate: true })
+        lenisRef.value?.scrollTo(0, { immediate: true })
       })
     })
   }
 })
 
 onUnmounted(() => {
-  if (lenis) lenis.destroy()
+  if (lenisRef.value) lenisRef.value.destroy()
   if (rafId) cancelAnimationFrame(rafId)
 })
 </script>

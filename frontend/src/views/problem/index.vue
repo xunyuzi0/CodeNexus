@@ -239,6 +239,8 @@
         </template>
       </div>
     </ArenaDialog>
+
+    <BackToTop />
   </div>
 </template>
 
@@ -259,6 +261,7 @@ import {
   Check,
 } from 'lucide-vue-next'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
+import BackToTop from '@/components/ui/BackToTop.vue'
 import ProblemList from '@/components/problem/ProblemList.vue' // 引入重构后的公共组件
 
 // API 引入

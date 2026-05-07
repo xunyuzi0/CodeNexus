@@ -10,6 +10,7 @@ import com.xunyu.codenexus.backend.mapper.ArenaRoomMapper;
 import com.xunyu.codenexus.backend.mapper.ArenaRoomUserMapper;
 import com.xunyu.codenexus.backend.mapper.ProblemMapper;
 import com.xunyu.codenexus.backend.mapper.UserProblemStateMapper;
+import com.xunyu.codenexus.backend.model.enums.ArenaRoomStatus;
 import com.xunyu.codenexus.backend.model.dto.request.arena.RoomCreateRequest;
 import com.xunyu.codenexus.backend.model.dto.response.arena.RoomCreateVO;
 import com.xunyu.codenexus.backend.model.dto.response.arena.RoomValidityVO;
@@ -67,7 +68,7 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
         room.setRoomCode(generateUniqueRoomCode());
         room.setRoomType(request.getRoomType());
         room.setPassword(request.getPassword());
-        room.setStatus("WAITING");
+        room.setStatus(ArenaRoomStatus.WAITING.getValue());
         room.setCreatorId(userId);
 
         // 【新增极客机制】：如果房主没有指定题目，埋下延迟智能抽题的种子
@@ -105,15 +106,15 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
         ArenaRoom room = this.getOne(wrapper);
 
         AssertUtil.notNull(room, ResultCode.NOT_FOUND, "房间不存在或已被解散");
-        AssertUtil.notEquals(room.getStatus(), "DISMISSED", ResultCode.FORBIDDEN, "房间已解散");
-        AssertUtil.notEquals(room.getStatus(), "FINISHED", ResultCode.FORBIDDEN, "对局已结束");
+        AssertUtil.notEquals(room.getStatus(), ArenaRoomStatus.DISMISSED.getValue(), ResultCode.FORBIDDEN, "房间已解散");
+        AssertUtil.notEquals(room.getStatus(), ArenaRoomStatus.FINISHED.getValue(), ResultCode.FORBIDDEN, "对局已结束");
 
         // 物理时间生命周期校验 (2分钟)
-        if ("WAITING".equals(room.getStatus())) {
+        if (ArenaRoomStatus.WAITING.getValue().equals(room.getStatus())) {
             long expireTime = room.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() + (2 * 60 * 1000L);
             if (System.currentTimeMillis() > expireTime) {
                 // 房间寿命耗尽，主动标记为解散，彻底封死大门
-                room.setStatus("DISMISSED");
+                room.setStatus(ArenaRoomStatus.DISMISSED.getValue());
                 this.updateById(room);
                 AssertUtil.isTrue(false, ResultCode.FORBIDDEN, "房间存活时间已到期，已自动解散");
             }
@@ -209,7 +210,7 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
         ArenaRoom room = new ArenaRoom();
         room.setRoomCode(generateUniqueRoomCode());
         room.setRoomType(3); // 3 代表天梯匹配模式
-        room.setStatus("WAITING");
+        room.setStatus(ArenaRoomStatus.WAITING.getValue());
         room.setCreatorId(user1Id);
 
         // 匹配模式下同时知晓两人，直接触发智能抽题
@@ -256,12 +257,12 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
 
         AssertUtil.notNull(room, ResultCode.NOT_FOUND, "房间不存在");
         AssertUtil.isTrue(room.getRoomType() != 3, ResultCode.FORBIDDEN, "天梯匹配房间禁止主动加入");
-        AssertUtil.isTrue("WAITING".equals(room.getStatus()), ResultCode.FORBIDDEN, "房间已在战斗中或已结束");
+        AssertUtil.isTrue(ArenaRoomStatus.WAITING.getValue().equals(room.getStatus()), ResultCode.FORBIDDEN, "房间已在战斗中或已结束");
 
         // 物理时间生命周期校验 (2分钟)
         long expireTime = room.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() + (2 * 60 * 1000L);
         if (System.currentTimeMillis() > expireTime) {
-            room.setStatus("DISMISSED");
+            room.setStatus(ArenaRoomStatus.DISMISSED.getValue());
             this.updateById(room);
             AssertUtil.isTrue(false, ResultCode.FORBIDDEN, "该房间邀请码已过期失效");
         }
@@ -319,7 +320,7 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
         ArenaRoom room = this.getOne(roomQw);
 
         // 只有等待中的房间允许退出转移
-        if (room == null || !"WAITING".equals(room.getStatus())) return;
+        if (room == null || !ArenaRoomStatus.WAITING.getValue().equals(room.getStatus())) return;
 
         // 2. 获取玩家记录
         LambdaQueryWrapper<ArenaRoomUser> userQw = new LambdaQueryWrapper<>();
@@ -351,7 +352,7 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
                 log.info("[房间管理] 房间 {} 房主已转移给玩家 {}", roomCode, nextUser.getUserId());
             } else {
                 // 房间空了，直接解散
-                room.setStatus("DISMISSED");
+                room.setStatus(ArenaRoomStatus.DISMISSED.getValue());
                 this.updateById(room);
                 // 顺手清理可能存在的薛定谔标记
                 stringRedisTemplate.delete("codenexus:arena:smart_pending:" + roomCode);

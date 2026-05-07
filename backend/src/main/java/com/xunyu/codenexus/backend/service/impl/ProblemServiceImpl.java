@@ -51,6 +51,8 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         LambdaQueryWrapper<Problem> wrapper = new LambdaQueryWrapper<>();
 
         // 2. 动态拼装查询条件
+        // 公开接口只展示已上架题目
+        wrapper.eq(Problem::getStatus, 1);
         if (StringUtils.hasText(request.getKeyword())) {
             wrapper.like(Problem::getTitle, request.getKeyword());
         }

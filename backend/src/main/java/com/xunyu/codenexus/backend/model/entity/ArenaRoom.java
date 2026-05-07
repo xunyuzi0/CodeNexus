@@ -38,7 +38,7 @@ public class ArenaRoom {
     private Long problemId;
 
     /**
-     * 状态: WAITING, BATTLING, FINISHED, DISMISSED
+     * 状态: WAITING, FIGHTING, FINISHED, DISMISSED
      */
     private String status;
 

@@ -6,6 +6,7 @@ import com.xunyu.codenexus.backend.engine.arena.ArenaWebSocketHandler;
 import com.xunyu.codenexus.backend.mapper.UserActivityLogMapper;
 import com.xunyu.codenexus.backend.mapper.UserMapper;
 import com.xunyu.codenexus.backend.mapper.UserStatisticsMapper;
+import com.xunyu.codenexus.backend.model.enums.ArenaRoomStatus;
 import com.xunyu.codenexus.backend.model.entity.User;
 import com.xunyu.codenexus.backend.model.entity.UserActivityLog;
 import com.xunyu.codenexus.backend.model.entity.UserStatistics;
@@ -46,8 +47,8 @@ public class ArenaSettlementServiceImpl implements ArenaSettlementService {
         String status = (String) rooms.get(0).get("status");
         Integer roomType = rooms.get(0).get("room_type") != null ? ((Number) rooms.get(0).get("room_type")).intValue() : null;
 
-        if ("FINISHED".equals(status)) return;
-        jdbcTemplate.update("UPDATE arena_room SET status = 'FINISHED' WHERE id = ?", roomId);
+        if (ArenaRoomStatus.FINISHED.getValue().equals(status)) return;
+        jdbcTemplate.update("UPDATE arena_room SET status = ? WHERE id = ?", ArenaRoomStatus.FINISHED.getValue(), roomId);
 
         // 判断是否为天梯排位模式 (3)
         boolean isRanked = (roomType != null && roomType == 3);

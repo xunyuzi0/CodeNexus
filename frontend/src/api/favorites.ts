@@ -126,3 +126,12 @@ export async function removeFavoriteProblem(folderId: number, problemId: number)
     data: { folderId, problemId }, // 对应后端的 FavoriteRemoveRequest
   })
 }
+
+// 修改收藏夹名称
+export async function updateFolderName(folderId: number, name: string): Promise<void> {
+  await request({
+    url: `/api/favorites/folders/${folderId}/name`,
+    method: 'PUT',
+    data: { name },
+  })
+}

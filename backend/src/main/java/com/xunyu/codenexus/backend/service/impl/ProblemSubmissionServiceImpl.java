@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xunyu.codenexus.backend.common.context.UserContext;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
+import com.xunyu.codenexus.backend.mapper.ProblemMapper;
 import com.xunyu.codenexus.backend.mapper.ProblemSubmissionMapper;
 import com.xunyu.codenexus.backend.mapper.UserProblemStateMapper;
 import com.xunyu.codenexus.backend.mapper.UserStatisticsMapper;
@@ -36,6 +37,9 @@ public class ProblemSubmissionServiceImpl extends ServiceImpl<ProblemSubmissionM
 
     @Resource
     private UserProblemStateMapper userProblemStateMapper;
+
+    @Resource
+    private ProblemMapper problemMapper;
 
     @Resource
     private UserStatisticsMapper userStatisticsMapper;
@@ -131,7 +135,12 @@ public class ProblemSubmissionServiceImpl extends ServiceImpl<ProblemSubmissionM
                 isFirstAC = true;
             }
 
-            // 4. 高并发打卡与 AC 数统计更新
+            // 4. 更新题目通过人数（首次 AC 才计入）
+            if (isFirstAC) {
+                problemMapper.updateAcceptedNum(problemId);
+            }
+
+            // 5. 高并发打卡与 AC 数统计更新
             if (isFirstAC) {
                 LambdaQueryWrapper<UserStatistics> statsQuery = new LambdaQueryWrapper<>();
                 statsQuery.eq(UserStatistics::getUserId, userId).eq(UserStatistics::getIsDeleted, 0);
