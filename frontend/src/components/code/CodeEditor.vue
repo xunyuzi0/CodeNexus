@@ -1,15 +1,15 @@
 <template>
   <div
     ref="editorWrapperRef"
-    class="flex flex-col w-full h-full rounded-xl overflow-hidden bg-zinc-950/50 backdrop-blur-xl border border-white/5 transition-colors duration-300"
+    class="flex flex-col w-full h-full rounded-xl overflow-hidden bg-white dark:bg-zinc-950/50 backdrop-blur-xl border border-zinc-200 dark:border-white/5 transition-colors duration-300"
   >
     <div
-      class="flex items-center justify-between px-4 py-2 bg-zinc-900/80 border-b border-white/5 select-none z-10"
+      class="flex items-center justify-between px-4 py-2 bg-zinc-50 dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-white/5 select-none z-10"
     >
       <div class="relative" ref="langDropdownRef">
         <button
           @click="toggleLangDropdown"
-          class="flex items-center gap-2 text-xs font-mono font-bold text-zinc-300 hover:text-white transition-colors px-2 py-1.5 rounded hover:bg-white/5"
+          class="flex items-center gap-2 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors px-2 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-white/5"
         >
           <div class="w-2 h-2 rounded-full bg-[#FF4C00]"></div>
           {{ currentLanguage.toUpperCase() }}
@@ -18,7 +18,7 @@
 
         <div
           v-if="isLangOpen"
-          class="absolute top-full left-0 mt-2 w-32 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+          class="absolute top-full left-0 mt-2 w-32 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
         >
           <div
             v-for="lang in availableLanguages"
@@ -27,8 +27,8 @@
             class="px-3 py-2 text-xs flex items-center justify-between group transition-colors"
             :class="
               lang === 'java'
-                ? 'text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer'
-                : 'text-zinc-600 cursor-not-allowed bg-zinc-950/30'
+                ? 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer'
+                : 'text-zinc-400 dark:text-zinc-600 cursor-not-allowed bg-zinc-50 dark:bg-zinc-950/30'
             "
           >
             <span class="font-mono" :class="{ 'opacity-50': lang !== 'java' }">{{ lang }}</span>
@@ -53,7 +53,7 @@
 
         <button
           @click="copyCode"
-          class="p-1.5 text-zinc-500 hover:text-white hover:bg-white/5 rounded transition-colors group relative"
+          class="p-1.5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded transition-colors group relative"
           title="复制"
         >
           <Copy class="w-4 h-4" />
@@ -61,7 +61,7 @@
 
         <button
           @click="$emit('toggle-maximize')"
-          class="p-1.5 text-zinc-500 hover:text-white hover:bg-white/5 rounded transition-colors"
+          class="p-1.5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded transition-colors"
           :title="isMaximized ? '退出最大化' : '最大化代码区'"
         >
           <Minimize2 v-if="isMaximized" class="w-4 h-4" />
@@ -73,7 +73,7 @@
     <div class="relative flex-1 w-full min-h-0 overflow-hidden group">
       <div
         v-if="loading"
-        class="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm"
+        class="absolute inset-0 z-20 flex items-center justify-center bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm"
       >
         <Loader2 class="w-8 h-8 text-[#FF4C00] animate-spin" />
       </div>
@@ -82,7 +82,7 @@
     </div>
 
     <div
-      class="flex items-center justify-between px-4 py-1 bg-zinc-900/90 border-t border-white/5 text-[10px] font-mono text-zinc-500 select-none"
+      class="flex items-center justify-between px-4 py-1 bg-zinc-50 dark:bg-zinc-900/90 border-t border-zinc-200 dark:border-white/5 text-[10px] font-mono text-zinc-500 select-none"
     >
       <div class="flex gap-4">
         <span>Ln {{ cursorPosition.lineNumber }}, Col {{ cursorPosition.column }}</span>
@@ -105,6 +105,7 @@ import * as monaco from 'monaco-editor'
 import { useSettingsStore } from '@/stores/settings'
 import { Copy, ChevronDown, Check, Loader2, Lock, Maximize2, Minimize2 } from 'lucide-vue-next'
 import { useClipboard, onClickOutside } from '@vueuse/core'
+import { isDark } from '@/composables/useTheme'
 
 interface Props {
   modelValue: string
@@ -154,7 +155,7 @@ onMounted(() => {
     colors: {
       'editor.background': '#00000000',
       'editor.foreground': '#D4D4D8',
-      'editor.lineHighlightBackground': '#FFFFFF00', // 彻底透明化
+      'editor.lineHighlightBackground': '#FFFFFF00',
       'editorCursor.foreground': '#FF4C00',
       'editorLineNumber.foreground': '#52525b',
       'editor.selectionBackground': '#FF4C0033',
@@ -163,10 +164,31 @@ onMounted(() => {
     },
   })
 
+  monaco.editor.defineTheme('zeekr-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: 'a1a1aa', fontStyle: 'italic' },
+      { token: 'keyword', foreground: 'FF4C00', fontStyle: 'bold' },
+      { token: 'string', foreground: '10B981' },
+      { token: 'number', foreground: '3B82F6' },
+    ],
+    colors: {
+      'editor.background': '#00000000',
+      'editor.foreground': '#27272a',
+      'editor.lineHighlightBackground': '#00000000',
+      'editorCursor.foreground': '#FF4C00',
+      'editorLineNumber.foreground': '#a1a1aa',
+      'editor.selectionBackground': '#FF4C0022',
+      'editorIndentGuide.background': '#e4e4e7',
+      'editorIndentGuide.activeBackground': '#a1a1aa',
+    },
+  })
+
   editorInstance = monaco.editor.create(editorContainer.value, {
     value: props.modelValue,
     language: props.language,
-    theme: 'zeekr-dark',
+    theme: isDark.value ? 'zeekr-dark' : 'zeekr-light',
     readOnly: props.readOnly,
     fontSize: settingsStore.editorFontSize || 14,
     fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
@@ -248,6 +270,10 @@ watch(
   },
 )
 
+watch(isDark, (dark) => {
+  editorInstance?.updateOptions({ theme: dark ? 'zeekr-dark' : 'zeekr-light' })
+})
+
 const toggleLangDropdown = () => (isLangOpen.value = !isLangOpen.value)
 
 const selectLanguage = (lang: string) => {
@@ -270,10 +296,16 @@ onUnmounted(() => {
   box-shadow: none !important;
 }
 .monaco-editor .slider {
-  background: #3f3f46 !important;
+  background: #d4d4d8 !important;
   border-radius: 9999px !important;
 }
 .monaco-editor .slider:hover {
+  background: #a1a1aa !important;
+}
+:root.dark .monaco-editor .slider {
+  background: #3f3f46 !important;
+}
+:root.dark .monaco-editor .slider:hover {
   background: #52525b !important;
 }
 </style>

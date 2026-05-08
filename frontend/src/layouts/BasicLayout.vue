@@ -31,7 +31,7 @@
     <button
       v-if="isSidebarCollapsed"
       @click="uiStore.toggleSidebar()"
-      class="fixed bottom-6 left-6 z-50 p-3 rounded-full bg-zinc-900/80 border border-white/10 text-zinc-400 hover:text-[#FF4C00] hover:border-[#FF4C00]/50 transition-all duration-300 shadow-xl"
+      class="fixed bottom-6 left-6 z-50 p-3 rounded-full bg-white/90 dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-zinc-400 hover:text-[#FF4C00] hover:border-[#FF4C00]/50 transition-all duration-300 shadow-lg dark:shadow-xl"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

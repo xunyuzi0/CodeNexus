@@ -31,14 +31,15 @@ router.beforeEach(async (to, from, next) => {
       next({ path: '/' })
     } else {
       const hasRoles = userStore.roles && userStore.roles.length > 0
-      if (hasRoles) {
+      if (hasRoles && userStore.userInfo) {
+        const isAdmin = userStore.roles.includes('admin')
         // 管理端路由守卫：非 ADMIN 角色禁止访问
-        if (to.meta.requiresAdmin && !userStore.roles.includes('admin')) {
+        if (to.meta.requiresAdmin && !isAdmin) {
           next({ path: '/dashboard' })
           return
         }
-        // 管理员访问根路径时重定向到管理后台
-        if (userStore.roles.includes('admin') && (to.path === '/' || to.path === '/dashboard')) {
+        // 管理员只能访问管理端路由，访问用户端页面时重定向到管理后台
+        if (isAdmin && !to.path.startsWith('/admin')) {
           next({ path: '/admin', replace: true })
           return
         }
@@ -46,8 +47,8 @@ router.beforeEach(async (to, from, next) => {
       } else {
         try {
           await userStore.fetchUserProfile()
-          // 管理员拉取档案后重定向到管理后台
-          if (userStore.roles.includes('admin') && (to.path === '/' || to.path === '/dashboard')) {
+          // 管理员访问非管理端页面时重定向到管理后台
+          if (userStore.roles.includes('admin') && !to.path.startsWith('/admin')) {
             next({ path: '/admin', replace: true })
             return
           }

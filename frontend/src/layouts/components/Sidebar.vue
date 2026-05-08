@@ -1,6 +1,6 @@
 <template>
   <aside
-    class="fixed top-1/2 -translate-y-1/2 z-50 h-[95vh] bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col items-center py-8 shadow-2xl shadow-black/50 overflow-hidden"
+    class="fixed top-1/2 -translate-y-1/2 z-50 h-[95vh] bg-white/90 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl flex flex-col items-center py-8 shadow-xl dark:shadow-2xl dark:shadow-black/50 overflow-hidden"
     :class="[
       isSidebarCollapsed
         ? 'w-0 left-0 opacity-0 -translate-x-full pointer-events-none'
@@ -9,7 +9,11 @@
     ]"
   >
     <div class="mb-12 select-none whitespace-nowrap">
-      <h1 class="text-3xl font-black tracking-[0.2em] text-white/90 font-mono">NEXUS</h1>
+      <h1
+        class="text-3xl font-black tracking-[0.2em] text-zinc-900/90 dark:text-white/90 font-mono"
+      >
+        NEXUS
+      </h1>
       <div class="h-1 w-8 bg-[#FF4C00] mx-auto mt-2 rounded-full shadow-[0_0_10px_#FF4C00]"></div>
     </div>
 
@@ -18,7 +22,11 @@
         <RouterLink
           :to="item.path"
           class="group relative flex items-center h-12 px-4 rounded-lg transition-all duration-300 whitespace-nowrap"
-          :class="[isActive(item) ? 'text-white' : 'text-zinc-500 hover:text-zinc-300']"
+          :class="[
+            isActive(item)
+              ? 'text-zinc-900 dark:text-white'
+              : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300',
+          ]"
         >
           <div
             v-if="isActive(item)"
@@ -43,7 +51,7 @@
           </span>
 
           <div
-            class="absolute inset-0 bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"
+            class="absolute inset-0 bg-zinc-100 dark:bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"
           ></div>
         </RouterLink>
       </template>

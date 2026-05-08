@@ -1,6 +1,6 @@
 <template>
   <div
-    class="h-screen w-full bg-[#050505] text-white flex flex-col relative overflow-hidden select-none"
+    class="h-screen w-full bg-zinc-100 dark:bg-[#050505] text-zinc-900 dark:text-white flex flex-col relative overflow-hidden select-none"
   >
     <ArenaDialog
       v-model="escapeAlert.show"
@@ -12,11 +12,13 @@
     >
       <div class="text-center flex flex-col items-center">
         <AlertTriangle class="w-12 h-12 text-red-500/80 mb-4" />
-        <p class="text-zinc-300 font-medium mb-6 text-base">{{ escapeAlert.message }}</p>
+        <p class="text-zinc-700 dark:text-zinc-300 font-medium mb-6 text-base">
+          {{ escapeAlert.message }}
+        </p>
 
         <div
           v-if="isMatchMode && escapeAlert.scoreDetail"
-          class="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-zinc-900/80 border border-white/5 mb-2"
+          class="inline-flex items-center gap-3 px-4 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/5 mb-2"
         >
           <span class="text-xs text-zinc-500 tracking-widest">排位结算</span>
           <div class="w-[1px] h-3 bg-zinc-700"></div>
@@ -32,15 +34,13 @@
 
     <div
       v-if="isVerifying"
-      class="absolute inset-0 z-50 bg-[#050505] flex flex-col items-center justify-center"
+      class="absolute inset-0 z-50 bg-zinc-100 dark:bg-[#050505] flex flex-col items-center justify-center"
     >
       <Loader2 class="w-10 h-10 text-[#FF4C00] animate-spin mb-4" />
       <p class="text-zinc-500 font-mono tracking-[0.2em] animate-pulse">正在核验安全凭证...</p>
     </div>
 
-    <header
-      class="h-16 flex items-center px-4 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md relative z-20"
-    >
+    <header class="h-16 flex items-center px-4 relative z-20">
       <div class="flex-1 flex items-center">
         <ArenaExitButton @click="handleLeaveRoom" />
       </div>
@@ -59,11 +59,13 @@
 
       <div
         v-else
-        class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-full border border-white/5 hover:border-[#FF4C00]/30 transition-colors group cursor-default shadow-sm"
+        class="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-100 dark:bg-black/40 px-4 py-1.5 rounded-full border border-zinc-200 dark:border-white/5 hover:border-[#FF4C00]/30 transition-colors group cursor-default shadow-sm"
       >
         <span class="text-zinc-500 text-[10px] font-bold tracking-widest uppercase">Room</span>
-        <div class="w-[1px] h-3 bg-zinc-800"></div>
-        <span class="text-white font-mono font-bold tracking-widest text-sm">{{ roomCode }}</span>
+        <div class="w-[1px] h-3 bg-zinc-300 dark:bg-zinc-800"></div>
+        <span class="text-zinc-900 dark:text-white font-mono font-bold tracking-widest text-sm">{{
+          roomCode
+        }}</span>
 
         <button
           @click="copy(roomCode)"
@@ -81,7 +83,21 @@
         </button>
       </div>
 
-      <div class="flex-1"></div>
+      <div class="flex-1 flex items-center justify-end">
+        <button
+          @click="toggleTheme"
+          class="p-2 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95"
+          :class="
+            isDark
+              ? 'bg-zinc-900/50 border-white/10 text-zinc-400 hover:text-white hover:border-white/20'
+              : 'bg-zinc-100 border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:border-zinc-300'
+          "
+          title="切换日间/夜间模式"
+        >
+          <Sun v-if="isDark" class="w-4 h-4" />
+          <Moon v-else class="w-4 h-4" />
+        </button>
+      </div>
     </header>
 
     <div class="flex-1 flex items-center justify-center relative z-10 px-8">
@@ -89,16 +105,10 @@
         class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-30"
       >
         <div
-          class="w-[1px] h-32 bg-gradient-to-b from-transparent via-[#FF4C00]/50 to-transparent mb-4"
-        ></div>
-        <div
-          class="w-16 h-16 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(255,76,0,0.15)]"
+          class="w-14 h-14 rounded-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 flex items-center justify-center shadow-[0_0_30px_rgba(255,76,0,0.15)]"
         >
           <Swords class="w-6 h-6 text-[#FF4C00]" />
         </div>
-        <div
-          class="w-[1px] h-32 bg-gradient-to-t from-transparent via-[#FF4C00]/50 to-transparent mt-4"
-        ></div>
       </div>
 
       <div class="w-full max-w-6xl flex items-center justify-between gap-12">
@@ -111,16 +121,16 @@
               :class="
                 myStatus.isReady
                   ? 'border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)]'
-                  : 'border-zinc-800'
+                  : 'border-zinc-300 dark:border-zinc-800'
               "
             ></div>
             <img
               :src="userStore.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Me'"
-              class="w-full h-full rounded-full object-cover p-2 bg-zinc-950"
+              class="w-full h-full rounded-full object-cover p-2 bg-zinc-100 dark:bg-zinc-950"
             />
             <div
               v-if="myStatus.isReady"
-              class="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-emerald-500 border-4 border-zinc-950 flex items-center justify-center"
+              class="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-emerald-500 border-4 border-zinc-100 dark:border-zinc-950 flex items-center justify-center"
             >
               <Check class="w-4 h-4 text-white" />
             </div>
@@ -141,36 +151,36 @@
               class="absolute inset-0 rounded-full border-4 transition-colors duration-300"
               :class="
                 !opponent
-                  ? 'border-dashed border-zinc-800 animate-spin-slow'
+                  ? 'border-dashed border-zinc-300 dark:border-zinc-800 animate-spin-slow'
                   : opponent.isReady
                     ? 'border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.3)]'
-                    : 'border-zinc-800'
+                    : 'border-zinc-300 dark:border-zinc-800'
               "
             ></div>
 
             <template v-if="opponent">
               <img
                 :src="opponent.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Enemy'"
-                class="w-full h-full rounded-full object-cover p-2 bg-zinc-950"
+                class="w-full h-full rounded-full object-cover p-2 bg-zinc-100 dark:bg-zinc-950"
               />
               <div
                 v-if="opponent.isReady"
-                class="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-red-500 border-4 border-zinc-950 flex items-center justify-center"
+                class="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-red-500 border-4 border-zinc-100 dark:border-zinc-950 flex items-center justify-center"
               >
                 <Check class="w-4 h-4 text-white" />
               </div>
             </template>
             <div
               v-else
-              class="w-full h-full flex items-center justify-center rounded-full p-2 bg-zinc-950"
+              class="w-full h-full flex items-center justify-center rounded-full p-2 bg-zinc-100 dark:bg-zinc-950"
             >
-              <UserMinus class="w-12 h-12 text-zinc-800" />
+              <UserMinus class="w-12 h-12 text-zinc-300 dark:text-zinc-800" />
             </div>
           </div>
 
           <h3
             class="text-2xl font-bold tracking-tight mb-2"
-            :class="opponent ? 'text-white' : 'text-zinc-600'"
+            :class="opponent ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-600'"
           >
             {{ opponent ? opponent.name : '等待对手接入...' }}
           </h3>
@@ -182,21 +192,18 @@
       </div>
     </div>
 
-    <div
-      class="h-32 shrink-0 flex items-center justify-center relative z-20 border-t border-white/5 bg-zinc-950/80 backdrop-blur-md"
-    >
+    <div class="h-32 shrink-0 flex items-center justify-center relative z-20">
       <button
         @click="toggleReady"
         :disabled="!opponent"
         class="relative px-16 py-4 rounded-xl font-bold text-lg tracking-widest uppercase transition-all duration-300 overflow-hidden group disabled:opacity-40 disabled:cursor-not-allowed"
         :class="
           myStatus.isReady
-            ? 'bg-zinc-800 text-zinc-300 border border-white/10'
+            ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-300 dark:border-white/10'
             : 'bg-[#FF4C00] text-white shadow-[0_0_20px_rgba(255,76,0,0.4)] hover:shadow-[0_0_40px_rgba(255,76,0,0.6)]'
         "
       >
         <span class="relative z-10 flex items-center gap-2">
-          <Power class="w-5 h-5" />
           {{ myStatus.isReady ? '取消准备' : '准备战斗' }}
         </span>
       </button>
@@ -211,15 +218,17 @@ import {
   Swords,
   UserMinus,
   Check,
-  Power,
   Loader2,
   AlertTriangle,
   Timer,
   Copy,
+  Sun,
+  Moon,
 } from 'lucide-vue-next'
 import { useClipboard } from '@vueuse/core'
 import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
+import { isDark, toggleTheme } from '@/composables/useTheme'
 import { useUserStore } from '@/stores/user'
 import { checkRoomValidity } from '@/api/arena'
 import { BattleWebSocket } from '@/utils/battle-ws'
@@ -293,9 +302,17 @@ const escapeAlert = reactive({
   scoreDetail: '',
 })
 
+const goBack = () => {
+  if (route.query.from === 'dashboard') {
+    router.replace('/dashboard')
+  } else {
+    router.replace('/arena')
+  }
+}
+
 const initLobby = async () => {
   if (!roomCode.value) {
-    router.replace('/arena')
+    goBack()
     return
   }
 
@@ -304,7 +321,7 @@ const initLobby = async () => {
 
     if (!validity.isValid) {
       alert(validity.message || '房间已失效或门票无效')
-      router.replace('/arena')
+      goBack()
       return
     }
 
@@ -319,7 +336,7 @@ const initLobby = async () => {
     }
   } catch (err) {
     console.error('房间校验异常:', err)
-    router.replace('/arena')
+    goBack()
   }
 }
 
@@ -438,11 +455,13 @@ const handleLeaveRoom = () => {
   }
 }
 
-// 事件：点击“继续匹配” (仅排位可见)
+// 事件：点击”继续匹配” (仅排位可见)
 const handleContinueMatch = () => {
   escapeAlert.show = false
   if (battleWs) battleWs.disconnect()
-  router.replace('/battle/matchmaking')
+  const query: Record<string, string> = {}
+  if (route.query.from === 'dashboard') query.from = 'dashboard'
+  router.replace({ path: '/battle/matchmaking', query })
 }
 
 // 🎯 事件：点击“重新创建” (仅私有房间可见)
@@ -453,10 +472,10 @@ const handleRecreate = () => {
   router.replace({ path: '/arena', query: { action: 'create' } })
 }
 
-// 事件：点击“回到主页” 或 点击对话框外部遮罩层
+// 事件：点击”回到主页” 或 点击对话框外部遮罩层
 const forceGoHome = () => {
   if (battleWs) battleWs.disconnect()
-  router.replace('/arena')
+  goBack()
 }
 
 onMounted(() => {

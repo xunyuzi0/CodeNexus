@@ -1,15 +1,17 @@
 <template>
-  <div class="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden">
+  <div
+    class="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm dark:shadow-none"
+  >
     <!-- 表格 -->
     <div>
       <table style="width: 100%; table-layout: fixed">
         <thead>
-          <tr class="bg-zinc-800/50 border-b border-white/5">
+          <tr class="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/5">
             <th
               v-for="col in columns"
               :key="col.key"
               :style="col.width ? { width: col.width } : undefined"
-              class="text-zinc-400 text-xs uppercase tracking-wider font-medium text-left px-4 py-3 whitespace-nowrap"
+              class="text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider font-medium text-left px-4 py-3 whitespace-nowrap"
             >
               {{ col.title ?? col.label }}
             </th>
@@ -19,7 +21,7 @@
           <!-- 加载状态 -->
           <tr v-if="loading">
             <td :colspan="columns.length" class="px-6 py-20 text-center">
-              <div class="flex items-center justify-center gap-3 text-zinc-500">
+              <div class="flex items-center justify-center gap-3 text-zinc-400 dark:text-zinc-500">
                 <svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle
                     class="opacity-25"
@@ -43,7 +45,7 @@
           <!-- 空状态 -->
           <tr v-else-if="data.length === 0">
             <td :colspan="columns.length" class="px-6 py-20 text-center">
-              <div class="flex flex-col items-center gap-2 text-zinc-500">
+              <div class="flex flex-col items-center gap-2 text-zinc-400 dark:text-zinc-500">
                 <svg
                   class="w-10 h-10 opacity-40"
                   viewBox="0 0 24 24"
@@ -63,12 +65,12 @@
             v-else
             v-for="(row, index) in data"
             :key="index"
-            class="border-b border-white/5 hover:bg-white/[0.08] transition-colors group"
+            class="border-b border-zinc-100 dark:border-white/5 hover:bg-zinc-50 dark:hover:bg-white/[0.08] transition-colors group"
           >
             <td
               v-for="col in columns"
               :key="col.key"
-              class="px-4 py-3 text-sm text-white whitespace-nowrap"
+              class="px-4 py-3 text-sm text-zinc-900 dark:text-white whitespace-nowrap"
             >
               <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
                 {{ row[col.key] ?? '-' }}
@@ -82,14 +84,14 @@
     <!-- 分页 -->
     <div
       v-if="total > 0"
-      class="flex items-center justify-between px-6 py-4 border-t border-white/5"
+      class="flex items-center justify-between px-6 py-4 border-t border-zinc-100 dark:border-white/5"
     >
       <div class="flex items-center gap-3">
-        <span class="text-zinc-500 text-sm">共 {{ total }} 条</span>
+        <span class="text-zinc-400 dark:text-zinc-500 text-sm">共 {{ total }} 条</span>
         <div class="relative" ref="pageSizeDropdownRef">
           <button
             @click="showPageSizeDropdown = !showPageSizeDropdown"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 transition-all"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20 transition-all"
           >
             {{ pageSize }} 条/页
             <ChevronDown
@@ -100,7 +102,7 @@
           <Transition name="dropdown">
             <div
               v-if="showPageSizeDropdown"
-              class="absolute left-0 bottom-full mb-2 w-28 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+              class="absolute left-0 bottom-full mb-2 w-28 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
             >
               <button
                 v-for="size in pageSizeOptions"
@@ -110,7 +112,7 @@
                 :class="
                   pageSize === size
                     ? 'bg-[#FF4C00]/20 border-[#FF4C00]/50 text-[#FF4C00]'
-                    : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                 "
               >
                 {{ size }} 条/页
@@ -122,14 +124,16 @@
       <div class="flex items-center gap-2">
         <button
           :disabled="current <= 1"
-          class="px-3 py-1.5 rounded-lg text-sm border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          class="px-3 py-1.5 rounded-lg text-sm border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           @click="emit('update:current', current - 1)"
         >
           上一页
         </button>
 
         <template v-for="page in displayPages" :key="page">
-          <span v-if="page === '...'" class="px-2 text-zinc-600 text-sm">...</span>
+          <span v-if="page === '...'" class="px-2 text-zinc-400 dark:text-zinc-600 text-sm"
+            >...</span
+          >
           <button
             v-else
             :class="
@@ -137,7 +141,7 @@
                 'w-9 h-9 rounded-lg text-sm transition-colors',
                 page === current
                   ? 'bg-[#FF4C00] text-white font-medium'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5',
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5',
               )
             "
             @click="emit('update:current', page as number)"
@@ -148,7 +152,7 @@
 
         <button
           :disabled="current >= totalPages"
-          class="px-3 py-1.5 rounded-lg text-sm border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          class="px-3 py-1.5 rounded-lg text-sm border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           @click="emit('update:current', current + 1)"
         >
           下一页

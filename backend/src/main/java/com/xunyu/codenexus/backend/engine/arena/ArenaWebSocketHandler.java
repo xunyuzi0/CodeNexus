@@ -39,6 +39,9 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
     private static final Map<String, Map<Long, WebSocketSession>> ROOM_SESSIONS = new ConcurrentHashMap<>();
     private static final Map<String, Map<Long, Boolean>> ROOM_READY_STATE = new ConcurrentHashMap<>();
 
+    // 🎯 防刷新竞态：记录每个用户在每个房间的【当前活跃连接】，用于过滤旧连接的 close 回调
+    private static final Map<String, Map<Long, WebSocketSession>> ROOM_ACTIVE_SESSION = new ConcurrentHashMap<>();
+
     // 🎯 终极武器：内存黑匣子！永久记录进入过该房间的所有玩家 ID，免疫数据库删除
     private static final Map<String, Set<Long>> ROOM_USER_HISTORY = new ConcurrentHashMap<>();
 
@@ -84,6 +87,9 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
 
         ROOM_SESSIONS.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(userId, session);
         ROOM_READY_STATE.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).putIfAbsent(userId, false);
+
+        // 记录当前活跃连接，用于后续过滤旧连接的 close 回调
+        ROOM_ACTIVE_SESSION.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(userId, session);
 
         // 玩家一进来，立刻写入黑匣子
         ROOM_USER_HISTORY.computeIfAbsent(roomCode, k -> Collections.newSetFromMap(new ConcurrentHashMap<>())).add(userId);
@@ -137,11 +143,24 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
         String roomCode = extractRoomCode(session);
         Long userId = (Long) session.getAttributes().get("userId");
 
+        // 🎯 核心防竞态：检查是否是当前活跃连接，若不是说明用户已重连，旧连接的 close 事件应被忽略
+        Map<Long, WebSocketSession> activeMap = ROOM_ACTIVE_SESSION.get(roomCode);
+        if (activeMap != null) {
+            WebSocketSession currentActive = activeMap.get(userId);
+            if (currentActive != null && currentActive != session) {
+                log.info("[WS] 玩家 {} 已重连房间 {}，忽略旧连接关闭事件", userId, roomCode);
+                return;
+            }
+        }
+
         log.info("[WS大厅] 玩家 {} 离开房间 {}", userId, roomCode);
 
-        try {
-            arenaRoomService.leaveWaitingRoom(roomCode, userId);
-        } catch (Exception e) {
+        // 对战阶段不执行大厅的离开逻辑，避免清理对战中的房间数据
+        if (!STARTED_ROOMS.contains(roomCode)) {
+            try {
+                arenaRoomService.leaveWaitingRoom(roomCode, userId);
+            } catch (Exception e) {
+            }
         }
 
         Map<Long, WebSocketSession> roomMap = ROOM_SESSIONS.get(roomCode);
@@ -153,25 +172,30 @@ public class ArenaWebSocketHandler extends TextWebSocketHandler {
             if (roomMap.isEmpty()) {
                 ROOM_SESSIONS.remove(roomCode);
                 ROOM_READY_STATE.remove(roomCode);
-                // 注意：这里绝对不清理 ROOM_USER_HISTORY，保留给延迟的结算引擎使用！
+                ROOM_ACTIVE_SESSION.remove(roomCode);
             } else {
-                roomMap.values().forEach(s -> {
-                    if (s.isOpen()) {
-                        try {
-                            sendSyncRoomMessage(s, roomCode);
-                        } catch (IOException e) {
+                // 仅在大厅阶段发送同步消息，对战阶段不需要
+                if (!STARTED_ROOMS.contains(roomCode)) {
+                    roomMap.values().forEach(s -> {
+                        if (s.isOpen()) {
+                            try {
+                                sendSyncRoomMessage(s, roomCode);
+                            } catch (IOException e) {
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         }
 
-        // 核心防逃跑机制：5秒延迟检验。防误杀（区分刷新网页/切换路由 和 真实断线逃跑）
+        // 防逃跑机制：10秒延迟检验（预留充足重连时间，区分刷新和真实逃跑）
         CompletableFuture.runAsync(() -> {
             try {
-                Thread.sleep(5000);
-                Map<Long, WebSocketSession> currentRoomMap = ROOM_SESSIONS.get(roomCode);
-                boolean isReconnected = currentRoomMap != null && currentRoomMap.containsKey(userId);
+                Thread.sleep(10000);
+                // 再次校验：当前活跃连接是否仍是此 session，且用户未重连
+                Map<Long, WebSocketSession> latestActive = ROOM_ACTIVE_SESSION.get(roomCode);
+                boolean isReconnected = latestActive != null && latestActive.containsKey(userId)
+                        && latestActive.get(userId) != session;
                 if (!isReconnected) {
                     handlePlayerEscape(roomCode, userId);
                 }

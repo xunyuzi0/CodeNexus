@@ -7,12 +7,12 @@
 
     <div class="max-w-[1600px] mx-auto relative z-10">
       <div
-        class="relative flex flex-col md:flex-row items-center gap-8 p-8 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-3xl mb-12 group hover:border-[#FF4C00]/50 hover:shadow-[0_0_40px_rgba(255,76,0,0.15)] transition-all duration-500"
+        class="relative flex flex-col md:flex-row items-center gap-8 p-8 bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl mb-12 group hover:border-[#FF4C00]/50 hover:shadow-md dark:hover:shadow-[0_0_40px_rgba(255,76,0,0.15)] transition-all duration-500"
         v-motion-slide-visible-top
       >
         <div class="relative">
           <div
-            class="w-32 h-32 rounded-full border-4 border-zinc-800 p-1 bg-zinc-900 shadow-xl group-hover:border-[#FF4C00]/30 transition-all duration-500 cursor-pointer hover:scale-105 hover:shadow-[0_0_30px_rgba(255,76,0,0.3)] relative group/avatar"
+            class="w-32 h-32 rounded-full border-4 border-zinc-200 dark:border-zinc-800 p-1 bg-white dark:bg-zinc-900 shadow-xl group-hover:border-[#FF4C00]/30 transition-all duration-500 cursor-pointer hover:scale-105 hover:shadow-[0_0_30px_rgba(255,76,0,0.3)] relative group/avatar"
             @click="showAvatarDialog = true"
           >
             <img
@@ -26,12 +26,12 @@
             </div>
           </div>
           <div
-            class="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 border-4 border-zinc-900 rounded-full pointer-events-none"
+            class="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-zinc-900 rounded-full pointer-events-none"
           ></div>
         </div>
 
         <div class="text-center md:text-left flex-1 min-w-0">
-          <h1 class="text-3xl font-black text-white mb-2 tracking-tight">
+          <h1 class="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">
             {{ userStore.nickname }}
           </h1>
           <div
@@ -39,7 +39,7 @@
           >
             <span class="flex items-center gap-2">
               <span class="text-zinc-500 font-bold">ID:</span>
-              <span class="text-zinc-300">{{ displayAccount }}</span>
+              <span class="text-zinc-600 dark:text-zinc-300">{{ displayAccount }}</span>
             </span>
             <span class="w-1 h-1 bg-zinc-600 rounded-full shrink-0"></span>
             <span
@@ -52,12 +52,18 @@
         </div>
 
         <div class="flex gap-4 shrink-0">
-          <div class="text-center px-6 py-2 bg-white/5 rounded-2xl border border-white/5">
+          <div
+            class="text-center px-6 py-2 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5"
+          >
             <p class="text-2xl font-black text-[#FF4C00] font-mono">{{ displayRank }}</p>
             <p class="text-xs text-zinc-500 uppercase font-bold tracking-wider">排名</p>
           </div>
-          <div class="text-center px-6 py-2 bg-white/5 rounded-2xl border border-white/5">
-            <p class="text-2xl font-black text-white font-mono">{{ displayWinRate }}</p>
+          <div
+            class="text-center px-6 py-2 bg-zinc-50 dark:bg-white/5 rounded-2xl border border-zinc-200 dark:border-white/5"
+          >
+            <p class="text-2xl font-black text-zinc-900 dark:text-white font-mono">
+              {{ displayWinRate }}
+            </p>
             <p class="text-xs text-zinc-500 uppercase font-bold tracking-wider">胜率</p>
           </div>
         </div>
@@ -73,7 +79,7 @@
             :class="
               currentTab === tab.id
                 ? 'bg-[#FF4C00] text-white shadow-lg shadow-[#FF4C00]/20'
-                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white'
             "
           >
             <component :is="tab.icon" class="w-5 h-5" />
@@ -82,7 +88,7 @@
         </div>
 
         <div
-          class="flex-1 min-w-0 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-3xl p-8"
+          class="flex-1 min-w-0 bg-white dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-3xl p-8"
         >
           <transition mode="out-in" name="fade">
             <ProfileTab v-if="currentTab === 'profile'" />

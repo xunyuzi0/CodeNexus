@@ -20,12 +20,12 @@ public interface UserActivityLogMapper extends BaseMapper<UserActivityLog> {
      * 使用 GREATEST(is_checkin, #{log.isCheckin}) 确保打卡状态一旦为 1 就不会被覆盖回 0。
      */
     @Insert("INSERT INTO user_activity_log (user_id, activity_date, ac_count, is_checkin, score_change, create_time, update_time, is_deleted) " +
-            "VALUES (#{log.userId}, #{log.activityDate}, #{log.acCount}, #{log.isCheckin}, #{log.scoreChange}, NOW(), NOW(), 0) " +
+            "VALUES (#{log.userId}, #{log.activityDate}, #{log.acCount}, #{log.isCheckin}, #{log.scoreChange}, #{log.createTime}, #{log.updateTime}, 0) " +
             "ON DUPLICATE KEY UPDATE " +
             "ac_count = ac_count + #{log.acCount}, " +
             "is_checkin = GREATEST(is_checkin, #{log.isCheckin}), " +
             "score_change = score_change + #{log.scoreChange}, " +
-            "update_time = NOW(), " +
+            "update_time = #{log.updateTime}, " +
             "is_deleted = 0")
     int upsertActivityLog(@Param("log") UserActivityLog log);
 }

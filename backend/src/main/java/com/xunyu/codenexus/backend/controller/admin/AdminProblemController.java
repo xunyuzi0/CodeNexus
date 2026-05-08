@@ -5,8 +5,10 @@ import com.xunyu.codenexus.backend.aop.auth.Protector;
 import com.xunyu.codenexus.backend.common.result.Result;
 import com.xunyu.codenexus.backend.model.dto.request.admin.AdminProblemQueryRequest;
 import com.xunyu.codenexus.backend.model.dto.request.admin.ProblemUpsertRequest;
+import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionAddRequest;
 import com.xunyu.codenexus.backend.model.dto.response.admin.AdminProblemDetailVO;
 import com.xunyu.codenexus.backend.model.dto.response.admin.AdminProblemVO;
+import com.xunyu.codenexus.backend.model.dto.response.problem.SolutionVO;
 import com.xunyu.codenexus.backend.model.entity.ProblemTestcase;
 import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import com.xunyu.codenexus.backend.service.AdminService;
@@ -135,6 +137,40 @@ public class AdminProblemController {
     @Protector(role = UserRoleEnum.ADMIN)
     public Result<Boolean> deleteTestcase(@PathVariable("id") Long testcaseId) {
         adminService.deleteTestcase(testcaseId);
+        return Result.success(true);
+    }
+
+    // ==================== 题解管理 ====================
+
+    /**
+     * 获取题目的所有题解列表
+     */
+    @GetMapping("/{id}/solutions")
+    @Protector(role = UserRoleEnum.ADMIN)
+    public Result<List<SolutionVO>> getProblemSolutions(@PathVariable("id") Long problemId) {
+        List<SolutionVO> solutions = adminService.getProblemSolutions(problemId);
+        return Result.success(solutions);
+    }
+
+    /**
+     * 发布官方题解
+     */
+    @PostMapping("/{id}/solutions")
+    @Protector(role = UserRoleEnum.ADMIN)
+    public Result<Boolean> publishOfficialSolution(
+            @PathVariable("id") Long problemId,
+            @RequestBody @Valid SolutionAddRequest request) {
+        adminService.publishOfficialSolution(problemId, request);
+        return Result.success(true);
+    }
+
+    /**
+     * 删除题解（管理员可删除任意题解）
+     */
+    @DeleteMapping("/solutions/{id}")
+    @Protector(role = UserRoleEnum.ADMIN)
+    public Result<Boolean> deleteSolution(@PathVariable("id") Long solutionId) {
+        adminService.deleteSolution(solutionId);
         return Result.success(true);
     }
 }

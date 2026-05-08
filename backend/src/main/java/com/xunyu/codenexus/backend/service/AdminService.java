@@ -3,7 +3,9 @@ package com.xunyu.codenexus.backend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xunyu.codenexus.backend.model.dto.request.admin.*;
 import com.xunyu.codenexus.backend.model.dto.response.admin.*;
+import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionAddRequest;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ExampleVO;
+import com.xunyu.codenexus.backend.model.dto.response.problem.SolutionVO;
 import com.xunyu.codenexus.backend.model.entity.ProblemTestcase;
 
 import java.util.List;
@@ -48,6 +50,14 @@ public interface AdminService {
     void updateTestcase(Long testcaseId, ProblemTestcase testcase);
 
     void deleteTestcase(Long testcaseId);
+
+    // ========== 题解管理 ==========
+
+    List<SolutionVO> getProblemSolutions(Long problemId);
+
+    void publishOfficialSolution(Long problemId, SolutionAddRequest request);
+
+    void deleteSolution(Long solutionId);
 
     // ========== 对战记录 ==========
 

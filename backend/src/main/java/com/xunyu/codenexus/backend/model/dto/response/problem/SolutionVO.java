@@ -31,6 +31,11 @@ public class SolutionVO {
      */
     private String authorName;
 
+    /**
+     * 是否官方题解(0-否 1-是)
+     */
+    private Integer isOfficial;
+
     private Integer viewCount;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

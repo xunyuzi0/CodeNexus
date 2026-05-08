@@ -6,9 +6,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xunyu.codenexus.backend.common.result.ResultCode;
 import com.xunyu.codenexus.backend.mapper.*;
 import com.xunyu.codenexus.backend.model.dto.request.admin.*;
+import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionAddRequest;
+import com.xunyu.codenexus.backend.service.ProblemSolutionService;
 import com.xunyu.codenexus.backend.model.dto.response.LoginLogVO;
 import com.xunyu.codenexus.backend.model.dto.response.admin.*;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ExampleVO;
+import com.xunyu.codenexus.backend.model.dto.response.problem.SolutionVO;
 import com.xunyu.codenexus.backend.model.entity.*;
 import com.xunyu.codenexus.backend.model.enums.ArenaRoomStatus;
 import com.xunyu.codenexus.backend.service.AdminService;
@@ -52,6 +55,8 @@ public class AdminServiceImpl implements AdminService {
     private ArenaRoomMapper arenaRoomMapper;
     @Resource
     private ArenaRoomUserMapper arenaRoomUserMapper;
+    @Resource
+    private ProblemSolutionService problemSolutionService;
 
     // ==================== 用户管理 ====================
 
@@ -231,6 +236,21 @@ public class AdminServiceImpl implements AdminService {
         problem.setAcceptedNum(0);
         problem.setStatus(request.getStatus() != null ? request.getStatus() : 0);
         problemMapper.insert(problem);
+
+        // 如果有检测点，批量保存
+        if (request.getTestcases() != null && !request.getTestcases().isEmpty()) {
+            Long problemId = problem.getId();
+            for (int i = 0; i < request.getTestcases().size(); i++) {
+                ProblemTestcase tc = request.getTestcases().get(i);
+                tc.setId(null); // 确保自增
+                tc.setProblemId(problemId);
+                if (tc.getSortOrder() == null) {
+                    tc.setSortOrder(i);
+                }
+                problemTestcaseMapper.insert(tc);
+            }
+        }
+
         return problem.getId();
     }
 
@@ -295,6 +315,35 @@ public class AdminServiceImpl implements AdminService {
         ProblemTestcase existing = problemTestcaseMapper.selectById(testcaseId);
         AssertUtil.notNull(existing, ResultCode.NOT_FOUND, "测试用例不存在");
         problemTestcaseMapper.deleteById(testcaseId);
+    }
+
+    // ==================== 题解管理 ====================
+
+    @Override
+    public List<SolutionVO> getProblemSolutions(Long problemId) {
+        // 复用 ProblemSolutionService 的方法获取题解列表（含作者信息）
+        return problemSolutionService.getProblemSolutionList(problemId);
+    }
+
+    @Override
+    public void deleteSolution(Long solutionId) {
+        // 管理员可删除任意题解，不需要校验 authorId
+        ProblemSolution solution = problemSolutionService.getById(solutionId);
+        AssertUtil.notNull(solution, ResultCode.NOT_FOUND, "题解不存在或已被删除");
+        problemSolutionService.removeById(solutionId);
+    }
+
+    @Override
+    public void publishOfficialSolution(Long problemId, SolutionAddRequest request) {
+        ProblemSolution solution = new ProblemSolution();
+        solution.setProblemId(problemId);
+        solution.setAuthorId(0L); // 官方题解不关联具体用户
+        solution.setIsOfficial(1); // 标记为官方题解
+        solution.setTitle(request.getTitle());
+        solution.setContent(request.getContent());
+        solution.setCode(request.getCode());
+        solution.setViewCount(0);
+        problemSolutionService.save(solution);
     }
 
     // ==================== 对战记录 ====================

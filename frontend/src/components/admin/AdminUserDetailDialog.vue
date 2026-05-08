@@ -3,11 +3,11 @@
     <Transition name="fade">
       <div
         v-if="modelValue && user"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 overflow-hidden"
         @click="close"
       >
         <div
-          class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl bg-[#09090b] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative"
+          class="w-full max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden rounded-3xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-white/10 shadow-xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] relative"
           v-motion
           :initial="{ opacity: 0, scale: 0.95, y: 20 }"
           :enter="{
@@ -33,11 +33,13 @@
                 <img
                   :src="user.avatarUrl || '/default-avatar.png'"
                   :alt="user.nickname"
-                  class="w-16 h-16 rounded-2xl object-cover border border-white/10"
+                  class="w-16 h-16 rounded-2xl object-cover border border-zinc-200 dark:border-white/10"
                 />
                 <div>
-                  <h3 class="text-xl font-bold text-white">{{ user.nickname || user.username }}</h3>
-                  <p class="text-zinc-500 text-sm mt-1">@{{ user.username }}</p>
+                  <h3 class="text-xl font-bold text-zinc-900 dark:text-white">
+                    {{ user.nickname || user.username }}
+                  </h3>
+                  <p class="text-zinc-500 dark:text-zinc-500 text-sm mt-1">@{{ user.username }}</p>
                   <div class="flex items-center gap-2 mt-2">
                     <span
                       :class="cn('text-xs px-2 py-0.5 rounded-full font-medium', roleBadgeClass)"
@@ -59,60 +61,83 @@
           <!-- 统计数据（管理员不显示） -->
           <div v-if="user.role !== 'admin'" class="relative z-10 px-6">
             <div class="grid grid-cols-3 gap-3 mb-6">
-              <div class="bg-zinc-800/50 rounded-xl p-3 text-center">
-                <p class="text-lg font-bold text-white">{{ user.solvedCount ?? 0 }}</p>
-                <p class="text-zinc-500 text-xs mt-0.5">解题数</p>
+              <div class="bg-zinc-100/30 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-zinc-900 dark:text-white">
+                  {{ user.solvedCount ?? 0 }}
+                </p>
+                <p class="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">解题数</p>
               </div>
-              <div class="bg-zinc-800/50 rounded-xl p-3 text-center">
-                <p class="text-lg font-bold text-white">{{ user.arenaScore ?? 0 }}</p>
-                <p class="text-zinc-500 text-xs mt-0.5">竞技分</p>
+              <div class="bg-zinc-100/30 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-zinc-900 dark:text-white">
+                  {{ user.arenaScore ?? 0 }}
+                </p>
+                <p class="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">竞技分</p>
               </div>
-              <div class="bg-zinc-800/50 rounded-xl p-3 text-center">
-                <p class="text-lg font-bold text-white">{{ user.globalRank ?? '-' }}</p>
-                <p class="text-zinc-500 text-xs mt-0.5">全球排名</p>
+              <div class="bg-zinc-100/30 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-zinc-900 dark:text-white">
+                  {{ user.globalRank ?? '-' }}
+                </p>
+                <p class="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">全球排名</p>
               </div>
-              <div class="bg-zinc-800/50 rounded-xl p-3 text-center">
-                <p class="text-lg font-bold text-white">{{ user.arenaMatches ?? 0 }}</p>
-                <p class="text-zinc-500 text-xs mt-0.5">对战场次</p>
+              <div class="bg-zinc-100/30 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-zinc-900 dark:text-white">
+                  {{ user.arenaMatches ?? 0 }}
+                </p>
+                <p class="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">对战场次</p>
               </div>
-              <div class="bg-zinc-800/50 rounded-xl p-3 text-center">
-                <p class="text-lg font-bold text-white">{{ user.arenaWins ?? 0 }}</p>
-                <p class="text-zinc-500 text-xs mt-0.5">胜场</p>
+              <div class="bg-zinc-100/30 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
+                <p class="text-lg font-bold text-zinc-900 dark:text-white">
+                  {{ user.arenaWins ?? 0 }}
+                </p>
+                <p class="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">胜场</p>
               </div>
-              <div class="bg-zinc-800/50 rounded-xl p-3 text-center">
+              <div class="bg-zinc-100/30 dark:bg-zinc-800/50 rounded-xl p-3 text-center">
                 <p class="text-lg font-bold text-[#FF4C00]">
                   {{ user.winRate != null ? `${user.winRate}%` : '-' }}
                 </p>
-                <p class="text-zinc-500 text-xs mt-0.5">胜率</p>
+                <p class="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">胜率</p>
               </div>
             </div>
           </div>
 
           <!-- 基本信息（管理员不显示） -->
           <div v-if="user.role !== 'admin'" class="relative z-10 px-6 mb-6">
-            <h4 class="text-sm font-medium text-zinc-400 mb-3">基本信息</h4>
+            <h4 class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">基本信息</h4>
             <div class="space-y-2">
-              <div class="flex items-center justify-between py-2 border-b border-white/5">
-                <span class="text-zinc-500 text-sm">邮箱</span>
-                <span class="text-white text-sm">{{ user.email || '-' }}</span>
+              <div
+                class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-white/5"
+              >
+                <span class="text-zinc-400 dark:text-zinc-500 text-sm">邮箱</span>
+                <span class="text-zinc-900 dark:text-white text-sm">{{ user.email || '-' }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-white/5">
-                <span class="text-zinc-500 text-sm">手机</span>
-                <span class="text-white text-sm">{{ user.phone || '-' }}</span>
+              <div
+                class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-white/5"
+              >
+                <span class="text-zinc-400 dark:text-zinc-500 text-sm">手机</span>
+                <span class="text-zinc-900 dark:text-white text-sm">{{ user.phone || '-' }}</span>
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-white/5">
-                <span class="text-zinc-500 text-sm">简介</span>
-                <span class="text-white text-sm text-right max-w-[60%] truncate">{{
-                  user.bio || '-'
-                }}</span>
+              <div
+                class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-white/5"
+              >
+                <span class="text-zinc-400 dark:text-zinc-500 text-sm">简介</span>
+                <span
+                  class="text-zinc-900 dark:text-white text-sm text-right max-w-[60%] truncate"
+                  >{{ user.bio || '-' }}</span
+                >
               </div>
-              <div class="flex items-center justify-between py-2 border-b border-white/5">
-                <span class="text-zinc-500 text-sm">连续签到</span>
-                <span class="text-white text-sm">{{ user.continuousCheckinDays ?? 0 }} 天</span>
+              <div
+                class="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-white/5"
+              >
+                <span class="text-zinc-400 dark:text-zinc-500 text-sm">连续签到</span>
+                <span class="text-zinc-900 dark:text-white text-sm"
+                  >{{ user.continuousCheckinDays ?? 0 }} 天</span
+                >
               </div>
               <div class="flex items-center justify-between py-2">
                 <span class="text-zinc-500 text-sm">注册时间</span>
-                <span class="text-white text-sm">{{ formatTime(user.createTime) }}</span>
+                <span class="text-zinc-900 dark:text-white text-sm">{{
+                  formatTime(user.createTime)
+                }}</span>
               </div>
             </div>
           </div>
@@ -120,32 +145,38 @@
           <!-- 管理员：仅显示注册时间 -->
           <div v-if="user.role === 'admin'" class="relative z-10 px-6 mb-6">
             <div
-              class="flex items-center justify-between py-3 px-4 bg-zinc-800/50 rounded-xl border border-white/5"
+              class="flex items-center justify-between py-3 px-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-white/5"
             >
-              <span class="text-zinc-500 text-sm">注册时间</span>
-              <span class="text-white text-sm font-mono">{{ formatTime(user.createTime) }}</span>
+              <span class="text-zinc-400 dark:text-zinc-500 text-sm">注册时间</span>
+              <span class="text-zinc-900 dark:text-white text-sm font-mono">{{
+                formatTime(user.createTime)
+              }}</span>
             </div>
           </div>
 
           <!-- 最近登录日志 -->
           <div class="relative z-10 px-6 pb-6">
-            <h4 class="text-sm font-medium text-zinc-400 mb-3">最近登录日志</h4>
+            <h4 class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">最近登录日志</h4>
             <div v-if="user.recentLoginLogs?.length" class="space-y-2 max-h-48 overflow-y-auto">
               <div
                 v-for="log in user.recentLoginLogs"
                 :key="log.id"
-                class="flex items-center justify-between py-2 px-3 bg-zinc-800/30 rounded-lg text-sm"
+                class="flex items-center justify-between py-2 px-3 bg-zinc-50 dark:bg-zinc-800/30 rounded-lg text-sm"
               >
                 <div class="flex items-center gap-3">
                   <span :class="log.loginStatus === 1 ? 'text-emerald-400' : 'text-red-400'">
                     {{ log.loginStatus === 1 ? '成功' : '失败' }}
                   </span>
-                  <span class="text-zinc-400">{{ log.loginIp }}</span>
+                  <span class="text-zinc-500 dark:text-zinc-400">{{ log.loginIp }}</span>
                 </div>
-                <span class="text-zinc-500 text-xs">{{ formatTime(log.createTime) }}</span>
+                <span class="text-zinc-400 dark:text-zinc-500 text-xs">{{
+                  formatTime(log.createTime)
+                }}</span>
               </div>
             </div>
-            <p v-else class="text-zinc-600 text-sm text-center py-4">暂无登录记录</p>
+            <p v-else class="text-zinc-400 dark:text-zinc-600 text-sm text-center py-4">
+              暂无登录记录
+            </p>
           </div>
         </div>
       </div>

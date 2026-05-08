@@ -12,9 +12,10 @@ public interface FavoriteItemMapper extends BaseMapper<FavoriteItem> {
     /**
      * 利用 MySQL 的 ON DUPLICATE KEY UPDATE 特性解决逻辑删除冲突。
      * 如果记录不存在则插入；如果因唯一索引(folder_id, problem_id)冲突，则将 is_deleted 更新为 0 以恢复记录。
+     * 使用 Java 侧时间而非 MySQL NOW()，避免因 MySQL 时区与应用时区不一致导致日期偏差。
      */
     @Insert("INSERT INTO favorite_item (user_id, folder_id, problem_id, create_time, update_time, is_deleted) " +
-            "VALUES (#{userId}, #{folderId}, #{problemId}, NOW(), NOW(), 0) " +
-            "ON DUPLICATE KEY UPDATE is_deleted = 0, update_time = NOW()")
+            "VALUES (#{userId}, #{folderId}, #{problemId}, #{createTime}, #{updateTime}, 0) " +
+            "ON DUPLICATE KEY UPDATE is_deleted = 0, update_time = #{updateTime}")
     int upsertFavoriteItem(FavoriteItem favoriteItem);
 }

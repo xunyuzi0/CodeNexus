@@ -10,6 +10,7 @@ import com.xunyu.codenexus.backend.mapper.ProblemMapper;
 import com.xunyu.codenexus.backend.mapper.UserMapper;
 import com.xunyu.codenexus.backend.mapper.UserProblemStateMapper;
 import com.xunyu.codenexus.backend.model.dto.request.problem.ProblemQueryRequest;
+import com.xunyu.codenexus.backend.model.dto.response.problem.DailyPracticeVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemDetailVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemVO;
 import com.xunyu.codenexus.backend.model.entity.Problem;
@@ -19,15 +20,19 @@ import com.xunyu.codenexus.backend.service.ProblemService;
 import com.xunyu.codenexus.backend.utils.AssertUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +48,11 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    private static final String DAILY_PRACTICE_KEY_PREFIX = "daily:practice:";
 
     @Override
     public Page<ProblemVO> getProblemPage(ProblemQueryRequest request) {
@@ -166,32 +176,65 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     }
 
     @Override
-    public Long getDailyPracticeProblem() {
+    public DailyPracticeVO getDailyPracticeProblem() {
         Long userId = UserContext.getUserId();
+        String today = LocalDate.now().toString(); // yyyy-MM-dd
+        String cacheKey = DAILY_PRACTICE_KEY_PREFIX + userId + ":" + today;
 
-        // 1. 查询当前用户段位，动态映射难度
+        // 1. 尝试从 Redis 获取今天缓存的题目 ID
+        String cachedIdStr = stringRedisTemplate.opsForValue().get(cacheKey);
+        Long problemId;
+
+        if (cachedIdStr != null) {
+            problemId = Long.parseLong(cachedIdStr);
+        } else {
+            // 缓存未命中，执行随机选题逻辑
+            problemId = selectDailyProblemId(userId);
+            AssertUtil.notNull(problemId, "当前题库为空，无法获取推荐题目");
+
+            // 写入 Redis，TTL 到当天结束（次日 00:00:00）
+            long secondsUntilMidnight = ChronoUnit.SECONDS.between(
+                    java.time.LocalDateTime.now(),
+                    LocalDate.now().plusDays(1).atStartOfDay());
+            stringRedisTemplate.opsForValue().set(cacheKey, problemId.toString(),
+                    secondsUntilMidnight, TimeUnit.SECONDS);
+        }
+
+        // 2. 检查该题是否在【当天】已被当前用户 AC（状态 = 2）
+        java.time.LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LambdaQueryWrapper<UserProblemState> checkWrapper = new LambdaQueryWrapper<>();
+        checkWrapper.eq(UserProblemState::getUserId, userId)
+                .eq(UserProblemState::getProblemId, problemId)
+                .eq(UserProblemState::getState, 2)
+                .ge(UserProblemState::getUpdateTime, Date.from(startOfDay.atZone(java.time.ZoneId.systemDefault()).toInstant()));
+        boolean alreadySolved = userProblemStateMapper.selectCount(checkWrapper) > 0;
+
+        return new DailyPracticeVO(problemId, alreadySolved);
+    }
+
+    /**
+     * 基于用户段位和近 7 天 AC 记录随机选题（原有逻辑）
+     */
+    private Long selectDailyProblemId(Long userId) {
         User user = userMapper.selectById(userId);
         AssertUtil.notNull(user, ResultCode.UNAUTHORIZED, "用户状态异常");
 
         int score = user.getRatingScore();
         int targetDifficulty;
         if (score < 1800) {
-            targetDifficulty = 1; // 坚韧黑铁~英勇黄铜 推 Easy
+            targetDifficulty = 1;
         } else if (score < 3000) {
-            targetDifficulty = 2; // 不屈白银~荣耀黄金 推 Medium
+            targetDifficulty = 2;
         } else {
-            targetDifficulty = 3; // 天梯传说 推 Hard
+            targetDifficulty = 3;
         }
 
-        // 2. 查出该用户在【近 7 天内】已经 AC (状态为2) 的所有题目 ID
-        // 精准时间戳计算：当前时间减去 7 天毫秒数
         Date sevenDaysAgo = new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
-
         LambdaQueryWrapper<UserProblemState> stateWrapper = new LambdaQueryWrapper<>();
         stateWrapper.select(UserProblemState::getProblemId)
                 .eq(UserProblemState::getUserId, userId)
                 .eq(UserProblemState::getState, 2)
-                .ge(UserProblemState::getUpdateTime, sevenDaysAgo); // 【核心改造】：设置 7 天时间屏障
+                .ge(UserProblemState::getUpdateTime, sevenDaysAgo);
 
         List<Object> acIdObjs = userProblemStateMapper.selectObjs(stateWrapper);
         List<Long> recentAcIds = new ArrayList<>();
@@ -199,22 +242,14 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             recentAcIds = acIdObjs.stream().map(obj -> ((Number) obj).longValue()).collect(Collectors.toList());
         }
 
-        // 3. 执行高性能的【内存级随机抽取算法】
-        Long recommendProblemId = pickRandomProblemId(targetDifficulty, recentAcIds);
-
-        // 4. 兜底策略1：如果该难度的题全在最近 7 天被刷完了，取消难度限制
-        if (recommendProblemId == null) {
-            recommendProblemId = pickRandomProblemId(null, recentAcIds);
+        Long problemId = pickRandomProblemId(targetDifficulty, recentAcIds);
+        if (problemId == null) {
+            problemId = pickRandomProblemId(null, recentAcIds);
         }
-
-        // 5. 极端兜底策略2：如果全库所有的题目都在最近 7 天内被刷完了，全库无限制随机抽取
-        if (recommendProblemId == null) {
-            recommendProblemId = pickRandomProblemId(null, null);
+        if (problemId == null) {
+            problemId = pickRandomProblemId(null, null);
         }
-
-        AssertUtil.notNull(recommendProblemId, "当前题库为空，无法获取推荐题目");
-
-        return recommendProblemId;
+        return problemId;
     }
 
     /**

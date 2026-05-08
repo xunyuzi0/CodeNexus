@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -225,6 +226,8 @@ public class FavoriteServiceImpl extends ServiceImpl<FavoriteFolderMapper, Favor
         item.setUserId(userId);
         item.setFolderId(request.getFolderId());
         item.setProblemId(request.getProblemId());
+        item.setCreateTime(LocalDateTime.now());
+        item.setUpdateTime(LocalDateTime.now());
 
         favoriteItemMapper.upsertFavoriteItem(item);
 

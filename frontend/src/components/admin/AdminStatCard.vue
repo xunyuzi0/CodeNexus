@@ -1,11 +1,11 @@
 <template>
   <div
-    class="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-6 group hover:border-white/10 transition-colors"
+    class="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200 dark:border-white/5 rounded-2xl p-6 group hover:border-zinc-300 dark:hover:border-white/10 transition-colors shadow-sm dark:shadow-none"
   >
     <div class="flex items-center justify-between">
       <div>
-        <p class="text-zinc-400 text-sm">{{ title }}</p>
-        <p class="text-3xl font-bold text-white mt-1">{{ formattedValue }}</p>
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm">{{ title }}</p>
+        <p class="text-3xl font-bold text-zinc-900 dark:text-white mt-1">{{ formattedValue }}</p>
       </div>
       <div
         :class="

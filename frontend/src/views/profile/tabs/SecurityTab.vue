@@ -9,24 +9,24 @@
           v-model="pwdForm.old"
           type="password"
           placeholder="当前密码"
-          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:border-[#FF4C00] outline-none transition-colors"
+          class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl px-4 py-3 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all placeholder-zinc-400 dark:placeholder-zinc-600"
         />
         <input
           v-model="pwdForm.new"
           type="password"
           placeholder="新密码"
-          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:border-[#FF4C00] outline-none transition-colors"
+          class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl px-4 py-3 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all placeholder-zinc-400 dark:placeholder-zinc-600"
         />
         <input
           v-model="pwdForm.confirm"
           type="password"
           placeholder="确认新密码"
-          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl px-4 py-3 focus:border-[#FF4C00] outline-none transition-colors"
+          class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl px-4 py-3 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all placeholder-zinc-400 dark:placeholder-zinc-600"
         />
         <button
           @click="onUpdatePassword"
           :disabled="isProcessing"
-          class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+          class="bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-bold py-3 rounded-xl transition-all border border-zinc-300 dark:border-white/5 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
         >
           <div
             v-if="isProcessing && currentAction === 'UPDATE_PWD'"
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <div class="h-[1px] bg-white/5 w-full"></div>
+    <div class="h-[1px] bg-zinc-200 dark:bg-white/5 w-full"></div>
 
     <div class="space-y-4">
       <h3 class="text-lg font-bold text-red-500 flex items-center gap-2">
@@ -47,7 +47,7 @@
         class="flex items-center justify-between p-4 border border-red-500/20 bg-red-500/5 rounded-xl"
       >
         <div>
-          <p class="text-white font-bold">注销账号</p>
+          <p class="text-zinc-900 dark:text-white font-bold">注销账号</p>
           <p class="text-xs text-zinc-500 mt-1">一旦注销，您的所有数据将被永久删除，无法恢复。</p>
         </div>
         <button

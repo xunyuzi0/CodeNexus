@@ -8,6 +8,7 @@ import com.xunyu.codenexus.backend.model.dto.request.problem.ProblemQueryRequest
 import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionAddRequest;
 import com.xunyu.codenexus.backend.model.dto.request.problem.SolutionUpdateRequest;
 import com.xunyu.codenexus.backend.model.dto.request.problem.SubmissionQueryRequest;
+import com.xunyu.codenexus.backend.model.dto.response.problem.DailyPracticeVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemDetailVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.SolutionVO;
@@ -85,16 +86,17 @@ public class ProblemController {
     }
 
     /**
-     * 🎯 获取“每日一练”推荐题目 (Dashboard 专属)
+     * 🎯 获取"每日一练"推荐题目 (Dashboard 专属)
      * 强鉴权接口：必须登录，基于用户的段位分进行难度匹配，并引入近 7 天防重机制
+     * 当天内固定返回同一道题，并附带是否已 AC 的标识
      *
-     * @return 推荐题目 ID
+     * @return 推荐题目 ID 及是否已 AC
      */
     @GetMapping("/daily-practice")
     @Protector(role = UserRoleEnum.USER)
-    public Result<Long> getDailyPracticeProblem() {
-        Long problemId = problemService.getDailyPracticeProblem();
-        return Result.success(problemId);
+    public Result<DailyPracticeVO> getDailyPracticeProblem() {
+        DailyPracticeVO vo = problemService.getDailyPracticeProblem();
+        return Result.success(vo);
     }
 
     /**

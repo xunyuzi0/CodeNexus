@@ -10,6 +10,7 @@ import com.xunyu.codenexus.backend.model.dto.request.rank.LeaderboardQueryReques
 import com.xunyu.codenexus.backend.model.dto.response.rank.MyRankVO;
 import com.xunyu.codenexus.backend.model.dto.response.rank.RankUserVO;
 import com.xunyu.codenexus.backend.model.entity.User;
+import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import com.xunyu.codenexus.backend.service.RankService;
 import com.xunyu.codenexus.backend.utils.AssertUtil;
 import jakarta.annotation.Resource;
@@ -34,6 +35,9 @@ public class RankServiceImpl implements RankService {
         // 1. 构建分页与排序条件
         Page<User> pageParam = new Page<>(request.getCurrent(), request.getPageSize());
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        // 排除管理员和封号用户，仅展示普通用户的排行
+        queryWrapper.ne(User::getRole, UserRoleEnum.ADMIN.getValue())
+                    .ne(User::getRole, UserRoleEnum.BAN.getValue());
         // 强制走 rating_score 降序索引，如果积分相同按 id 升序保证分页稳定
         queryWrapper.orderByDesc(User::getRatingScore).orderByAsc(User::getId);
 
@@ -84,6 +88,9 @@ public class RankServiceImpl implements RankService {
         // 👇 【核心修复】：放弃静态 globalRank，采用实时 O(logN) 算法计算我的名次
         // 实时名次 = (积分比我高的人) + (同分但 ID 比我小的人) + 1
         LambdaQueryWrapper<User> countWrapper = new LambdaQueryWrapper<>();
+        // 同样排除管理员和封号用户，确保排名计算准确
+        countWrapper.ne(User::getRole, UserRoleEnum.ADMIN.getValue())
+                    .ne(User::getRole, UserRoleEnum.BAN.getValue());
         countWrapper.and(w -> w
                 .gt(User::getRatingScore, user.getRatingScore())
                 .or(w2 -> w2.eq(User::getRatingScore, user.getRatingScore()).lt(User::getId, user.getId()))

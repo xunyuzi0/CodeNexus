@@ -1,5 +1,7 @@
 <template>
-  <div class="min-h-[calc(100vh-80px)] bg-zinc-950 bg-grid-white/[0.02] p-8">
+  <div
+    class="min-h-[calc(100vh-80px)] bg-zinc-50 dark:bg-zinc-950 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] p-8"
+  >
     <div class="relative z-10 max-w-7xl mx-auto space-y-6">
       <!-- 页面标题 -->
       <div
@@ -10,13 +12,13 @@
       >
         <div class="flex items-center gap-3">
           <div
-            class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+            class="p-2 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm backdrop-blur-sm"
           >
             <FileCode class="w-6 h-6 text-[#FF4C00]" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-white">题库管理</h1>
-            <p class="text-zinc-500 text-sm mt-0.5">管理平台题库的增删改查</p>
+            <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">题库管理</h1>
+            <p class="text-zinc-500 dark:text-zinc-500 text-sm mt-0.5">管理平台题库的增删改查</p>
           </div>
         </div>
         <button
@@ -30,7 +32,7 @@
 
       <!-- 搜索栏 -->
       <div
-        class="relative z-20 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-lg shadow-black/20 group/search hover:border-[#FF4C00]/30 transition-colors duration-500"
+        class="relative z-20 bg-white dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-sm dark:shadow-lg dark:shadow-black/20 group/search hover:border-[#FF4C00]/30 transition-colors duration-500"
         v-motion
         :initial="{ opacity: 0, y: -10 }"
         :visible="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
@@ -45,13 +47,13 @@
             v-model="searchKeyword"
             type="text"
             placeholder="搜索题目标题 / 编号..."
-            class="w-full bg-transparent text-white pl-11 pr-4 py-3 outline-none placeholder-zinc-600 text-sm font-medium transition-all"
+            class="w-full bg-transparent text-zinc-900 dark:text-white pl-11 pr-4 py-3 outline-none placeholder-zinc-400 dark:placeholder-zinc-600 text-sm font-medium transition-all"
             @input="handleSearchDebounced"
           />
         </div>
 
         <div
-          class="flex items-center gap-2 p-1 border-t md:border-t-0 md:border-l border-white/5 w-full md:w-auto"
+          class="flex items-center gap-2 p-1 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-white/5 w-full md:w-auto"
         >
           <Filter class="w-4 h-4 text-zinc-500 ml-3 shrink-0 hidden md:block" />
           <!-- 难度下拉 -->
@@ -62,7 +64,7 @@
               :class="
                 searchDifficulty !== ''
                   ? difficultyOptions.find((d) => d.value === searchDifficulty)?.activeClass
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20'
+                  : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20'
               "
             >
               {{ difficultyOptions.find((d) => d.value === searchDifficulty)?.label || '全部难度' }}
@@ -74,7 +76,7 @@
             <Transition name="dropdown">
               <div
                 v-if="showDifficultyDropdown"
-                class="absolute right-0 top-full mt-2 w-36 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                class="absolute right-0 top-full mt-2 w-36 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
               >
                 <button
                   v-for="diff in difficultyOptions"
@@ -84,7 +86,7 @@
                   :class="
                     searchDifficulty === diff.value
                       ? diff.activeClass
-                      : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                   "
                 >
                   {{ diff.label }}
@@ -100,7 +102,7 @@
               :class="
                 searchStatus !== ''
                   ? statusOptions.find((s) => s.value === searchStatus)?.activeClass
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20'
+                  : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20'
               "
             >
               {{ statusOptions.find((s) => s.value === searchStatus)?.label || '全部状态' }}
@@ -112,7 +114,7 @@
             <Transition name="dropdown">
               <div
                 v-if="showStatusDropdown"
-                class="absolute right-0 top-full mt-2 w-32 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                class="absolute right-0 top-full mt-2 w-32 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
               >
                 <button
                   v-for="st in statusOptions"
@@ -122,7 +124,7 @@
                   :class="
                     searchStatus === st.value
                       ? st.activeClass
-                      : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                   "
                 >
                   {{ st.label }}
@@ -171,7 +173,7 @@
 
           <!-- 通过率列 -->
           <template #cell-passRate="{ row }">
-            <span class="text-zinc-300 font-mono text-sm"
+            <span class="text-zinc-700 dark:text-zinc-300 font-mono text-sm"
               >{{ (row.passRate * 100).toFixed(1) }}%</span
             >
           </template>
@@ -181,9 +183,15 @@
             <div class="flex items-center gap-2">
               <button
                 @click="openEditForm(row)"
-                class="px-3 py-1.5 text-xs font-medium text-zinc-300 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                class="px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-white/5 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
               >
                 编辑
+              </button>
+              <button
+                @click="openSolutionDrawer(row)"
+                class="px-3 py-1.5 text-xs font-medium text-blue-400 bg-blue-500/10 rounded-lg hover:bg-blue-500/20 transition-colors"
+              >
+                题解
               </button>
               <button
                 v-if="row.status !== 1"
@@ -224,9 +232,9 @@
         confirm-text="下架"
         @confirm="confirmOffline"
       >
-        <p class="text-zinc-400 text-sm text-center">
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm text-center">
           确定要下架题目
-          <span class="text-white font-medium">{{ offlineTarget?.title }}</span>
+          <span class="text-zinc-900 dark:text-white font-medium">{{ offlineTarget?.title }}</span>
           吗？下架后用户将无法看到该题目。
         </p>
       </ArenaDialog>
@@ -238,12 +246,20 @@
         confirm-text="删除"
         @confirm="confirmDelete"
       >
-        <p class="text-zinc-400 text-sm text-center">
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm text-center">
           确定要删除题目
-          <span class="text-white font-medium">{{ deleteTarget?.title }}</span>
+          <span class="text-zinc-900 dark:text-white font-medium">{{ deleteTarget?.title }}</span>
           吗？此操作不可撤销。
         </p>
       </ArenaDialog>
+
+      <!-- 题解管理抽屉 -->
+      <AdminSolutionDrawer
+        v-model="showSolutionDrawer"
+        :problem-id="solutionTarget?.id ?? null"
+        :problem-title="solutionTarget?.title ?? ''"
+        @deleted="fetchData"
+      />
     </div>
 
     <BackToTop />
@@ -257,6 +273,7 @@ import { useDebounceFn, onClickOutside } from '@vueuse/core'
 import { cn } from '@/lib/utils'
 import AdminDataTable from '@/components/admin/AdminDataTable.vue'
 import AdminProblemFormDialog from '@/components/admin/AdminProblemFormDialog.vue'
+import AdminSolutionDrawer from '@/components/admin/AdminSolutionDrawer.vue'
 import ArenaDialog from '@/components/arena/ArenaDialog.vue'
 import BackToTop from '@/components/ui/BackToTop.vue'
 import {
@@ -278,7 +295,7 @@ const columns = [
   { key: 'status', title: '状态', width: '100px' },
   { key: 'submitNum', title: '提交数', width: '100px' },
   { key: 'passRate', title: '首次通过率', width: '100px' },
-  { key: 'actions', title: '操作', width: '200px' },
+  { key: 'actions', title: '操作', width: '240px' },
 ]
 
 // --- 搜索 ---
@@ -478,6 +495,15 @@ const confirmDelete = async () => {
   await deleteProblemApi(deleteTarget.value.id)
   showDeleteDialog.value = false
   fetchData()
+}
+
+// --- 题解管理 ---
+const showSolutionDrawer = ref(false)
+const solutionTarget = ref<AdminProblemVO | null>(null)
+
+const openSolutionDrawer = (row: AdminProblemVO) => {
+  solutionTarget.value = row
+  showSolutionDrawer.value = true
 }
 
 // --- 初始化 ---

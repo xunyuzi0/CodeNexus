@@ -1,5 +1,7 @@
 <template>
-  <div class="min-h-[calc(100vh-80px)] bg-zinc-950 bg-grid-white/[0.02] p-8">
+  <div
+    class="min-h-[calc(100vh-80px)] bg-zinc-50 dark:bg-zinc-950 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] p-8"
+  >
     <div class="relative z-10 max-w-7xl mx-auto space-y-6">
       <!-- 页面标题 -->
       <div
@@ -9,19 +11,19 @@
         :visible="{ opacity: 1, y: 0, transition: { duration: 400 } }"
       >
         <div
-          class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+          class="p-2 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm backdrop-blur-sm"
         >
           <Swords class="w-6 h-6 text-[#FF4C00]" />
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-white">对战记录管理</h1>
-          <p class="text-zinc-500 text-sm mt-0.5">查看与管理所有对战房间</p>
+          <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">对战记录管理</h1>
+          <p class="text-zinc-500 dark:text-zinc-500 text-sm mt-0.5">查看与管理所有对战房间</p>
         </div>
       </div>
 
       <!-- 筛选栏 -->
       <div
-        class="relative z-20 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-lg shadow-black/20 hover:border-[#FF4C00]/30 transition-colors duration-500"
+        class="relative z-20 bg-white dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-sm dark:shadow-lg dark:shadow-black/20 hover:border-[#FF4C00]/30 transition-colors duration-500"
         v-motion
         :initial="{ opacity: 0, y: -10 }"
         :visible="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
@@ -36,7 +38,7 @@
               :class="
                 filterStatus
                   ? statusFilterOptions.find((s) => s.value === filterStatus)?.activeClass
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20'
+                  : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20'
               "
             >
               {{ statusFilterOptions.find((s) => s.value === filterStatus)?.label || '全部状态' }}
@@ -48,7 +50,7 @@
             <Transition name="dropdown">
               <div
                 v-if="showStatusDropdown"
-                class="absolute left-0 top-full mt-2 w-36 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                class="absolute left-0 top-full mt-2 w-36 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
               >
                 <button
                   v-for="st in statusFilterOptions"
@@ -58,7 +60,7 @@
                   :class="
                     filterStatus === st.value
                       ? st.activeClass
-                      : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                   "
                 >
                   {{ st.label }}
@@ -74,7 +76,7 @@
               :class="
                 filterRoomType !== ''
                   ? typeFilterOptions.find((t) => t.value === filterRoomType)?.activeClass
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20'
+                  : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20'
               "
             >
               {{ typeFilterOptions.find((t) => t.value === filterRoomType)?.label || '全部类型' }}
@@ -86,7 +88,7 @@
             <Transition name="dropdown">
               <div
                 v-if="showTypeDropdown"
-                class="absolute left-0 top-full mt-2 w-36 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                class="absolute left-0 top-full mt-2 w-36 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
               >
                 <button
                   v-for="tp in typeFilterOptions"
@@ -96,7 +98,7 @@
                   :class="
                     filterRoomType === tp.value
                       ? tp.activeClass
-                      : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                   "
                 >
                   {{ tp.label }}
@@ -117,7 +119,7 @@
                 'px-4 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-2',
                 abnormalMode
                   ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20',
+                  : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20',
               )
             "
           >
@@ -130,13 +132,13 @@
       <!-- 异常模式提示 -->
       <div
         v-if="abnormalMode"
-        class="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 flex items-center gap-3"
+        class="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 flex items-center gap-3"
         v-motion
         :initial="{ opacity: 0, y: -50 }"
         :visible="{ opacity: 1, y: 0, transition: { duration: 400 } }"
       >
         <AlertTriangle class="w-5 h-5 text-rose-400 shrink-0" />
-        <p class="text-rose-300 text-sm">
+        <p class="text-rose-700 dark:text-rose-300 text-sm">
           当前正在查看异常对局记录，这些对局可能存在超时、断线或其他异常情况。
         </p>
       </div>
@@ -181,14 +183,16 @@
 
           <!-- 题目列 -->
           <template #cell-problemTitle="{ row }">
-            <span class="text-zinc-300 text-sm line-clamp-1">{{ row.problemTitle || '-' }}</span>
+            <span class="text-zinc-700 dark:text-zinc-300 text-sm line-clamp-1">{{
+              row.problemTitle || '-'
+            }}</span>
           </template>
 
           <!-- 操作列 -->
           <template #cell-actions="{ row }">
             <button
               @click="openDetail(row)"
-              class="px-3 py-1.5 text-xs font-medium text-zinc-300 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+              class="px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-white/5 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
             >
               详情
             </button>
@@ -205,12 +209,18 @@
       >
         <div v-if="detailRoom" class="space-y-4">
           <div class="grid grid-cols-2 gap-3">
-            <div class="bg-black/30 rounded-xl p-3 border border-white/5">
-              <p class="text-zinc-500 text-xs mb-1">房间码</p>
-              <p class="text-white font-mono font-bold">{{ detailRoom.roomCode }}</p>
+            <div
+              class="bg-zinc-50 dark:bg-black/30 rounded-xl p-3 border border-zinc-200 dark:border-white/5"
+            >
+              <p class="text-zinc-400 dark:text-zinc-500 text-xs mb-1">房间码</p>
+              <p class="text-zinc-900 dark:text-white font-mono font-bold">
+                {{ detailRoom.roomCode }}
+              </p>
             </div>
-            <div class="bg-black/30 rounded-xl p-3 border border-white/5">
-              <p class="text-zinc-500 text-xs mb-1">类型</p>
+            <div
+              class="bg-zinc-50 dark:bg-black/30 rounded-xl p-3 border border-zinc-200 dark:border-white/5"
+            >
+              <p class="text-zinc-400 dark:text-zinc-500 text-xs mb-1">类型</p>
               <p>
                 <span
                   :class="
@@ -224,8 +234,10 @@
                 </span>
               </p>
             </div>
-            <div class="bg-black/30 rounded-xl p-3 border border-white/5">
-              <p class="text-zinc-500 text-xs mb-1">状态</p>
+            <div
+              class="bg-zinc-50 dark:bg-black/30 rounded-xl p-3 border border-zinc-200 dark:border-white/5"
+            >
+              <p class="text-zinc-400 dark:text-zinc-500 text-xs mb-1">状态</p>
               <p>
                 <span
                   :class="
@@ -239,14 +251,22 @@
                 </span>
               </p>
             </div>
-            <div class="bg-black/30 rounded-xl p-3 border border-white/5">
-              <p class="text-zinc-500 text-xs mb-1">题目</p>
-              <p class="text-white text-sm line-clamp-1">{{ detailRoom.problemTitle || '-' }}</p>
+            <div
+              class="bg-zinc-50 dark:bg-black/30 rounded-xl p-3 border border-zinc-200 dark:border-white/5"
+            >
+              <p class="text-zinc-400 dark:text-zinc-500 text-xs mb-1">题目</p>
+              <p class="text-zinc-900 dark:text-white text-sm line-clamp-1">
+                {{ detailRoom.problemTitle || '-' }}
+              </p>
             </div>
           </div>
-          <div class="bg-black/30 rounded-xl p-3 border border-white/5">
-            <p class="text-zinc-500 text-xs mb-1">创建时间</p>
-            <p class="text-zinc-300 font-mono text-sm">{{ detailRoom.createTime }}</p>
+          <div
+            class="bg-zinc-50 dark:bg-black/30 rounded-xl p-3 border border-zinc-200 dark:border-white/5"
+          >
+            <p class="text-zinc-400 dark:text-zinc-500 text-xs mb-1">创建时间</p>
+            <p class="text-zinc-700 dark:text-zinc-300 font-mono text-sm">
+              {{ detailRoom.createTime }}
+            </p>
           </div>
         </div>
       </ArenaDialog>

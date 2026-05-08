@@ -4,7 +4,7 @@
       v-for="(item, index) in problems"
       :key="item.id"
       @click="emit('click', item.id)"
-      class="group relative flex items-center justify-between bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-xl p-4 transition-all duration-300 cursor-pointer hover:border-[#FF4C00]/50 hover:bg-zinc-800/80 hover:shadow-[0_0_15px_rgba(255,76,0,0.15)] hover:-translate-y-0.5"
+      class="group relative flex items-center justify-between bg-white dark:bg-zinc-900/50 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-xl p-4 transition-all duration-300 cursor-pointer hover:border-[#FF4C00]/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 hover:shadow-md dark:hover:shadow-[0_0_15px_rgba(255,76,0,0.15)] hover:-translate-y-0.5"
       v-motion
       :initial="{ opacity: 0, y: 30 }"
       :enter="{
@@ -31,18 +31,18 @@
             v-else-if="item.status === 'ATTEMPTED'"
             class="w-4 h-4 rounded-full border-[3px] border-amber-500/30"
           ></div>
-          <Circle v-else class="w-5 h-5 text-zinc-700" />
+          <Circle v-else class="w-5 h-5 text-zinc-300 dark:text-zinc-700" />
         </div>
 
         <div class="flex flex-col min-w-0">
           <div class="flex items-baseline gap-3">
             <span
-              class="text-zinc-500 font-mono text-sm font-bold group-hover:text-zinc-400 transition-colors"
+              class="text-zinc-400 dark:text-zinc-500 font-mono text-sm font-bold group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors"
             >
               #{{ item.displayId }}
             </span>
             <h3
-              class="text-zinc-200 font-bold text-base truncate group-hover:text-white transition-colors"
+              class="text-zinc-800 dark:text-zinc-200 font-bold text-base truncate group-hover:text-zinc-900 dark:group-hover:text-white transition-colors"
             >
               {{ item.title }}
             </h3>
@@ -52,13 +52,13 @@
             <span
               v-for="tag in item.tags"
               :key="tag"
-              class="border border-white/5 bg-white/5 text-xs text-zinc-500 px-2.5 py-1 rounded-md font-medium group-hover:border-white/10 group-hover:text-zinc-400 transition-colors"
+              class="border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 text-xs text-zinc-500 px-2.5 py-1 rounded-md font-medium group-hover:border-zinc-300 dark:group-hover:border-white/10 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors"
             >
               {{ tag }}
             </span>
             <span
               v-if="item.joinTime"
-              class="text-xs text-zinc-600 font-mono ml-2 border-l border-white/10 pl-2"
+              class="text-xs text-zinc-400 dark:text-zinc-600 font-mono ml-2 border-l border-zinc-200 dark:border-white/10 pl-2"
             >
               Added: {{ item.joinTime.split(' ')[0] }}
             </span>
@@ -68,8 +68,12 @@
 
       <div class="hidden md:flex items-center gap-8 shrink-0 pr-2">
         <div class="text-right" v-if="item.passRate !== undefined">
-          <p class="text-zinc-600 text-xs uppercase font-bold tracking-wider mb-0.5">首次通过率</p>
-          <p class="text-zinc-300 font-mono text-sm">{{ item.passRate }}%</p>
+          <p
+            class="text-zinc-400 dark:text-zinc-600 text-xs uppercase font-bold tracking-wider mb-0.5"
+          >
+            首次通过率
+          </p>
+          <p class="text-zinc-700 dark:text-zinc-300 font-mono text-sm">{{ item.passRate }}%</p>
         </div>
 
         <div class="w-16 flex justify-end">
@@ -83,7 +87,7 @@
 
         <button
           @click.stop="emit('action', item.id)"
-          class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 transition-all active:scale-90"
+          class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all active:scale-90"
           :title="actionType === 'favorite' ? '操作收藏' : '移除收藏'"
         >
           <Star
@@ -92,12 +96,12 @@
             :class="
               collectedIds.includes(item.id)
                 ? 'text-[#FF4C00] fill-[#FF4C00] drop-shadow-[0_0_8px_rgba(255,76,0,0.5)]'
-                : 'text-zinc-600 hover:text-[#FF4C00]'
+                : 'text-zinc-400 dark:text-zinc-600 hover:text-[#FF4C00]'
             "
           />
           <Trash2
             v-else-if="actionType === 'remove'"
-            class="w-5 h-5 text-zinc-600 hover:text-red-500 hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-colors duration-300"
+            class="w-5 h-5 text-zinc-400 dark:text-zinc-600 hover:text-red-500 hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-colors duration-300"
           />
         </button>
       </div>

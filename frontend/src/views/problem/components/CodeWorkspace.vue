@@ -1,5 +1,7 @@
 <template>
-  <div class="flex flex-col h-full w-full bg-[#1e1e1e] relative group/workspace overflow-hidden">
+  <div
+    class="flex flex-col h-full w-full bg-white dark:bg-[#1e1e1e] relative group/workspace overflow-hidden"
+  >
     <div class="flex-1 min-h-0 relative z-0">
       <splitpanes class="zeekr-theme" horizontal @resize="handleResize">
         <pane
@@ -33,10 +35,10 @@
         <pane
           v-if="isConsoleOpen"
           :size="paneSizes.console"
-          class="bg-zinc-900 flex flex-col min-h-0 border-t border-white/5 relative transition-[height] duration-300 ease-in-out z-10"
+          class="bg-zinc-50 dark:bg-zinc-900 flex flex-col min-h-0 border-t border-zinc-200 dark:border-white/5 relative transition-[height] duration-300 ease-in-out z-10"
         >
           <div
-            class="h-9 shrink-0 flex items-center justify-between px-2 bg-zinc-950 border-b border-white/5 select-none"
+            class="h-9 shrink-0 flex items-center justify-between px-2 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-white/5 select-none"
           >
             <div class="flex items-center h-full gap-1">
               <button
@@ -45,7 +47,9 @@
                 @click="activeConsoleTab = tab"
                 class="h-full px-4 text-xs font-medium relative transition-colors flex items-center gap-2 group"
                 :class="
-                  activeConsoleTab === tab ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                  activeConsoleTab === tab
+                    ? 'text-zinc-900 dark:text-white'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 "
               >
                 <component :is="tab === 'testcase' ? FlaskConical : Terminal" class="w-3.5 h-3.5" />
@@ -58,14 +62,14 @@
             </div>
             <button
               @click="toggleConsole"
-              class="mr-2 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
+              class="mr-2 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
               title="收起控制台"
             >
               <ChevronDown class="w-4 h-4" />
             </button>
           </div>
 
-          <div class="flex-1 overflow-y-auto custom-scrollbar p-4 bg-zinc-900/50">
+          <div class="flex-1 overflow-y-auto custom-scrollbar p-4 bg-zinc-50 dark:bg-zinc-900/50">
             <div
               v-show="activeConsoleTab === 'testcase'"
               class="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col"
@@ -77,8 +81,8 @@
                     class="px-3 py-1.5 rounded-lg text-xs font-mono transition-all border flex items-center gap-1.5 group/tab"
                     :class="
                       activeCaseIndex === index
-                        ? 'bg-zinc-800 text-white border-white/10 shadow-sm'
-                        : 'border-transparent text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300'
+                        ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white border-zinc-300 dark:border-white/10 shadow-sm'
+                        : 'border-transparent text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-700 dark:hover:text-zinc-300'
                     "
                   >
                     用例 {{ index + 1 }}
@@ -91,7 +95,7 @@
                 </div>
                 <button
                   @click="handleAddTestCase"
-                  class="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-colors border border-dashed border-zinc-700"
+                  class="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors border border-dashed border-zinc-300 dark:border-zinc-700"
                   title="添加测试用例"
                   :disabled="readOnly"
                 >
@@ -112,7 +116,7 @@
                     >
                     <textarea
                       v-model="testCases[activeCaseIndex]!.inputs[key]"
-                      class="w-full min-h-[80px] bg-black/30 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm text-zinc-300 placeholder-zinc-700 focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 outline-none transition-all resize-y"
+                      class="w-full min-h-[80px] bg-white dark:bg-black/30 border border-zinc-200 dark:border-white/10 rounded-lg px-4 py-3 font-mono text-sm text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-700 focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00]/20 outline-none transition-all resize-y"
                       spellcheck="false"
                       :placeholder="`请输入 ${key} 的纯数据`"
                       :disabled="readOnly"
@@ -132,9 +136,11 @@
               </div>
               <div
                 v-else-if="runResults.length === 0"
-                class="h-full flex flex-col items-center justify-center text-zinc-600 space-y-3"
+                class="h-full flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 space-y-3"
               >
-                <div class="w-12 h-12 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
+                <div
+                  class="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center"
+                >
                   <Terminal class="w-6 h-6 opacity-40" />
                 </div>
                 <p class="text-xs font-medium">请点击“运行”以执行自测代码</p>
@@ -208,14 +214,14 @@
                   </div>
 
                   <div
-                    class="bg-black/30 border border-white/10 rounded-xl p-4 font-mono text-xs space-y-4 shadow-inner"
+                    class="bg-zinc-50 dark:bg-black/30 border border-zinc-200 dark:border-white/10 rounded-xl p-4 font-mono text-xs space-y-4 shadow-inner"
                   >
                     <div class="space-y-1.5">
                       <span class="text-zinc-500 block tracking-wider scale-90 origin-left"
                         >输入内容</span
                       >
                       <div
-                        class="text-zinc-300 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg whitespace-pre-wrap leading-relaxed"
+                        class="text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/5 px-3 py-2.5 rounded-lg whitespace-pre-wrap leading-relaxed"
                       >
                         {{ runResults[activeResultIndex]!.input }}
                       </div>
@@ -225,7 +231,7 @@
                         >实际输出</span
                       >
                       <div
-                        class="bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg"
+                        class="bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/5 px-3 py-2.5 rounded-lg"
                         :class="
                           runResults[activeResultIndex]!.status === 'AC'
                             ? 'text-emerald-500'
@@ -240,7 +246,7 @@
                         >期望输出</span
                       >
                       <div
-                        class="text-emerald-500 bg-zinc-800/50 border border-white/5 px-3 py-2.5 rounded-lg opacity-80"
+                        class="text-emerald-500 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/5 px-3 py-2.5 rounded-lg opacity-80"
                       >
                         {{ runResults[activeResultIndex]!.expected ?? '无 (自测模式无对照组)' }}
                       </div>
@@ -255,13 +261,13 @@
     </div>
 
     <div
-      class="h-14 shrink-0 bg-zinc-950/80 backdrop-blur-xl border-t border-white/5 px-6 flex items-center justify-between z-30"
+      class="h-14 shrink-0 bg-white dark:bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-200 dark:border-white/5 px-6 flex items-center justify-between z-30"
     >
       <div class="flex items-center gap-2">
         <button
           v-if="!isConsoleOpen"
           @click="toggleConsole"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors text-xs font-medium active:scale-95 duration-200 group"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors text-xs font-medium active:scale-95 duration-200 group"
         >
           <div class="relative">
             <SquareTerminal class="w-4 h-4 group-hover:text-[#FF4C00] transition-colors" />
@@ -281,7 +287,7 @@
         <button
           @click="handleRun"
           :disabled="isRunning || isSubmitting || readOnly"
-          class="px-5 py-2 rounded-lg bg-zinc-800 text-zinc-200 border border-white/5 hover:bg-zinc-700 hover:text-white transition-all font-bold text-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+          class="px-5 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-white/5 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-white transition-all font-bold text-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
         >
           <Play class="w-4 h-4 fill-zinc-400 group-hover:fill-white transition-colors" /> 运行
         </button>
@@ -667,24 +673,25 @@ const getStatusText = (status: string) => {
   overflow: hidden;
 }
 .zeekr-theme .splitpanes__splitter {
-  background-color: #09090b !important;
+  background-color: #e4e4e7 !important;
   border: none !important;
   box-sizing: border-box;
   position: relative;
   z-index: 20;
   transition: all 0.2s ease;
 }
+:root.dark .zeekr-theme .splitpanes__splitter {
+  background-color: #09090b !important;
+}
 .zeekr-theme.splitpanes--vertical > .splitpanes__splitter {
-  width: 6px !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-left: -1px;
+  width: 1px !important;
+  border-left: none !important;
+  border-right: none !important;
 }
 .zeekr-theme.splitpanes--horizontal > .splitpanes__splitter {
-  height: 6px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-top: -1px;
+  height: 1px !important;
+  border-top: none !important;
+  border-bottom: none !important;
 }
 .zeekr-theme .splitpanes__splitter::after {
   content: '';

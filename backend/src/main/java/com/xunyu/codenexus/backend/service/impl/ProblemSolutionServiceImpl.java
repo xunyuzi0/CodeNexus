@@ -37,9 +37,10 @@ public class ProblemSolutionServiceImpl extends ServiceImpl<ProblemSolutionMappe
 
     @Override
     public List<SolutionVO> getProblemSolutionList(Long problemId) {
-        // 1. 获取该题目下的所有题解，按最新时间排序
+        // 1. 获取该题目下的所有题解，官方题解置顶，再按最新时间排序
         List<ProblemSolution> solutions = this.list(new LambdaQueryWrapper<ProblemSolution>()
                 .eq(ProblemSolution::getProblemId, problemId)
+                .orderByDesc(ProblemSolution::getIsOfficial)
                 .orderByDesc(ProblemSolution::getCreateTime));
 
         if (solutions.isEmpty()) {
@@ -61,7 +62,12 @@ public class ProblemSolutionServiceImpl extends ServiceImpl<ProblemSolutionMappe
         return solutions.stream().map(sol -> {
             SolutionVO vo = new SolutionVO();
             BeanUtils.copyProperties(sol, vo);
-            vo.setAuthorName(userMap.getOrDefault(sol.getAuthorId(), "匿名极客"));
+            // 官方题解作者名显示为 CODENEXUS
+            if (sol.getIsOfficial() != null && sol.getIsOfficial() == 1) {
+                vo.setAuthorName("CODENEXUS");
+            } else {
+                vo.setAuthorName(userMap.getOrDefault(sol.getAuthorId(), "匿名极客"));
+            }
             return vo;
         }).collect(Collectors.toList());
     }

@@ -1,12 +1,14 @@
 <template>
   <div
-    class="h-full flex flex-col bg-zinc-950 border-l border-white/5 overflow-hidden select-none relative"
+    class="h-full flex flex-col bg-white dark:bg-zinc-950 border-l border-zinc-200 dark:border-white/5 overflow-hidden select-none relative"
   >
-    <div class="shrink-0 p-4 space-y-3 border-b border-white/5 relative z-20 bg-zinc-950">
+    <div
+      class="shrink-0 p-4 space-y-3 border-b border-zinc-200 dark:border-white/5 relative z-20 bg-white dark:bg-zinc-950"
+    >
       <div
         v-for="player in players"
         :key="player.id"
-        class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-white/5 backdrop-blur-md transition-all duration-300 hover:bg-zinc-900/50 gap-2"
+        class="flex items-center justify-between p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900/30 border border-zinc-200 dark:border-white/5 backdrop-blur-md transition-all duration-300 hover:bg-zinc-200 dark:hover:bg-zinc-900/50 gap-2"
         :class="{ 'ring-1 ring-amber-400/50 bg-amber-400/10': player.status === 'PASSED' }"
       >
         <div class="flex items-center gap-4 min-w-0">
@@ -77,7 +79,7 @@
             <img
               :src="player.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.id}`"
               alt="avatar"
-              class="w-9 h-9 rounded-full bg-zinc-950 border border-white/10 object-cover relative z-10 transition-transform duration-300"
+              class="w-9 h-9 rounded-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-300 dark:border-white/10 object-cover relative z-10 transition-transform duration-300"
               :class="{
                 'animate-ac-shake': player.status === 'PASSED',
                 'animate-err-shake': player.status === 'SUBMIT_FAILED',
@@ -87,8 +89,8 @@
 
           <div class="flex flex-col min-w-0">
             <span
-              class="text-xs font-bold text-zinc-300 truncate"
-              :class="{ 'text-amber-400': player.status === 'PASSED' }"
+              class="text-xs font-bold text-zinc-700 dark:text-zinc-300 truncate"
+              :class="{ 'text-amber-500 dark:text-amber-400': player.status === 'PASSED' }"
             >
               {{ player.name }}
             </span>
@@ -116,34 +118,40 @@
       </div>
     </div>
 
-    <div class="flex-1 flex flex-col min-h-0 bg-[#050505] relative z-10 overflow-hidden">
+    <div
+      class="flex-1 flex flex-col min-h-0 bg-zinc-50 dark:bg-[#050505] relative z-10 overflow-hidden"
+    >
       <Transition name="holo">
         <div
           v-if="activeHolo"
-          class="absolute inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden bg-black/60 backdrop-blur-[2px]"
+          class="absolute inset-0 z-50 pointer-events-none flex items-center justify-center overflow-hidden bg-zinc-100/80 dark:bg-black/60 backdrop-blur-[2px]"
         >
           <div class="flex flex-col items-center justify-center animate-holo-float">
             <component
               :is="activeHolo.config.icon"
-              class="w-20 h-20 mb-4 opacity-90 mix-blend-screen filter drop-shadow-[0_0_25px_currentColor]"
+              class="w-20 h-20 mb-4 opacity-90 dark:mix-blend-screen filter drop-shadow-[0_0_25px_currentColor]"
               :class="activeHolo.config.color"
             />
             <span
-              class="font-mono font-bold text-sm tracking-widest text-transparent bg-clip-text bg-gradient-to-t to-white"
+              class="font-mono font-bold text-sm tracking-widest text-transparent bg-clip-text bg-gradient-to-t dark:to-white to-zinc-900"
               :class="activeHolo.config.gradientFrom"
             >
               {{ activeHolo.isMe ? activeHolo.config.myHolo : activeHolo.config.enemyHolo }}
             </span>
-            <div class="mt-3 text-[10px] text-zinc-400 font-mono tracking-widest animate-pulse">
+            <div
+              class="mt-3 text-[10px] text-zinc-500 dark:text-zinc-400 font-mono tracking-widest animate-pulse"
+            >
               {{ activeHolo.isMe ? '正在发送战术信号...' : '正在接收战术信号...' }}
             </div>
           </div>
-          <div class="absolute inset-0 bg-scanline opacity-30 pointer-events-none"></div>
+          <div
+            class="absolute inset-0 bg-scanline opacity-20 dark:opacity-30 pointer-events-none"
+          ></div>
         </div>
       </Transition>
 
       <div
-        class="px-4 py-2 shrink-0 border-b border-white/5 flex items-center justify-between relative z-20"
+        class="px-4 py-2 shrink-0 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between relative z-20"
       >
         <span class="text-[10px] text-zinc-500 font-mono tracking-widest">>>_ 战况日志终端</span>
         <div
@@ -177,7 +185,7 @@
     </div>
 
     <div
-      class="h-[60px] shrink-0 border-t border-white/5 bg-zinc-950 flex items-center justify-center gap-6 px-4 relative z-10"
+      class="h-[60px] shrink-0 border-t border-zinc-200 dark:border-white/5 bg-white dark:bg-zinc-950 flex items-center justify-center gap-6 px-4 relative z-10"
     >
       <button
         v-for="(ping, index) in tacticalPings"
@@ -185,11 +193,11 @@
         @click="emitPing(ping)"
         :disabled="cdTimer > 0 || isBattleEnded"
         :title="ping.label"
-        class="relative p-3 rounded-xl bg-zinc-900/80 border border-white/5 text-zinc-400 transition-all duration-300 flex items-center justify-center group focus:outline-none"
+        class="relative p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/5 text-zinc-500 dark:text-zinc-400 transition-all duration-300 flex items-center justify-center group focus:outline-none"
         :class="
           cdTimer > 0 || isBattleEnded
             ? 'opacity-40 cursor-not-allowed'
-            : 'hover:text-white hover:border-[#FF4C00]/40 hover:bg-[#FF4C00]/10 hover:shadow-[0_0_15px_rgba(255,76,0,0.15)] active:scale-95'
+            : 'hover:text-zinc-900 dark:hover:text-white hover:border-[#FF4C00]/40 hover:bg-[#FF4C00]/10 hover:shadow-[0_0_15px_rgba(255,76,0,0.15)] active:scale-95'
         "
       >
         <component

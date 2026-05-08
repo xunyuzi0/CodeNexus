@@ -24,11 +24,11 @@
     >
       <div class="flex items-center gap-3 mb-1">
         <div
-          class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+          class="p-2 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm backdrop-blur-sm"
         >
           <LayoutDashboard class="w-6 h-6 text-[#FF4C00]" />
         </div>
-        <h1 class="text-3xl font-black tracking-tight text-white">仪表盘</h1>
+        <h1 class="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">仪表盘</h1>
       </div>
       <p class="text-zinc-500 text-sm font-medium tracking-wide pl-1">
         实时监控您的编程活动、算力指标与成长轨迹
@@ -41,7 +41,7 @@
       <div
         :class="
           cn(
-            'group md:col-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-8 flex flex-col justify-between hover:border-[#FF4C00]/30 transition-all duration-500 hover:shadow-[0_0_30px_rgba(255,76,0,0.1)] opacity-0',
+            'group md:col-span-2 relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200 dark:border-white/5 p-8 flex flex-col justify-between hover:border-[#FF4C00]/30 transition-all duration-500 hover:shadow-md dark:hover:shadow-[0_0_30px_rgba(255,76,0,0.1)] opacity-0',
             isFixedMode ? 'h-full' : 'min-h-[240px]',
           )
         "
@@ -55,7 +55,7 @@
               <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               <span class="text-xs font-bold text-zinc-500 tracking-wider">当前会话</span>
             </div>
-            <h3 class="text-2xl font-bold text-white">
+            <h3 class="text-2xl font-bold text-zinc-900 dark:text-white">
               {{ greeting }},
               <span class="text-[#FF4C00]">{{ displayName }}</span>
             </h3>
@@ -64,18 +64,18 @@
             </p>
           </div>
           <Zap
-            class="w-12 h-12 text-zinc-800 group-hover:text-[#FF4C00]/20 transition-colors duration-500"
+            class="w-12 h-12 text-[#FF4C00]/30 group-hover:text-[#FF4C00] transition-colors duration-500"
           />
         </div>
 
         <div class="relative z-10 mt-4 flex items-baseline gap-4">
           <span
-            class="text-5xl md:text-6xl font-black font-mono text-white tracking-tighter tabular-nums"
+            class="text-5xl md:text-6xl font-black font-mono text-zinc-900 dark:text-white tracking-tighter tabular-nums"
           >
             {{ formattedTime }}
           </span>
           <span
-            class="text-sm font-bold text-zinc-500 tracking-widest border-l border-zinc-700 pl-4 whitespace-nowrap"
+            class="text-sm font-bold text-zinc-500 tracking-widest border-l border-zinc-300 dark:border-zinc-700 pl-4 whitespace-nowrap"
           >
             {{ currentDate }}
           </span>
@@ -89,7 +89,7 @@
       <div
         :class="
           cn(
-            'md:col-span-1 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-1 hover:border-[#FF4C00]/30 transition-all duration-500 group opacity-0',
+            'md:col-span-1 relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200 dark:border-white/5 p-1 hover:border-[#FF4C00]/30 transition-all duration-500 group opacity-0',
             isFixedMode ? 'h-full' : 'min-h-[240px]',
           )
         "
@@ -98,7 +98,7 @@
         :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
       >
         <div
-          class="h-full w-full rounded-[20px] bg-black/40 flex flex-col items-center justify-center relative overflow-hidden p-6"
+          class="h-full w-full rounded-[20px] bg-zinc-50 dark:bg-black/40 flex flex-col items-center justify-center relative overflow-hidden p-6"
         >
           <div v-if="!isCheckedIn" class="flex flex-col items-center z-10 w-full">
             <button
@@ -110,12 +110,12 @@
                 class="absolute inset-0 bg-[#FF4C00]/10 rounded-full blur-md group-hover/btn:bg-[#FF4C00]/30 transition-colors"
               ></div>
               <div
-                class="relative w-20 h-20 bg-gradient-to-b from-[#FF4C00] to-[#9a2e00] rounded-full flex items-center justify-center shadow-[0_0_20px_#FF4C00] border-2 border-[#ff8c5a] hover:scale-105 active:scale-95 transition-all duration-200"
+                class="relative w-20 h-20 bg-gradient-to-b from-[#FF4C00] to-[#ff7a3d] dark:to-[#9a2e00] rounded-full flex items-center justify-center shadow-[0_0_20px_#FF4C00] border-2 border-[#ff8c5a] hover:scale-105 active:scale-95 transition-all duration-200"
               >
                 <Zap class="w-10 h-10 text-white fill-white" />
               </div>
             </button>
-            <h3 class="text-white font-bold text-lg tracking-wide">每日充能</h3>
+            <h3 class="text-zinc-900 dark:text-white font-bold text-lg tracking-wide">每日充能</h3>
             <p class="text-xs text-zinc-500 mt-1 text-center">点击注入算力</p>
           </div>
 
@@ -124,19 +124,19 @@
             class="flex flex-col items-center z-10 w-full animate-in zoom-in duration-300"
           >
             <div class="relative w-20 h-20 mb-4 flex items-center justify-center">
-              <div class="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl"></div>
+              <div class="absolute inset-0 bg-[#FF4C00]/20 rounded-full blur-xl"></div>
               <Flame
-                class="w-12 h-12 text-emerald-500 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse"
+                class="w-12 h-12 text-[#FF4C00] drop-shadow-[0_0_10px_rgba(255,76,0,0.8)] animate-pulse"
               />
             </div>
             <div class="text-center">
               <h3
-                class="text-emerald-400 font-bold text-lg tracking-wide shadow-emerald-500/50 drop-shadow-sm"
+                class="text-[#FF4C00] font-bold text-lg tracking-wide shadow-[#FF4C00]/50 drop-shadow-sm"
               >
                 能量已满
               </h3>
               <p
-                class="text-xs text-zinc-400 mt-2 bg-white/5 px-3 py-1 rounded-md border border-white/5 flex items-center justify-center gap-1"
+                class="text-xs text-zinc-500 mt-2 bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-md border border-zinc-200 dark:border-white/5 flex items-center justify-center gap-1"
               >
                 连续打卡
                 <span class="text-[#FF4C00] font-bold text-sm mx-1">{{ checkInDays }}</span> 天
@@ -152,7 +152,7 @@
       <div
         :class="
           cn(
-            'md:col-span-1 md:row-span-2 relative overflow-hidden rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 flex flex-col hover:border-[#FF4C00]/30 transition-all duration-500 hover:translate-y-[-2px] hover:shadow-xl opacity-0',
+            'md:col-span-1 md:row-span-2 relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200 dark:border-white/5 flex flex-col hover:border-[#FF4C00]/30 transition-all duration-500 hover:translate-y-[-2px] hover:shadow-xl opacity-0',
             isFixedMode ? 'h-full' : 'min-h-[500px]',
           )
         "
@@ -160,24 +160,26 @@
         :initial="{ opacity: 0, x: 20 }"
         :enter="{ opacity: 1, x: 0, transition: { duration: 400, delay: 150 } }"
       >
-        <div class="p-4 md:p-6 border-b border-white/5 bg-white/[0.02]">
+        <div
+          class="p-4 md:p-6 border-b border-zinc-100 dark:border-white/5 bg-zinc-50 dark:bg-white/[0.02]"
+        >
           <h3 class="text-xs font-bold text-zinc-500 tracking-wider flex items-center gap-2">
             <Activity class="w-4 h-4" /> 核心指标
           </h3>
         </div>
 
-        <div class="flex-1 flex flex-col divide-y divide-white/5">
+        <div class="flex-1 flex flex-col divide-y divide-zinc-100 dark:divide-white/5">
           <div
-            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors"
           >
             <div class="flex items-center justify-between mb-1 md:mb-2">
-              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">战力评分</span>
+              <span class="text-[10px] md:text-xs text-zinc-500 font-medium">战力评分</span>
               <Trophy
                 class="w-3 h-3 md:w-4 md:h-4 text-[#FF4C00] opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
             <div
-              class="text-2xl md:text-4xl font-black font-mono text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,76,0,0.3)]"
+              class="text-2xl md:text-4xl font-black font-mono text-zinc-900 dark:text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,76,0,0.3)]"
             >
               {{ stats.rankScore }}
             </div>
@@ -203,18 +205,22 @@
           </div>
 
           <div
-            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors"
           >
             <div class="flex items-center justify-between mb-1 md:mb-2">
-              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">全站排名</span>
+              <span class="text-[10px] md:text-xs text-zinc-500 font-medium">全站排名</span>
               <Crown
                 class="w-3 h-3 md:w-4 md:h-4 text-yellow-500 opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
-            <div class="text-xl md:text-3xl font-bold font-mono text-zinc-200 tracking-tighter">
+            <div
+              class="text-xl md:text-3xl font-bold font-mono text-zinc-900 dark:text-zinc-200 tracking-tighter"
+            >
               #{{ stats.globalRank }}
             </div>
-            <div class="w-full bg-zinc-800 h-1 rounded-full mt-2 md:mt-3 overflow-hidden">
+            <div
+              class="w-full bg-zinc-200 dark:bg-zinc-800 h-1 rounded-full mt-2 md:mt-3 overflow-hidden"
+            >
               <div
                 class="h-full bg-yellow-600 shadow-[0_0_10px_#ca8a04] transition-all duration-1000"
                 :style="{ width: rankProgress }"
@@ -223,17 +229,16 @@
           </div>
 
           <div
-            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors"
           >
             <div class="flex items-center justify-between mb-1 md:mb-2">
-              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">对战胜率</span>
+              <span class="text-[10px] md:text-xs text-zinc-500 font-medium">对战胜率</span>
               <Swords
                 class="w-3 h-3 md:w-4 md:h-4 text-emerald-400 opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
             <div class="flex items-baseline gap-2">
-              <span
-                class="text-xl md:text-3xl font-bold font-mono text-emerald-400 tracking-tighter"
+              <span class="text-xl md:text-3xl font-bold font-mono text-[#FF4C00] tracking-tighter"
                 >{{ stats.winRate || 0 }}<span class="text-sm md:text-lg">%</span></span
               >
               <span class="text-[10px] md:text-xs text-zinc-600 font-mono"
@@ -243,18 +248,19 @@
           </div>
 
           <div
-            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-white/[0.02] transition-colors"
+            class="flex-1 p-4 md:p-6 flex flex-col justify-center group/item hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors"
           >
             <div class="flex items-center justify-between mb-1 md:mb-2">
-              <span class="text-[10px] md:text-xs text-zinc-400 font-medium">解题总量</span>
+              <span class="text-[10px] md:text-xs text-zinc-500 font-medium">解题总量</span>
               <Target
                 class="w-3 h-3 md:w-4 md:h-4 text-blue-400 opacity-50 group-hover/item:opacity-100 transition-opacity"
               />
             </div>
             <div class="flex items-baseline gap-2">
-              <span class="text-xl md:text-3xl font-bold font-mono text-white tracking-tighter">{{
-                stats.solvedCount
-              }}</span>
+              <span
+                class="text-xl md:text-3xl font-bold font-mono text-zinc-900 dark:text-white tracking-tighter"
+                >{{ stats.solvedCount }}</span
+              >
               <span class="text-[10px] md:text-xs text-zinc-600 font-mono"
                 >/ {{ stats.totalProblems }}</span
               >
@@ -266,7 +272,7 @@
       <div
         :class="
           cn(
-            'md:col-span-2 relative rounded-3xl bg-zinc-900/50 backdrop-blur-xl border border-white/5 p-6 hover:border-[#FF4C00]/30 transition-all duration-500 group/heatmap flex flex-col opacity-0',
+            'md:col-span-2 relative rounded-3xl bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-zinc-200 dark:border-white/5 p-6 hover:border-[#FF4C00]/30 transition-all duration-500 group/heatmap flex flex-col opacity-0',
             isFixedMode ? 'h-full min-h-[260px]' : 'min-h-[260px]',
           )
         "
@@ -276,7 +282,9 @@
       >
         <div class="flex items-center justify-between mb-4 shrink-0">
           <div>
-            <h3 class="text-sm font-bold text-white tracking-wide">思维活跃度</h3>
+            <h3 class="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">
+              思维活跃度
+            </h3>
             <p class="text-xs text-zinc-500 mt-0.5 font-mono">
               {{ displayYear }}年 {{ displayPeriod }}
             </p>
@@ -286,13 +294,13 @@
             <div class="flex items-center gap-1">
               <button
                 @click="switchPeriod(-1)"
-                class="p-1 rounded-md hover:bg-white/10 text-zinc-500 hover:text-white transition-colors"
+                class="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <ChevronLeft class="w-4 h-4" />
               </button>
               <button
                 @click="switchPeriod(1)"
-                class="p-1 rounded-md hover:bg-white/10 text-zinc-500 hover:text-white transition-colors"
+                class="p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <ChevronRight class="w-4 h-4" />
               </button>
@@ -301,10 +309,12 @@
             <div class="flex items-center gap-1.5 text-[10px] text-zinc-500 font-mono">
               <span>少</span>
               <div class="flex gap-1">
-                <div class="w-3 h-3 rounded-[3px] bg-zinc-800 border border-white/5"></div>
-                <div class="w-3 h-3 rounded-[3px] bg-[#FF4C00]/20 border border-white/5"></div>
-                <div class="w-3 h-3 rounded-[3px] bg-[#FF4C00]/50 border border-white/5"></div>
-                <div class="w-3 h-3 rounded-[3px] bg-[#FF4C00] border border-white/5"></div>
+                <div
+                  class="w-3 h-3 rounded-[3px] bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-white/5"
+                ></div>
+                <div class="w-3 h-3 rounded-[3px] bg-[#FF4C00]/20 border border-[#FF4C00]/10"></div>
+                <div class="w-3 h-3 rounded-[3px] bg-[#FF4C00]/50 border border-[#FF4C00]/20"></div>
+                <div class="w-3 h-3 rounded-[3px] bg-[#FF4C00] border border-[#FF4C00]/30"></div>
               </div>
               <span>多</span>
             </div>
@@ -335,21 +345,21 @@
                       'w-4 h-4 rounded-[3px] transition-colors duration-200 relative group/cell',
                       item.date ? heatmapColors[item.level] : 'bg-transparent pointer-events-none',
                       item.date && item.level > 0
-                        ? 'border border-white/5'
+                        ? 'border border-[#FF4C00]/10 dark:border-white/5'
                         : 'border border-transparent',
                     )
                   "
                 >
                   <div
                     v-if="item.date"
-                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-900 border border-white/20 rounded-md text-xs text-zinc-200 font-mono whitespace-nowrap opacity-0 group-hover/cell:opacity-100 transition-opacity duration-200 pointer-events-none z-50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] select-none min-w-max"
+                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/20 rounded-md text-xs text-zinc-700 dark:text-zinc-200 font-mono whitespace-nowrap opacity-0 group-hover/cell:opacity-100 transition-opacity duration-200 pointer-events-none z-50 shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.5)] select-none min-w-max"
                   >
                     <span class="text-zinc-400">{{ item.date }}:</span>
                     <span :class="cn('font-bold ml-1', levelTextColors[item.level])"
                       >{{ item.count }} 活跃度</span
                     >
                     <div
-                      class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 border-b border-r border-white/20 rotate-45"
+                      class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white dark:bg-zinc-900 border-b border-r border-zinc-200 dark:border-white/20 rotate-45"
                     ></div>
                   </div>
                 </div>
@@ -372,13 +382,13 @@
       >
         <button
           @click="triggerAction('RANKED')"
-          class="flex-1 relative group overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-800/50 via-zinc-900/50 to-black/50 border border-white/5 hover:border-[#FF4C00]/30 flex items-center px-6 transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(255,76,0,0.15)] cursor-pointer"
+          class="flex-1 relative group overflow-hidden rounded-2xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/5 hover:border-[#FF4C00]/30 flex items-center px-6 transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] hover:-translate-y-1 hover:shadow-md dark:hover:shadow-[0_0_30px_rgba(255,76,0,0.15)] cursor-pointer"
         >
           <div
-            class="absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            class="absolute inset-0 bg-[#FF4C00]/5 dark:bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           ></div>
           <div
-            class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mr-4 group-hover:bg-[#FF4C00] group-hover:text-white transition-colors duration-300 z-10"
+            class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-white/5 flex items-center justify-center mr-4 group-hover:bg-[#FF4C00] group-hover:text-white transition-colors duration-300 z-10"
           >
             <Swords class="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
           </div>
@@ -388,34 +398,38 @@
             >
               排位赛
             </div>
-            <div class="text-sm font-black text-white group-hover:text-white transition-colors">
+            <div
+              class="text-sm font-black text-zinc-900 dark:text-white group-hover:text-[#FF4C00] dark:group-hover:text-white transition-colors"
+            >
               进入战场
             </div>
           </div>
           <ChevronRight
-            class="w-5 h-5 ml-auto text-zinc-600 group-hover:text-[#FF4C00] group-hover:translate-x-1 transition-all duration-300 z-10"
+            class="w-5 h-5 ml-auto text-zinc-400 group-hover:text-[#FF4C00] group-hover:translate-x-1 transition-all duration-300 z-10"
           />
         </button>
 
         <button
           @click="triggerAction('PRACTICE')"
-          class="flex-1 relative group overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-800/50 via-zinc-900/50 to-black/50 border border-white/5 hover:border-zinc-500/30 flex items-center px-6 transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)] cursor-pointer"
+          class="flex-1 relative group overflow-hidden rounded-2xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/5 hover:border-zinc-400 dark:hover:border-zinc-500/30 flex items-center px-6 transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] hover:-translate-y-1 hover:shadow-md dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.05)] cursor-pointer"
         >
           <div
-            class="absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            class="absolute inset-0 bg-zinc-50 dark:bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           ></div>
           <div
-            class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mr-4 group-hover:bg-zinc-200 group-hover:text-black transition-colors duration-300 z-10"
+            class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-white/5 flex items-center justify-center mr-4 group-hover:bg-zinc-200 group-hover:text-black transition-colors duration-300 z-10"
           >
-            <Dices class="w-5 h-5 text-zinc-400 group-hover:text-black transition-colors" />
+            <Dices class="w-5 h-5 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
           </div>
           <div class="text-left z-10">
             <div
-              class="text-xs font-bold text-zinc-500 group-hover:text-zinc-300 tracking-wider transition-colors duration-300"
+              class="text-xs font-bold text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 tracking-wider transition-colors duration-300"
             >
               每日挑战
             </div>
-            <div class="text-sm font-black text-white group-hover:text-white transition-colors">
+            <div
+              class="text-sm font-black text-zinc-900 dark:text-white group-hover:text-zinc-900 dark:group-hover:text-white transition-colors"
+            >
               智能刷题
             </div>
           </div>
@@ -445,14 +459,37 @@
             :class="cn('w-8 h-8', actionType === 'RANKED' ? 'text-purple-500' : 'text-[#FF4C00]')"
           />
         </div>
-        <p class="text-zinc-400 text-sm leading-relaxed" v-html="dialogConfig.desc"></p>
+        <p
+          class="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed"
+          v-html="dialogConfig.desc"
+        ></p>
 
         <div
           v-if="actionType === 'RANKED'"
-          class="mt-4 p-3 bg-black/40 rounded-lg border border-white/5 text-xs text-zinc-500 font-mono"
+          class="mt-4 p-3 bg-zinc-50 dark:bg-black/40 rounded-lg border border-zinc-200 dark:border-white/5 text-xs text-zinc-500 font-mono"
         >
-          当前排位积分: <span class="text-white">{{ stats.rankScore }}</span>
+          当前排位积分: <span class="text-zinc-900 dark:text-white">{{ stats.rankScore }}</span>
         </div>
+      </div>
+    </ArenaDialog>
+
+    <ArenaDialog
+      v-model="showSolvedDialog"
+      title="今日挑战已完成"
+      confirm-text="再练一次"
+      cancel-text="返回"
+      @confirm="handleSolvedConfirm"
+    >
+      <div class="text-center">
+        <div
+          class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 border bg-emerald-500/10 border-emerald-500/20"
+        >
+          <Trophy class="w-8 h-8 text-emerald-500" />
+        </div>
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">
+          恭喜！您今天已经通过了本题。<br />
+          <span class="text-emerald-500 font-bold">活跃度 +1</span>，是否再来一次巩固练习？
+        </p>
       </div>
     </ArenaDialog>
   </div>
@@ -571,6 +608,8 @@ const handleCheckIn = async () => {
 
 // --- 战备弹窗与路由跳转 ---
 const showDialog = ref(false)
+const showSolvedDialog = ref(false)
+const dailyProblemId = ref<number | null>(null)
 const actionType = ref<'RANKED' | 'PRACTICE'>('RANKED')
 
 const dialogConfig = computed(() => {
@@ -599,16 +638,28 @@ const triggerAction = (type: 'RANKED' | 'PRACTICE') => {
 const handleConfirm = async () => {
   showDialog.value = false
   if (actionType.value === 'RANKED') {
-    router.push('/battle/matchmaking')
+    router.push({ path: '/battle/matchmaking', query: { from: 'dashboard' } })
   } else {
     try {
-      const problemId = await getDailyRecommendProblem()
-      if (problemId) {
-        router.push(`/problems/${problemId}`)
+      const res = await getDailyRecommendProblem()
+      if (res.problemId) {
+        dailyProblemId.value = res.problemId
+        if (res.alreadySolved) {
+          showSolvedDialog.value = true
+        } else {
+          router.push({ path: `/problems/${res.problemId}`, query: { from: 'dashboard' } })
+        }
       }
     } catch (error) {
       console.error('获取推荐题目失败', error)
     }
+  }
+}
+
+const handleSolvedConfirm = () => {
+  showSolvedDialog.value = false
+  if (dailyProblemId.value) {
+    router.push({ path: `/problems/${dailyProblemId.value}`, query: { from: 'dashboard' } })
   }
 }
 
@@ -646,7 +697,7 @@ const switchPeriod = (direction: number) => {
 }
 
 const heatmapColors = [
-  'bg-zinc-800',
+  'bg-zinc-200 dark:bg-zinc-800',
   'bg-[#FF4C00]/20',
   'bg-[#FF4C00]/40',
   'bg-[#FF4C00]/70',
@@ -658,7 +709,7 @@ const levelTextColors = [
   'text-[#FF4C00]/60',
   'text-[#FF4C00]/80',
   'text-[#FF4C00]',
-  'text-white',
+  'text-[#c23a00] dark:text-white',
 ]
 
 const generateHeatmapData = async () => {

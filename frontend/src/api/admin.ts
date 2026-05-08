@@ -9,6 +9,7 @@ import type {
   AdminStatsOverviewVO,
   DailyTrendVO,
   ActivityAnalysisVO,
+  SolutionVO,
 } from '@/types/api'
 
 // ==========================================
@@ -151,6 +152,33 @@ export function updateTestcase(
 export function deleteTestcase(id: number) {
   return request<boolean>({
     url: `/api/admin/problems/testcases/${id}`,
+    method: 'DELETE',
+  })
+}
+
+// ---------- 题解管理 ----------
+
+export function getProblemSolutions(problemId: number) {
+  return request<SolutionVO[]>({
+    url: `/api/admin/problems/${problemId}/solutions`,
+    method: 'GET',
+  })
+}
+
+export function publishOfficialSolution(
+  problemId: number,
+  data: { title: string; content: string; code: string },
+) {
+  return request<boolean>({
+    url: `/api/admin/problems/${problemId}/solutions`,
+    method: 'POST',
+    data,
+  })
+}
+
+export function deleteSolution(solutionId: number) {
+  return request<boolean>({
+    url: `/api/admin/problems/solutions/${solutionId}`,
     method: 'DELETE',
   })
 }

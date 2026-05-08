@@ -1,13 +1,13 @@
 <template>
-  <div class="absolute top-6 left-6 z-50">
+  <div class="absolute top-1/2 left-6 -translate-y-1/2 z-50">
     <button
       @click="handleClick"
       :disabled="disabled"
       class="group flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300"
       :class="
         disabled
-          ? 'text-zinc-600 opacity-50 cursor-not-allowed'
-          : 'text-zinc-500 hover:text-white hover:bg-white/5'
+          ? 'text-zinc-400 dark:text-zinc-600 opacity-50 cursor-not-allowed'
+          : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5'
       "
     >
       <ArrowLeft

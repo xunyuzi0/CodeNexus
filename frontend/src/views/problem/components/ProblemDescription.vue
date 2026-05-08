@@ -1,7 +1,9 @@
 <template>
-  <div class="flex flex-col h-full min-w-0 bg-zinc-900/30 backdrop-blur-sm relative group/pane">
+  <div
+    class="flex flex-col h-full min-w-0 bg-white dark:bg-zinc-900/30 backdrop-blur-sm relative group/pane"
+  >
     <div
-      class="h-10 shrink-0 flex items-center justify-between px-2 bg-zinc-950/80 border-b border-white/5 select-none backdrop-blur-md z-20"
+      class="h-10 shrink-0 flex items-center justify-between px-2 bg-zinc-50 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-white/5 select-none backdrop-blur-md z-20"
     >
       <div class="flex items-center h-full gap-1">
         <button
@@ -11,15 +13,17 @@
           class="relative h-full px-4 text-xs font-medium transition-all duration-300 flex items-center gap-2 group"
           :class="[
             currentTab === tab.id
-              ? 'text-white'
-              : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5',
+              ? 'text-zinc-900 dark:text-white'
+              : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5',
           ]"
         >
           <component
             :is="tab.icon"
             class="w-3.5 h-3.5 transition-colors"
             :class="
-              currentTab === tab.id ? 'text-[#FF4C00]' : 'text-zinc-600 group-hover:text-zinc-400'
+              currentTab === tab.id
+                ? 'text-[#FF4C00]'
+                : 'text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-400'
             "
           />
           {{ tab.label }}
@@ -37,7 +41,7 @@
       <div class="flex items-center gap-1 pr-1">
         <button
           @click="$emit('toggle-maximize')"
-          class="p-1.5 rounded-md text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
+          class="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
           :title="isMaximized ? '还原视图' : '最大化阅读模式'"
         >
           <Minimize2 v-if="isMaximized" class="w-3.5 h-3.5" />
@@ -54,8 +58,8 @@
           class="space-y-6"
           v-motion-slide-visible-bottom
         >
-          <div class="space-y-3 pb-4 border-b border-white/5">
-            <h1 class="text-xl font-bold text-white tracking-tight leading-snug">
+          <div class="space-y-3 pb-4 border-b border-zinc-200 dark:border-white/5">
+            <h1 class="text-xl font-bold text-zinc-900 dark:text-white tracking-tight leading-snug">
               {{ problem.title }}
             </h1>
             <div class="flex items-center gap-3 text-xs">
@@ -78,7 +82,7 @@
           </div>
 
           <div
-            class="prose prose-invert prose-sm max-w-none text-zinc-400 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-600"
+            class="prose prose-sm dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-400 leading-relaxed prose-headings:text-zinc-900 dark:prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-800 dark:prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-100 dark:prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-100 dark:prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-zinc-200 dark:prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-400 dark:prose-li:marker:text-zinc-600"
             v-html="parsedContent"
           ></div>
 
@@ -86,10 +90,10 @@
             <div
               v-for="(ex, i) in problem.examples"
               :key="i"
-              class="bg-zinc-900/40 border border-white/5 rounded-xl overflow-hidden hover:border-white/10 transition-colors group/card"
+              class="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-white/5 rounded-xl overflow-hidden hover:border-zinc-400 dark:hover:border-white/10 transition-colors group/card"
             >
               <div
-                class="px-4 py-2 bg-white/[0.02] border-b border-white/5 flex items-center justify-between"
+                class="px-4 py-2 bg-zinc-100 dark:bg-white/[0.02] border-b border-zinc-200 dark:border-white/5 flex items-center justify-between"
               >
                 <span
                   class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2"
@@ -107,7 +111,7 @@
                     >Input</span
                   >
                   <div
-                    class="bg-[#0d0d0d] border border-white/5 rounded-lg px-3 py-2 text-zinc-300"
+                    class="bg-zinc-100 dark:bg-[#0d0d0d] border border-zinc-200 dark:border-white/5 rounded-lg px-3 py-2 text-zinc-700 dark:text-zinc-300"
                   >
                     {{ ex.input }}
                   </div>
@@ -118,7 +122,7 @@
                     >Output</span
                   >
                   <div
-                    class="bg-[#0d0d0d] border border-white/5 rounded-lg px-3 py-2 text-white font-bold"
+                    class="bg-zinc-100 dark:bg-[#0d0d0d] border border-zinc-200 dark:border-white/5 rounded-lg px-3 py-2 text-zinc-900 dark:text-white font-bold"
                   >
                     {{ ex.output }}
                   </div>
@@ -136,7 +140,7 @@
             </div>
           </div>
 
-          <div class="mt-8 pt-8 border-t border-white/5">
+          <div class="mt-8 pt-8 border-t border-zinc-200 dark:border-white/5">
             <div class="flex items-center gap-3 flex-wrap">
               <span class="text-xs text-zinc-500 select-none flex items-center gap-1">
                 <Tag class="w-3.5 h-3.5" /> 相关标签:
@@ -144,7 +148,7 @@
               <span
                 v-for="tag in problem.tags"
                 :key="tag"
-                class="px-3 py-1 text-xs font-medium rounded-full bg-zinc-800/50 border border-white/5 text-zinc-400 hover:text-white hover:border-[#FF4C00]/30 hover:bg-[#FF4C00]/10 cursor-pointer transition-all duration-300"
+                class="px-3 py-1 text-xs font-medium rounded-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-[#FF4C00]/30 hover:bg-[#FF4C00]/10 cursor-pointer transition-all duration-300"
               >
                 {{ tag }}
               </span>
@@ -157,8 +161,10 @@
           key="solution"
           class="space-y-4 animate-in fade-in slide-in-from-bottom-2"
         >
-          <div class="flex items-center justify-between pb-3 border-b border-white/5">
-            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <div
+            class="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-white/5"
+          >
+            <h2 class="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               官方与社区题解
               <span class="text-xs font-normal text-zinc-500">({{ solutionsList.length }})</span>
             </h2>
@@ -173,7 +179,7 @@
 
           <div
             v-if="solutionLoading"
-            class="h-32 w-full bg-zinc-800/20 border border-white/5 rounded-xl flex items-center justify-center"
+            class="h-32 w-full bg-zinc-100 dark:bg-zinc-800/20 border border-zinc-200 dark:border-white/5 rounded-xl flex items-center justify-center"
           >
             <Loader2 class="w-6 h-6 animate-spin text-[#FF4C00]" />
           </div>
@@ -182,23 +188,40 @@
             <div
               v-for="sol in solutionsList"
               :key="sol.id"
-              class="bg-zinc-900/40 border rounded-xl overflow-hidden transition-all duration-300"
+              class="bg-zinc-50 dark:bg-zinc-900/40 border rounded-xl overflow-hidden transition-all duration-300"
               :class="
                 expandedSolutions.has(sol.id)
                   ? 'border-[#FF4C00]/30 shadow-[0_0_15px_rgba(255,76,0,0.05)]'
-                  : 'border-white/5 hover:border-white/10'
+                  : 'border-zinc-200 dark:border-white/5 hover:border-zinc-400 dark:hover:border-white/10'
               "
             >
               <div
-                class="p-4 cursor-pointer hover:bg-white/[0.02] flex items-center justify-between transition-colors group/head"
+                class="p-4 cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/[0.02] flex items-center justify-between transition-colors group/head"
                 @click="toggleExpand(sol)"
               >
                 <div class="flex-1 pr-4">
-                  <h3 class="text-white font-bold text-[15px] leading-snug truncate">
-                    {{ sol.title }}
-                  </h3>
+                  <div class="flex items-center gap-2">
+                    <h3
+                      class="text-zinc-900 dark:text-white font-bold text-[15px] leading-snug truncate"
+                    >
+                      {{ sol.title }}
+                    </h3>
+                    <span
+                      v-if="sol.isOfficial === 1"
+                      class="px-1.5 py-0.5 text-[10px] font-bold bg-[#FF4C00]/20 text-[#FF4C00] rounded shrink-0"
+                    >
+                      官方
+                    </span>
+                  </div>
                   <div class="flex items-center gap-2 text-xs text-zinc-500 mt-1.5">
-                    <span class="font-medium text-zinc-300">{{ sol.authorName }}</span>
+                    <span
+                      class="font-medium"
+                      :class="
+                        sol.isOfficial === 1 ? 'text-[#FF4C00]' : 'text-zinc-700 dark:text-zinc-300'
+                      "
+                    >
+                      {{ sol.authorName }}
+                    </span>
                     <span class="w-1 h-1 rounded-full bg-zinc-700"></span>
                     <span>{{ sol.createTime }}</span>
                     <span class="w-1 h-1 rounded-full bg-zinc-700"></span>
@@ -236,30 +259,32 @@
                   </div>
 
                   <div
-                    class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-zinc-800/50"
+                    class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/50"
                   >
                     <ChevronUp
                       v-if="expandedSolutions.has(sol.id)"
                       class="w-4 h-4 text-[#FF4C00]"
                     />
-                    <ChevronDown v-else class="w-4 h-4 text-zinc-500" />
+                    <ChevronDown v-else class="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                   </div>
                 </div>
               </div>
 
               <div
                 v-show="expandedSolutions.has(sol.id)"
-                class="p-5 border-t border-white/5 bg-zinc-950/50 space-y-6"
+                class="p-5 border-t border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-zinc-950/50 space-y-6"
               >
                 <section v-if="sol.content">
                   <div class="flex items-center gap-2 mb-3">
                     <div class="w-1 h-3 bg-[#FF4C00] rounded-full"></div>
-                    <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-widest">
+                    <h4
+                      class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-widest"
+                    >
                       解题思路
                     </h4>
                   </div>
                   <div
-                    class="prose prose-invert prose-sm max-w-none text-zinc-400 leading-relaxed prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-600"
+                    class="prose prose-sm dark:prose-invert max-w-none text-zinc-600 dark:text-zinc-400 leading-relaxed prose-headings:text-zinc-900 dark:prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-p:my-4 prose-p:leading-7 prose-strong:text-zinc-800 dark:prose-strong:text-zinc-200 prose-strong:font-semibold prose-code:text-[#FF4C00] prose-code:bg-zinc-100 dark:prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs prose-code:before:content-none prose-code:after:content-none prose-pre:bg-zinc-100 dark:prose-pre:bg-[#0d0d0d] prose-pre:border prose-pre:border-zinc-200 dark:prose-pre:border-white/10 prose-pre:rounded-xl prose-pre:p-4 prose-a:text-[#FF4C00] prose-a:no-underline hover:prose-a:underline prose-li:marker:text-zinc-400 dark:prose-li:marker:text-zinc-600"
                     v-html="parseMarkdown(sol.content)"
                   ></div>
                 </section>
@@ -274,7 +299,7 @@
                     </div>
                     <button
                       @click.stop="copyToClipboard(sol.code, sol.id)"
-                      class="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[10px] text-zinc-400 hover:text-white transition-all border border-white/5"
+                      class="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all border border-zinc-200 dark:border-white/5"
                     >
                       <component
                         :is="copiedId === sol.id ? Check : Copy"
@@ -286,7 +311,7 @@
                   </div>
                   <div class="relative group/code">
                     <pre
-                      class="bg-[#0d0d0d] border border-white/10 rounded-xl p-4 overflow-x-auto custom-scrollbar font-mono text-xs leading-relaxed text-zinc-300"
+                      class="bg-zinc-100 dark:bg-[#0d0d0d] border border-zinc-200 dark:border-white/10 rounded-xl p-4 overflow-x-auto custom-scrollbar font-mono text-xs leading-relaxed text-zinc-700 dark:text-zinc-300"
                     ><code>{{ sol.code }}</code></pre>
                   </div>
                 </section>
@@ -296,15 +321,15 @@
 
           <div
             v-else
-            class="h-32 w-full bg-zinc-800/20 border border-white/5 rounded-xl flex flex-col items-center justify-center gap-2"
+            class="h-32 w-full bg-zinc-100 dark:bg-zinc-800/20 border border-zinc-200 dark:border-white/5 rounded-xl flex flex-col items-center justify-center gap-2"
           >
-            <FlaskConical class="w-8 h-8 text-zinc-700" />
+            <FlaskConical class="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
             <p class="text-zinc-500 text-sm">暂无题解，来做第一个分享者吧！</p>
           </div>
         </div>
 
         <div v-else key="submissions" class="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-          <h2 class="text-lg font-bold text-white mb-4">我的提交</h2>
+          <h2 class="text-lg font-bold text-zinc-900 dark:text-white mb-4">我的提交</h2>
           <div v-if="submissionsLoading" class="h-32 flex items-center justify-center">
             <Loader2 class="w-6 h-6 animate-spin text-[#FF4C00]" />
           </div>
@@ -312,7 +337,7 @@
             <div
               v-for="sub in submissionsList"
               :key="sub.id"
-              class="p-4 bg-zinc-900/40 border border-white/5 rounded-xl flex items-center justify-between group hover:border-white/10 transition-colors"
+              class="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-white/5 rounded-xl flex items-center justify-between group hover:border-zinc-400 dark:hover:border-white/10 transition-colors"
             >
               <div class="flex items-center gap-3">
                 <div class="w-2 h-2 rounded-full" :class="getStatusConfig(sub.status).bg"></div>
@@ -335,7 +360,7 @@
           </template>
           <div
             v-else
-            class="h-32 w-full flex items-center justify-center bg-zinc-900/20 border border-white/5 rounded-xl"
+            class="h-32 w-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/20 border border-zinc-200 dark:border-white/5 rounded-xl"
           >
             <p class="text-zinc-500 text-sm">暂无提交记录</p>
           </div>
@@ -350,7 +375,7 @@
       @confirm="submitSolution"
     >
       <div class="space-y-4 pt-2">
-        <p class="text-zinc-400 text-sm leading-relaxed mb-4">
+        <p class="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mb-4">
           分享你的解题思路，帮助其他特工破解这道难题。支持使用 Markdown 语法进行代码高亮排版。
         </p>
 
@@ -363,7 +388,7 @@
             v-model="publishForm.title"
             type="text"
             :disabled="isPublishing"
-            class="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white focus:border-[#FF4C00] focus:bg-zinc-900 transition-colors outline-none placeholder-zinc-700 disabled:opacity-50"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-white focus:border-[#FF4C00] focus:bg-zinc-100 dark:focus:bg-zinc-900 transition-colors outline-none placeholder-zinc-400 dark:placeholder-zinc-700 disabled:opacity-50"
             placeholder="例如：双指针算法优化空间复杂度，附详细注释"
           />
         </div>
@@ -377,7 +402,7 @@
             v-model="publishForm.content"
             rows="6"
             :disabled="isPublishing"
-            class="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-300 focus:border-[#FF4C00] focus:bg-zinc-900 transition-colors outline-none placeholder-zinc-700 custom-scrollbar disabled:opacity-50 resize-none font-mono"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300 focus:border-[#FF4C00] focus:bg-zinc-100 dark:focus:bg-zinc-900 transition-colors outline-none placeholder-zinc-400 dark:placeholder-zinc-700 custom-scrollbar disabled:opacity-50 resize-none font-mono"
             placeholder="在此键入你的解题策略推导..."
           ></textarea>
         </div>
@@ -391,7 +416,7 @@
             v-model="publishForm.code"
             rows="8"
             :disabled="isPublishing"
-            class="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-300 focus:border-[#FF4C00] focus:bg-zinc-900 transition-colors outline-none placeholder-zinc-700 custom-scrollbar disabled:opacity-50 resize-none font-mono"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-700 dark:text-zinc-300 focus:border-[#FF4C00] focus:bg-zinc-100 dark:focus:bg-zinc-900 transition-colors outline-none placeholder-zinc-400 dark:placeholder-zinc-700 custom-scrollbar disabled:opacity-50 resize-none font-mono"
             placeholder="在此粘贴你的核心算法代码..."
           ></textarea>
         </div>
@@ -417,7 +442,7 @@
         >
           <Trash class="w-6 h-6 text-red-500" />
         </div>
-        <p class="text-zinc-400 text-sm">
+        <p class="text-zinc-600 dark:text-zinc-400 text-sm">
           一旦销毁，这条解题记录将<strong class="text-red-500">永久从服务器抹除</strong
           >。<br />你确定要这么做吗？
         </p>
@@ -697,10 +722,16 @@ watch(currentTab, (newTab) => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+:root.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+:root.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 </style>

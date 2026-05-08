@@ -2,6 +2,26 @@
   <div
     class="min-h-screen w-full flex overflow-hidden bg-zinc-50 dark:bg-[#05050A] text-zinc-900 dark:text-white selection:bg-[#FF4C00] selection:text-white relative transition-colors duration-500 select-none"
   >
+    <!-- Toast 通知 -->
+    <Transition name="toast-slide">
+      <div
+        v-if="toast.show"
+        class="fixed top-6 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2.5 px-5 py-3 rounded-xl shadow-2xl backdrop-blur-xl border max-w-sm"
+        :class="
+          toast.type === 'error'
+            ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-200'
+            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-200'
+        "
+      >
+        <component
+          :is="toast.type === 'error' ? AlertCircle : CheckCircle2"
+          class="w-4 h-4 shrink-0"
+          :class="toast.type === 'error' ? 'text-red-500' : 'text-emerald-500'"
+        />
+        <span class="text-sm font-medium">{{ toast.message }}</span>
+      </div>
+    </Transition>
+
     <div class="absolute inset-0 z-0 pointer-events-none">
       <div
         class="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_top_left,_var(--tw-gradient-stops))] from-zinc-200/50 via-zinc-100 to-white dark:from-zinc-800/50 dark:via-zinc-950 dark:to-black transition-colors duration-500"
@@ -353,7 +373,17 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { register } from '@/api/auth'
 import { toggleTheme, isDark } from '@/composables/useTheme'
-import { ArrowRight, User, Lock, CheckCircle, Sun, Moon, Mail } from 'lucide-vue-next'
+import {
+  ArrowRight,
+  User,
+  Lock,
+  CheckCircle,
+  Sun,
+  Moon,
+  Mail,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-vue-next'
 
 // 类型定义
 type AuthMode = 'login' | 'register' | 'reset'
@@ -370,6 +400,19 @@ const form = reactive({
   password: '',
   checkPassword: '',
 })
+
+// Toast 通知
+const toast = reactive({ show: false, message: '', type: 'success' as 'success' | 'error' })
+let toastTimer: number | null = null
+const showToast = (message: string, type: 'success' | 'error' = 'error') => {
+  if (toastTimer) clearTimeout(toastTimer)
+  toast.message = message
+  toast.type = type
+  toast.show = true
+  toastTimer = window.setTimeout(() => {
+    toast.show = false
+  }, 3000)
+}
 
 // 文案映射配置
 const titleMap: Record<AuthMode, string> = {
@@ -400,7 +443,7 @@ const switchMode = (target: AuthMode) => {
 // 方法：处理提交
 const handleSubmit = async () => {
   if (mode.value === 'register' && form.password !== form.checkPassword) {
-    alert('两次输入的密码不一致')
+    showToast('两次输入的密码不一致')
     return
   }
 
@@ -412,7 +455,7 @@ const handleSubmit = async () => {
         userPassword: form.password,
         checkPassword: form.checkPassword,
       })
-      alert('注册成功，请登录')
+      showToast('注册成功，请登录', 'success')
       switchMode('login')
     } else if (mode.value === 'login') {
       await userStore.login({ userAccount: form.username, userPassword: form.password })
@@ -420,12 +463,12 @@ const handleSubmit = async () => {
       router.replace(redirect)
     } else if (mode.value === 'reset') {
       await new Promise((resolve) => setTimeout(resolve, 1500)) // 模拟 API
-      alert(`重置链接已发送至 ${form.username}，请查收邮件`)
+      showToast(`重置链接已发送至 ${form.username}，请查收邮件`, 'success')
       switchMode('login')
     }
   } catch (error: any) {
     console.error(error)
-    alert(error.message || '操作失败')
+    showToast(error.message || '操作失败')
   } finally {
     loading.value = false
   }
@@ -433,6 +476,20 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* Toast 动画 */
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translate(-50%, -20px);
+}
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -20px);
+}
+
 /* 背景网格图案定义 */
 .bg-grid-white {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgba(255, 255, 255, 0.05)'%3e%3cpath d='M0 .5H31.5V32' stroke-width='1' /%3e%3c/svg%3e");

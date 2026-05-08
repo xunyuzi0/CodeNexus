@@ -50,6 +50,7 @@ export interface ProblemSolution {
   authorName: string
   viewCount: number
   createTime: string
+  isOfficial: number
 }
 
 // ==== 提交记录数据结构 ====
@@ -242,10 +243,12 @@ export async function getSubmissionStatus(
   })
 }
 
-// 获取每日推荐题目
-export async function getDailyRecommendProblem(): Promise<number> {
-  const res = await request<number>({
-    // 🎯 核心修复：对齐后端的 RESTful 规范路径，去掉多余的 /recommend 并加上 s
+// 获取每日推荐题目（返回题目 ID 及是否已 AC）
+export async function getDailyRecommendProblem(): Promise<{
+  problemId: number
+  alreadySolved: boolean
+}> {
+  const res = await request<{ problemId: number; alreadySolved: boolean }>({
     url: '/api/problems/daily-practice',
     method: 'GET',
   })

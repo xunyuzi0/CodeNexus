@@ -7,7 +7,7 @@
         @click="close"
       >
         <div
-          class="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#09090b] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative"
+          class="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-white/10 shadow-xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] relative"
           v-motion
           :initial="{ opacity: 0, scale: 0.95, y: 20 }"
           :enter="{
@@ -29,7 +29,7 @@
           <!-- 头部 -->
           <div class="relative z-10 p-6 pb-0">
             <div class="flex items-center justify-between mb-6">
-              <h3 class="text-xl font-bold text-white">
+              <h3 class="text-xl font-bold text-zinc-900 dark:text-white">
                 {{ isEdit ? '编辑题目' : '创建题目' }}
               </h3>
               <button
@@ -57,7 +57,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                 />
               </svg>
-              <span class="text-zinc-500 text-sm ml-3">加载题目详情...</span>
+              <span class="text-zinc-400 dark:text-zinc-500 text-sm ml-3">加载题目详情...</span>
             </div>
 
             <!-- 详情加载失败提示 -->
@@ -77,7 +77,7 @@
           >
             <!-- 题目标题 -->
             <div>
-              <label class="block text-sm text-zinc-400 mb-1.5"
+              <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5"
                 >题目标题 <span class="text-red-400">*</span></label
               >
               <input
@@ -85,13 +85,13 @@
                 type="text"
                 required
                 placeholder="请输入题目标题"
-                class="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
+                class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white text-sm placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
               />
             </div>
 
             <!-- 题目描述 -->
             <div>
-              <label class="block text-sm text-zinc-400 mb-1.5"
+              <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5"
                 >题目描述 <span class="text-red-400">*</span></label
               >
               <textarea
@@ -99,14 +99,14 @@
                 :required="!isEdit"
                 rows="8"
                 placeholder="支持 Markdown 格式，如：&#10;&#10;## 题目描述&#10;给定一个整数数组 nums...&#10;&#10;## 示例&#10;**输入:** nums = [1,2,3]&#10;**输出:** 6"
-                class="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors resize-y font-mono"
+                class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white text-sm placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors resize-y font-mono"
               />
             </div>
 
             <!-- 难度 & 状态 -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-zinc-400 mb-1.5"
+                <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5"
                   >难度 <span class="text-red-400">*</span></label
                 >
                 <div class="relative" ref="difficultyDropdownRef">
@@ -117,7 +117,7 @@
                     :class="
                       currentDifficulty
                         ? `${currentDifficulty.bg} ${currentDifficulty.border} ${currentDifficulty.color}`
-                        : 'bg-zinc-800/50 border-white/10 text-zinc-400'
+                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400'
                     "
                   >
                     <span class="font-bold">{{ currentDifficulty?.label || '选择难度' }}</span>
@@ -129,7 +129,7 @@
                   <Transition name="dropdown">
                     <div
                       v-if="showDifficultyDropdown"
-                      class="absolute left-0 right-0 top-full mt-2 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                      class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
                     >
                       <button
                         v-for="diff in difficultyOptions"
@@ -140,7 +140,7 @@
                         :class="
                           form.difficulty === diff.value
                             ? `${diff.bg} ${diff.border} ${diff.color}`
-                            : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                         "
                       >
                         {{ diff.label }}
@@ -150,7 +150,7 @@
                 </div>
               </div>
               <div>
-                <label class="block text-sm text-zinc-400 mb-1.5">状态</label>
+                <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5">状态</label>
                 <div class="relative" ref="statusDropdownRef">
                   <button
                     type="button"
@@ -159,7 +159,7 @@
                     :class="
                       currentStatus
                         ? `${currentStatus.bg} ${currentStatus.border} ${currentStatus.color}`
-                        : 'bg-zinc-800/50 border-white/10 text-zinc-400'
+                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400'
                     "
                   >
                     <span class="font-bold">{{ currentStatus?.label || '选择状态' }}</span>
@@ -171,7 +171,7 @@
                   <Transition name="dropdown">
                     <div
                       v-if="showStatusDropdown"
-                      class="absolute left-0 right-0 top-full mt-2 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                      class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
                     >
                       <button
                         v-for="st in statusOptions"
@@ -182,7 +182,7 @@
                         :class="
                           form.status === st.value
                             ? `${st.bg} ${st.border} ${st.color}`
-                            : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                         "
                       >
                         {{ st.label }}
@@ -195,12 +195,12 @@
 
             <!-- 标签 -->
             <div>
-              <label class="block text-sm text-zinc-400 mb-1.5">标签</label>
+              <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5">标签</label>
               <input
                 v-model="tagsInput"
                 type="text"
                 placeholder="多个标签用逗号分隔，如: 数组,双指针,排序"
-                class="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
+                class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white text-sm placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
               />
               <div v-if="parsedTags.length" class="flex flex-wrap gap-2 mt-2">
                 <span
@@ -216,25 +216,29 @@
             <!-- 时间限制 & 内存限制 -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-zinc-400 mb-1.5">时间限制 (ms)</label>
+                <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5"
+                  >时间限制 (ms)</label
+                >
                 <input
                   v-model.number="form.timeLimit"
                   type="number"
                   min="100"
                   max="10000"
                   placeholder="默认 1000"
-                  class="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
+                  class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white text-sm placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
                 />
               </div>
               <div>
-                <label class="block text-sm text-zinc-400 mb-1.5">内存限制 (MB)</label>
+                <label class="block text-sm text-zinc-500 dark:text-zinc-400 mb-1.5"
+                  >内存限制 (MB)</label
+                >
                 <input
                   v-model.number="form.memoryLimit"
                   type="number"
                   min="16"
                   max="512"
                   placeholder="默认 256"
-                  class="w-full px-4 py-2.5 bg-zinc-800/50 border border-white/10 rounded-xl text-white text-sm placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
+                  class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white text-sm placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 focus:ring-1 focus:ring-[#FF4C00]/20 transition-colors"
                 />
               </div>
             </div>
@@ -242,7 +246,7 @@
             <!-- 示例测试用例 -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
-                <label class="block text-sm text-zinc-400">示例测试用例</label>
+                <label class="block text-sm text-zinc-500 dark:text-zinc-400">示例测试用例</label>
                 <button
                   type="button"
                   @click="addExample"
@@ -255,7 +259,7 @@
 
               <div
                 v-if="form.examples.length === 0"
-                class="text-zinc-600 text-xs py-4 text-center border border-dashed border-white/10 rounded-xl"
+                class="text-zinc-400 dark:text-zinc-600 text-xs py-4 text-center border border-dashed border-zinc-300 dark:border-white/10 rounded-xl"
               >
                 暂无示例，点击上方按钮添加
               </div>
@@ -263,7 +267,7 @@
               <div
                 v-for="(example, idx) in form.examples"
                 :key="idx"
-                class="border border-white/10 rounded-xl p-4 mb-3 space-y-3 bg-zinc-800/20"
+                class="border border-zinc-200 dark:border-white/10 rounded-xl p-4 mb-3 space-y-3 bg-zinc-50 dark:bg-zinc-800/20"
               >
                 <div class="flex items-center justify-between">
                   <span class="text-xs text-zinc-500 font-medium">示例 {{ idx + 1 }}</span>
@@ -277,21 +281,21 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs text-zinc-500 mb-1">输入</label>
+                    <label class="block text-xs text-zinc-400 dark:text-zinc-500 mb-1">输入</label>
                     <textarea
                       v-model="example.input"
                       rows="2"
                       placeholder="如: [1,2,3]"
-                      class="w-full px-3 py-2 bg-zinc-800/50 border border-white/10 rounded-lg text-white text-xs placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono"
+                      class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-lg text-zinc-900 dark:text-white text-xs placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-zinc-500 mb-1">输出</label>
+                    <label class="block text-xs text-zinc-400 dark:text-zinc-500 mb-1">输出</label>
                     <textarea
                       v-model="example.output"
                       rows="2"
                       placeholder="如: 6"
-                      class="w-full px-3 py-2 bg-zinc-800/50 border border-white/10 rounded-lg text-white text-xs placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono"
+                      class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-lg text-zinc-900 dark:text-white text-xs placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono"
                     />
                   </div>
                 </div>
@@ -301,18 +305,20 @@
                     v-model="example.explanation"
                     type="text"
                     placeholder="如: 1 + 2 + 3 = 6"
-                    class="w-full px-3 py-2 bg-zinc-800/50 border border-white/10 rounded-lg text-white text-xs placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors"
+                    class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-lg text-zinc-900 dark:text-white text-xs placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors"
                   />
                 </div>
               </div>
             </div>
 
-            <!-- 判题检测点（仅编辑模式） -->
-            <div v-if="isEdit" class="border-t border-white/5 pt-5">
+            <!-- 判题检测点 -->
+            <div class="border-t border-zinc-200 dark:border-white/5 pt-5">
               <div class="flex items-center justify-between mb-3">
                 <div>
-                  <label class="block text-sm text-zinc-400">判题检测点</label>
-                  <p class="text-xs text-zinc-600 mt-0.5">用户提交后用于最终判定的隐藏测试用例</p>
+                  <label class="block text-sm text-zinc-500 dark:text-zinc-400">判题检测点</label>
+                  <p class="text-xs text-zinc-400 dark:text-zinc-600 mt-0.5">
+                    用户提交后用于最终判定的隐藏测试用例
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -324,13 +330,16 @@
                 </button>
               </div>
 
-              <div v-if="testcaseLoading" class="text-zinc-600 text-xs py-4 text-center">
+              <div
+                v-if="testcaseLoading"
+                class="text-zinc-400 dark:text-zinc-600 text-xs py-4 text-center"
+              >
                 加载检测点中...
               </div>
 
               <div
                 v-else-if="testcases.length === 0"
-                class="text-zinc-600 text-xs py-4 text-center border border-dashed border-white/10 rounded-xl"
+                class="text-zinc-400 dark:text-zinc-600 text-xs py-4 text-center border border-dashed border-zinc-300 dark:border-white/10 rounded-xl"
               >
                 暂无检测点，点击上方按钮添加
               </div>
@@ -338,7 +347,7 @@
               <div
                 v-for="(tc, idx) in testcases"
                 :key="idx"
-                class="border border-white/10 rounded-xl p-4 mb-3 space-y-3 bg-zinc-800/20"
+                class="border border-zinc-200 dark:border-white/10 rounded-xl p-4 mb-3 space-y-3 bg-zinc-50 dark:bg-zinc-800/20"
               >
                 <div class="flex items-center justify-between">
                   <span class="text-xs text-zinc-500 font-medium">
@@ -373,23 +382,25 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs text-zinc-500 mb-1">输入</label>
+                    <label class="block text-xs text-zinc-400 dark:text-zinc-500 mb-1">输入</label>
                     <textarea
                       v-model="tc.inputData"
                       :disabled="!tc._editing"
                       rows="2"
                       placeholder="如: 3&#10;1 2 3"
-                      class="w-full px-3 py-2 bg-zinc-800/50 border border-white/10 rounded-lg text-white text-xs placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono disabled:opacity-50"
+                      class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-lg text-zinc-900 dark:text-white text-xs placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono disabled:opacity-50"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-zinc-500 mb-1">期望输出</label>
+                    <label class="block text-xs text-zinc-400 dark:text-zinc-500 mb-1"
+                      >期望输出</label
+                    >
                     <textarea
                       v-model="tc.expectedOutput"
                       :disabled="!tc._editing"
                       rows="2"
                       placeholder="如: 6"
-                      class="w-full px-3 py-2 bg-zinc-800/50 border border-white/10 rounded-lg text-white text-xs placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono disabled:opacity-50"
+                      class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/10 rounded-lg text-zinc-900 dark:text-white text-xs placeholder-zinc-400 dark:placeholder-zinc-600 outline-none focus:border-[#FF4C00]/50 transition-colors resize-y font-mono disabled:opacity-50"
                     />
                   </div>
                 </div>
@@ -400,7 +411,7 @@
             <div class="flex items-center gap-4 pt-2">
               <button
                 type="button"
-                class="flex-1 py-3 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+                class="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors text-sm font-medium"
                 @click="close"
               >
                 取消
@@ -661,6 +672,7 @@ watch(
       } else {
         form.value = getDefaultForm()
         tagsInput.value = ''
+        testcases.value = [] // 新增模式下清空检测点
       }
     }
   },
@@ -680,6 +692,17 @@ const handleSubmit = () => {
     memoryLimit: form.value.memoryLimit,
     status: form.value.status,
     examples: form.value.examples.filter((e) => e.input.trim() || e.output.trim()),
+    // 新增模式下，将检测点一起提交
+    testcases: !isEdit.value
+      ? testcases.value
+          .filter((tc) => tc.inputData.trim() || tc.expectedOutput.trim())
+          .map((tc, idx) => ({
+            inputData: tc.inputData,
+            expectedOutput: tc.expectedOutput,
+            isPublic: tc.isPublic,
+            sortOrder: idx,
+          }))
+      : undefined,
   }
   emit('submit', payload)
 }

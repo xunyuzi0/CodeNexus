@@ -3,15 +3,15 @@
     <Transition name="fade">
       <div
         v-if="show"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/80 backdrop-blur-md"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-md"
         v-motion-fade
       >
         <div
-          class="w-[600px] bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          class="w-[600px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           v-motion-pop-visible
         >
           <div
-            class="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-zinc-950/50"
+            class="px-6 py-4 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950/50"
           >
             <div class="flex items-center gap-3">
               <Loader2 v-if="status === 'judging'" class="w-5 h-5 text-[#FF4C00] animate-spin" />
@@ -49,7 +49,7 @@
               <button
                 v-if="mode === 'battle' && status !== 'judging'"
                 @click="emit('close')"
-                class="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
+                class="p-1 rounded-md text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
                 title="关闭雷达"
               >
                 <X class="w-4 h-4" />
@@ -57,7 +57,7 @@
             </div>
           </div>
 
-          <div class="p-6 grid grid-cols-5 gap-3 bg-zinc-900/50">
+          <div class="p-6 grid grid-cols-5 gap-3 bg-zinc-50 dark:bg-zinc-900/50">
             <div
               v-for="cp in checkpoints"
               :key="cp.id"
@@ -70,7 +70,7 @@
 
               <div
                 v-if="cp.time"
-                class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-800 text-zinc-300 text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity border border-white/5 shadow-xl whitespace-nowrap z-10"
+                class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity border border-zinc-200 dark:border-white/5 shadow-xl whitespace-nowrap z-10"
               >
                 {{ cp.time }}ms
               </div>
@@ -79,17 +79,17 @@
 
           <div
             v-if="mode === 'practice' && status !== 'judging'"
-            class="px-6 py-4 bg-zinc-950/50 border-t border-white/5 flex items-center justify-end gap-3 animate-in fade-in slide-in-from-bottom-2"
+            class="px-6 py-4 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-200 dark:border-white/5 flex items-center justify-end gap-3 animate-in fade-in slide-in-from-bottom-2"
           >
             <button
               @click="emit('to-problems')"
-              class="px-5 py-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-sm font-medium active:scale-95 duration-200"
+              class="px-5 py-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors text-sm font-medium active:scale-95 duration-200"
             >
               回到题库
             </button>
             <button
               @click="emit('close')"
-              class="px-5 py-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-sm font-medium active:scale-95 duration-200"
+              class="px-5 py-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg transition-colors text-sm font-medium active:scale-95 duration-200"
             >
               继续研究
             </button>

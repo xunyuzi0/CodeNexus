@@ -4,6 +4,7 @@ package com.xunyu.codenexus.backend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xunyu.codenexus.backend.model.dto.request.problem.ProblemQueryRequest;
+import com.xunyu.codenexus.backend.model.dto.response.problem.DailyPracticeVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemDetailVO;
 import com.xunyu.codenexus.backend.model.dto.response.problem.ProblemVO;
 import com.xunyu.codenexus.backend.model.entity.Problem;
@@ -32,10 +33,11 @@ public interface ProblemService extends IService<Problem> {
     ProblemDetailVO getProblemDetail(Long id);
 
     /**
-     * 获取“每日一练”推荐题目
+     * 获取"每日一练"推荐题目
      * 智能推荐逻辑：基于当前用户的段位分映射难度，并严格过滤掉近 7 天内已 AC 的题目
+     * 当天内同一用户固定返回同一道题（Redis 缓存）
      *
-     * @return 推荐题目的 ID
+     * @return 推荐题目 ID 及是否已 AC
      */
-    Long getDailyPracticeProblem();
+    DailyPracticeVO getDailyPracticeProblem();
 }

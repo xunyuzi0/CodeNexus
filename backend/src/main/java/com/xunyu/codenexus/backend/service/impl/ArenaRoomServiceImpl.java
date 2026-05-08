@@ -74,9 +74,9 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
         // 【新增极客机制】：如果房主没有指定题目，埋下延迟智能抽题的种子
         if (request.getProblemId() == null) {
             // 暂时使用每日练习题作为合法占位符落库
-            room.setProblemId(problemService.getDailyPracticeProblem());
+            room.setProblemId(problemService.getDailyPracticeProblem().getProblemId());
 
-            // 在 Redis 埋下一个“等待智能抽题”的标记，2小时过期（与房间可能存在的最大生命周期一致）
+            // 在 Redis 埋下一个"等待智能抽题"的标记，2小时过期（与房间可能存在的最大生命周期一致）
             stringRedisTemplate.opsForValue().set("codenexus:arena:smart_pending:" + room.getRoomCode(), "1", 2, TimeUnit.HOURS);
         } else {
             // 如果房主指定了题目，尊重房主选择
@@ -187,7 +187,7 @@ public class ArenaRoomServiceImpl extends ServiceImpl<ArenaRoomMapper, ArenaRoom
             return priority2.get(ThreadLocalRandom.current().nextInt(priority2.size()));
         }
 
-        // --- 优先级三：两人均已全 AC，寻找“陈年老题”唤醒记忆 ---
+        // --- 优先级三：两人均已全 AC，寻找"陈年老题"唤醒记忆 ---
         List<UserProblemState> rustiestRecords = userProblemStateMapper.selectList(
                 new LambdaQueryWrapper<UserProblemState>()
                         .in(UserProblemState::getUserId, List.of(userId1, userId2))

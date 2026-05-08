@@ -11,7 +11,7 @@
             v-model="formData.userAccount"
             disabled
             type="text"
-            class="w-full bg-zinc-900/50 border border-zinc-700 text-zinc-400 rounded-xl py-3 pl-10 pr-4 focus:outline-none cursor-not-allowed"
+            class="w-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-xl py-3 pl-10 pr-4 outline-none cursor-not-allowed"
           />
         </div>
       </div>
@@ -25,7 +25,7 @@
           <input
             v-model="formData.userName"
             type="text"
-            class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all"
           />
         </div>
       </div>
@@ -39,7 +39,7 @@
           <input
             v-model="formData.email"
             type="email"
-            class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all"
           />
         </div>
       </div>
@@ -53,7 +53,7 @@
           <input
             v-model="formData.phone"
             type="tel"
-            class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all"
           />
         </div>
       </div>
@@ -69,7 +69,7 @@
           v-model="formData.userProfile"
           rows="4"
           placeholder="暂无个人资料"
-          class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all resize-none placeholder-zinc-600"
+          class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl py-3 pl-10 pr-4 outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all resize-none placeholder-zinc-400 dark:placeholder-zinc-600"
         ></textarea>
       </div>
     </div>

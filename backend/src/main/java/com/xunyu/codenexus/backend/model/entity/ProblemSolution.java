@@ -50,6 +50,11 @@ public class ProblemSolution {
     private String code;
 
     /**
+     * 是否官方题解(0-否 1-是)
+     */
+    private Integer isOfficial;
+
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)

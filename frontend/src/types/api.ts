@@ -196,6 +196,7 @@ export interface ProblemUpsertRequest {
   memoryLimit?: number
   examples?: { input: string; output: string; explanation?: string }[]
   status?: number
+  testcases?: { inputData: string; expectedOutput: string; isPublic?: number; sortOrder?: number }[]
 }
 
 export interface AdminArenaRoomVO {
@@ -233,4 +234,21 @@ export interface ActivityAnalysisVO {
   difficultyDistribution: Record<string, number>
   topProblems: { id: number; displayId: string; title: string; submitCount: number }[]
   languageDistribution: Record<string, number>
+}
+
+// ==========================================
+// 题解类型定义 (Problem Solution)
+// ==========================================
+
+export interface SolutionVO {
+  id: number
+  problemId: number
+  authorId: number
+  title: string
+  content: string
+  code: string
+  authorName: string
+  viewCount: number
+  createTime: string
+  isOfficial: number
 }

@@ -12,11 +12,11 @@
       <div>
         <div class="flex items-center gap-3 mb-2">
           <div
-            class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+            class="p-2 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm backdrop-blur-sm"
           >
             <Code2 class="w-6 h-6 text-[#FF4C00]" />
           </div>
-          <h1 class="text-3xl font-black tracking-tight text-white">题库中心</h1>
+          <h1 class="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">题库中心</h1>
         </div>
         <p class="text-zinc-500 text-sm font-medium tracking-wide pl-1">
           探索海量算法挑战，磨练编程技艺
@@ -26,7 +26,9 @@
       <div class="flex items-center gap-4">
         <div class="text-right hidden sm:block">
           <div class="flex items-baseline justify-end gap-1">
-            <span class="text-3xl font-black text-white font-mono tracking-tighter">
+            <span
+              class="text-3xl font-black text-zinc-900 dark:text-white font-mono tracking-tighter"
+            >
               {{ totalProblems }}
             </span>
             <span class="text-xs text-zinc-500 font-mono font-bold uppercase tracking-wider"
@@ -35,7 +37,7 @@
           </div>
         </div>
         <div
-          class="w-10 h-10 rounded-full bg-zinc-900/50 border border-white/5 flex items-center justify-center"
+          class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 flex items-center justify-center"
         >
           <TrendingUp class="w-5 h-5 text-emerald-500" />
         </div>
@@ -49,7 +51,7 @@
       :enter="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
     >
       <div
-        class="bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-lg shadow-black/20 group/search hover:border-[#FF4C00]/30 transition-colors duration-500"
+        class="bg-white dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-sm dark:shadow-lg dark:shadow-black/20 group/search hover:border-[#FF4C00]/30 transition-colors duration-500"
       >
         <div class="relative flex-1 w-full">
           <div class="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
@@ -61,13 +63,13 @@
             v-model="queryParams.keyword"
             type="text"
             placeholder="搜索题目 ID、标题或算法标签..."
-            class="w-full bg-transparent text-white pl-11 pr-4 py-3 outline-none placeholder-zinc-600 text-sm font-medium transition-all"
+            class="w-full bg-transparent text-zinc-900 dark:text-white pl-11 pr-4 py-3 outline-none placeholder-zinc-400 dark:placeholder-zinc-600 text-sm font-medium transition-all"
             @input="handleSearch"
           />
         </div>
 
         <div
-          class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar border-t md:border-t-0 md:border-l border-white/5 w-full md:w-auto"
+          class="flex items-center gap-1 p-1 overflow-x-auto no-scrollbar border-t md:border-t-0 md:border-l border-zinc-200 dark:border-white/5 w-full md:w-auto"
         >
           <Filter class="w-4 h-4 text-zinc-500 ml-3 mr-2 shrink-0 hidden md:block" />
           <button
@@ -78,7 +80,7 @@
             :class="[
               queryParams.difficulty === diff.value
                 ? diff.activeClass
-                : 'border-transparent text-zinc-500 hover:bg-white/5 hover:text-zinc-300',
+                : 'border-transparent text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-300',
             ]"
           >
             {{ diff.label }}
@@ -90,14 +92,16 @@
     <div class="relative z-10 space-y-3 min-h-[400px]">
       <div v-if="loading" class="flex flex-col items-center justify-center h-64 space-y-4">
         <div
-          class="w-10 h-10 border-2 border-zinc-800 border-t-[#FF4C00] rounded-full animate-spin"
+          class="w-10 h-10 border-2 border-zinc-200 dark:border-zinc-800 border-t-[#FF4C00] rounded-full animate-spin"
         ></div>
-        <p class="text-zinc-600 text-sm font-mono animate-pulse">正在连接 CodeNexus 神经元...</p>
+        <p class="text-zinc-400 dark:text-zinc-600 text-sm font-mono animate-pulse">
+          正在连接 CodeNexus 神经元...
+        </p>
       </div>
 
       <div
         v-else-if="problemList.length === 0"
-        class="flex flex-col items-center justify-center h-64 text-zinc-600"
+        class="flex flex-col items-center justify-center h-64 text-zinc-400 dark:text-zinc-600"
       >
         <Zap class="w-12 h-12 mb-4 opacity-20" />
         <p>未在扇区内扫描到相关题目</p>
@@ -118,7 +122,7 @@
       <button
         @click="handlePageChange(queryParams.pageNum - 1)"
         :disabled="queryParams.pageNum <= 1"
-        class="w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white hover:border-[#FF4C00] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        class="w-9 h-9 flex items-center justify-center rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-[#FF4C00] hover:border-[#FF4C00] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronLeft class="w-4 h-4" />
       </button>
@@ -132,7 +136,7 @@
           :class="
             queryParams.pageNum === page
               ? 'bg-[#FF4C00] border-[#FF4C00] text-white shadow-[0_0_15px_#FF4C00]'
-              : 'bg-transparent border-transparent text-zinc-500 hover:bg-white/5 hover:text-zinc-300'
+              : 'bg-transparent border-transparent text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/5 hover:text-zinc-700 dark:hover:text-zinc-300'
           "
         >
           {{ page }}
@@ -142,7 +146,7 @@
       <button
         @click="handlePageChange(queryParams.pageNum + 1)"
         :disabled="queryParams.pageNum >= totalPages"
-        class="w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-900 border border-white/10 text-zinc-400 hover:text-white hover:border-[#FF4C00] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        class="w-9 h-9 flex items-center justify-center rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-[#FF4C00] hover:border-[#FF4C00] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronRight class="w-4 h-4" />
       </button>
@@ -157,7 +161,7 @@
       <div class="flex flex-col gap-4 min-h-[150px]">
         <div v-if="collectDialog.loading" class="flex-1 flex items-center justify-center">
           <div
-            class="w-6 h-6 border-2 border-zinc-800 border-t-[#FF4C00] rounded-full animate-spin"
+            class="w-6 h-6 border-2 border-zinc-200 dark:border-zinc-800 border-t-[#FF4C00] rounded-full animate-spin"
           ></div>
         </div>
 
@@ -178,8 +182,8 @@
               class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all select-none group"
               :class="
                 collectDialog.selectedFolderIds.includes(folder.id)
-                  ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
-                  : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/10'
+                  ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-zinc-900 dark:text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
+                  : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:border-zinc-300 dark:hover:border-white/10'
               "
             >
               <div class="flex items-center gap-3">
@@ -204,14 +208,14 @@
                   </div>
                   <div
                     v-else
-                    class="w-4 h-4 rounded border border-zinc-700 group-hover:border-zinc-500"
+                    class="w-4 h-4 rounded border border-zinc-300 dark:border-zinc-700 group-hover:border-zinc-500"
                   ></div>
                 </transition>
               </div>
             </div>
           </div>
 
-          <div class="w-full h-[1px] bg-white/5 my-1"></div>
+          <div class="w-full h-[1px] bg-zinc-200 dark:bg-white/5 my-1"></div>
 
           <div class="space-y-2">
             <p class="text-xs text-zinc-500">或新建文件夹：</p>
@@ -223,14 +227,14 @@
                   type="text"
                   :disabled="isSubmitting"
                   placeholder="例如：面试冲刺 (回车创建)"
-                  class="w-full bg-zinc-900/50 border border-zinc-700 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-600 disabled:opacity-50"
+                  class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-xl py-2 pl-9 pr-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-400 dark:placeholder-zinc-600 disabled:opacity-50"
                   @keyup.enter="handleCreateFolder"
                 />
               </div>
               <button
                 @click="handleCreateFolder"
                 :disabled="!collectDialog.newFolderName.trim() || isSubmitting"
-                class="px-3 py-2 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-[#FF4C00] transition-all disabled:opacity-50 disabled:hover:bg-zinc-800 disabled:hover:text-zinc-400"
+                class="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-white hover:bg-[#FF4C00] transition-all disabled:opacity-50 disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-800 disabled:hover:text-zinc-600 dark:disabled:hover:text-zinc-400"
               >
                 创建
               </button>

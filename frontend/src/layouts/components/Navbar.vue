@@ -7,13 +7,13 @@
     >
       <span>CodeNexus</span>
       <span class="text-zinc-700">/</span>
-      <span class="text-zinc-200">{{ route.meta.title || 'Dashboard' }}</span>
+      <span class="text-zinc-700 dark:text-zinc-200">{{ route.meta.title || 'Dashboard' }}</span>
     </div>
 
     <div class="pointer-events-auto flex items-center gap-6">
       <button
         @click="toggleTheme"
-        class="relative w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 transition-all duration-300 focus:outline-none"
+        class="relative w-10 h-10 rounded-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-all duration-300 focus:outline-none"
       >
         <div class="relative w-5 h-5 overflow-hidden">
           <Sun
@@ -27,15 +27,20 @@
         </div>
       </button>
 
-      <div class="flex items-center gap-3 pl-6 border-l border-white/10 relative" ref="dropdownRef">
+      <div
+        class="flex items-center gap-3 pl-6 border-l border-zinc-200 dark:border-white/10 relative"
+        ref="dropdownRef"
+      >
         <div class="text-right hidden md:block">
-          <p class="text-sm font-medium text-white">{{ userStore.nickname || 'Developer' }}</p>
+          <p class="text-sm font-medium text-zinc-900 dark:text-white">
+            {{ userStore.nickname || 'Developer' }}
+          </p>
           <p class="text-xs text-zinc-500">{{ isAdmin ? 'Admin' : 'User' }}</p>
         </div>
 
         <div class="relative group cursor-pointer" @click="toggleDropdown">
           <div
-            class="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/10 transition-all duration-300"
+            class="h-10 w-10 rounded-full overflow-hidden ring-2 ring-zinc-200 dark:ring-white/10 transition-all duration-300"
             :class="{
               'ring-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,76,0,0.3)]': isDropdownOpen,
               'group-hover:ring-[#FF4C00]/50': !isDropdownOpen,
@@ -48,7 +53,7 @@
             />
           </div>
           <span
-            class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[#09090b]"
+            class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#09090b]"
           ></span>
         </div>
 
@@ -133,21 +138,21 @@
             type="password"
             placeholder="当前密码"
             autocomplete="new-password"
-            class="w-full bg-zinc-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
           />
           <input
             v-model="pwdForm.new"
             type="password"
             placeholder="新密码（至少 8 位）"
             autocomplete="new-password"
-            class="w-full bg-zinc-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
           />
           <input
             v-model="pwdForm.confirm"
             type="password"
             placeholder="确认新密码"
             autocomplete="new-password"
-            class="w-full bg-zinc-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-[#FF4C00] transition-colors"
           />
           <p v-if="pwdError" class="text-rose-400 text-xs">{{ pwdError }}</p>
         </div>
@@ -244,13 +249,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 覆盖 Chrome 自动填充的背景色，保持暗色主题一致 */
+/* 覆盖 Chrome 自动填充的背景色 */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #f4f4f5 inset !important;
+  -webkit-text-fill-color: #18181b !important;
+  caret-color: #18181b;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+:root.dark input:-webkit-autofill,
+:root.dark input:-webkit-autofill:hover,
+:root.dark input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #18181b inset !important;
   -webkit-text-fill-color: #fff !important;
   caret-color: #fff;
-  transition: background-color 5000s ease-in-out 0s;
 }
 </style>

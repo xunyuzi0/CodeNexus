@@ -39,7 +39,15 @@
       "Bash(mysql -h127.0.0.1 -P13306 -ucodenexus -pcodenexus codenexus -e \"SELECT status, COUNT\\(*\\) as cnt FROM arena_room WHERE is_deleted = 0 GROUP BY status;\")",
       "Bash(mysql --version)",
       "Bash(mysql -h127.0.0.1 -P13306 -ucodenexus -pcodenexus codenexus -e \"UPDATE arena_room SET status = 'FIGHTING' WHERE status = 'BATTLING' AND is_deleted = 0;\")",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(xxd)",
+      "Bash(python3 -c ' *)",
+      "PowerShell(try { Invoke-RestMethod -Uri \"http://localhost:8080/user/login\" -Method Post -ContentType \"application/json\" -Body '{\"userAccount\":\"Admin\",\"userPassword\":\"12345678\"}' } catch { $_.Exception.Message })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/user/login\" -Method Post -ContentType \"application/json\" -Body '{\"userAccount\":\"Admin\",\"userPassword\":\"12345678\"}' -UseBasicParsing; $r.StatusCode; $r.Content } catch { $_.Exception.Response.StatusCode; $_.Exception.Message })",
+      "PowerShell(cd \"F:\\\\Code\\\\A_PROGRAM\\\\CodeNexus\\\\solutions\"; powershell -ExecutionPolicy Bypass -File publish.ps1)",
+      "PowerShell($token = \"eyJhbGciOiJIUzM4NCJ9.eyJ1c2VyUm9sZSI6ImFkbWluIiwidXNlcklkIjoxNCwic3ViIjoiQ29kZU5leHVzLVVzZXItQXV0aCIsImlhdCI6MTc3ODI3MDcxNiwiZXhwIjoxNzc4ODc1NTE2LCJqdGkiOiI1OTY0NmJjNS02YWIzLTQxMGItOGJmYy1kZWJkMDBmMmNkN2EifQ.5YjNhc-58jZ9u1N95byovW2jjpBObwTWBZ5Loi-U-NBeSaQP98bL8sIc46rUWJUZ\"; $headers = @{ \"Authorization\" = \"Bearer $token\" }; $r = Invoke-RestMethod -Uri \"http://localhost:8080/api/admin/problems/1/solutions\" -Headers $headers; $r.data | ForEach-Object { Write-Host \"ID=$\\($_.id\\) title=$\\($_.title\\) official=$\\($_.isOfficial\\)\" })",
+      "PowerShell($token = \"eyJhbGciOiJIUzM4NCJ9.eyJ1c2VyUm9sZSI6ImFkbWluIiwidXNlcklkIjoxNCwic3ViIjoiQ29kZU5leHVzLVVzZXItQXV0aCIsImlhdCI6MTc3ODI3MDcxNiwiZXhwIjoxNzc4ODc1NTE2LCJqdGkiOiI1OTY0NmJjNS02YWIzLTQxMGItOGJmYy1kZWJkMDBmMmNkN2EifQ.5YjNhc-58jZ9u1N95byovW2jjpBObwTWBZ5Loi-U-NBeSaQP98bL8sIc46rUWJUZ\"; $headers = @{ \"Authorization\" = \"Bearer $token\" }; $r = Invoke-RestMethod -Uri \"http://localhost:8080/api/admin/problems/20/solutions\" -Headers $headers; $r.data | ForEach-Object { Write-Host \"ID=$\\($_.id\\) title=$\\($_.title\\) official=$\\($_.isOfficial\\) codeLen=$\\($_.code.Length\\)\" })",
+      "PowerShell($token = \"eyJhbGciOiJIUzM4NCJ9.eyJ1c2VyUm9sZSI6ImFkbWluIiwidXNlcklkIjoxNCwic3ViIjoiQ29kZU5leHVzLVVzZXItQXV0aCIsImlhdCI6MTc3ODI3MDcxNiwiZXhwIjoxNzc4ODc1NTE2LCJqdGkiOiI1OTY0NmJjNS02YWIzLTQxMGItOGJmYy1kZWJkMDBmMmNkN2EifQ.5YjNhc-58jZ9u1N95byovW2jjpBObwTWBZ5Loi-U-NBeSaQP98bL8sIc46rUWJUZ\"; $headers = @{ \"Authorization\" = \"Bearer $token\" }; $r = Invoke-RestMethod -Uri \"http://localhost:8080/api/admin/problems/15/solutions\" -Headers $headers; Write-Host \"Count: $\\($r.data.Count\\)\"; $r.data | ForEach-Object { Write-Host \"ID=$\\($_.id\\) official=$\\($_.isOfficial\\)\" })"
     ]
   }
 }

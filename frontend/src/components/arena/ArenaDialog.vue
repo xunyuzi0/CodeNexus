@@ -3,11 +3,11 @@
     <Transition name="fade">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-50/80 dark:bg-black/80 backdrop-blur-sm px-4"
         @click="close"
       >
         <div
-          class="w-full max-w-md p-8 rounded-3xl bg-[#09090b] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden"
+          class="w-full max-w-md p-8 rounded-3xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-white/10 shadow-xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden"
           v-motion
           :initial="{ opacity: 0, scale: 0.95, y: 20 }"
           :enter="{
@@ -26,7 +26,7 @@
           ></div>
 
           <div class="relative z-10 mb-6 text-center">
-            <h3 class="text-2xl font-bold text-white mb-2">{{ title }}</h3>
+            <h3 class="text-2xl font-bold text-zinc-900 dark:text-white mb-2">{{ title }}</h3>
           </div>
 
           <div class="relative z-10 mb-8">
@@ -36,7 +36,7 @@
           <div class="relative z-10 flex items-center gap-4">
             <button
               @click="close"
-              class="flex-1 py-3 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+              class="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors text-sm font-medium"
             >
               {{ cancelText }}
             </button>

@@ -1,18 +1,13 @@
 <template>
-  <div class="min-h-[85vh] w-full relative p-6 md:p-12 overflow-hidden">
-    <div class="absolute inset-0 bg-grid-white/[0.02] pointer-events-none"></div>
-    <div
-      class="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#FF4C00]/5 blur-[120px] rounded-full pointer-events-none"
-    ></div>
-
+  <div class="min-h-[85vh] w-full relative p-6 md:p-12">
     <div class="relative z-10 mb-12 flex flex-col justify-center gap-1" v-motion-slide-visible-top>
       <div class="flex items-center gap-3 mb-1">
         <div
-          class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+          class="p-2 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm backdrop-blur-sm"
         >
           <Star class="w-6 h-6 text-[#FF4C00]" />
         </div>
-        <h1 class="text-3xl font-black tracking-tight text-white">我的收藏</h1>
+        <h1 class="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">我的收藏</h1>
       </div>
       <p class="text-zinc-500 text-sm font-medium tracking-wide pl-1">
         管理您的算法知识库，构建专属技能树
@@ -26,11 +21,11 @@
       <div
         v-for="i in 4"
         :key="i"
-        class="aspect-[4/3] rounded-2xl bg-zinc-900/40 border border-white/5 p-6 flex flex-col items-center justify-center animate-pulse"
+        class="aspect-[4/3] rounded-2xl bg-zinc-100 dark:bg-zinc-900/40 border border-zinc-200 dark:border-white/5 p-6 flex flex-col items-center justify-center animate-pulse"
       >
-        <div class="w-16 h-16 bg-zinc-800 rounded-xl mb-4"></div>
-        <div class="w-24 h-5 bg-zinc-800 rounded-md mb-2"></div>
-        <div class="w-16 h-3 bg-zinc-800 rounded-md"></div>
+        <div class="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded-xl mb-4"></div>
+        <div class="w-24 h-5 bg-zinc-200 dark:bg-zinc-800 rounded-md mb-2"></div>
+        <div class="w-16 h-3 bg-zinc-200 dark:bg-zinc-800 rounded-md"></div>
       </div>
     </div>
 
@@ -41,7 +36,7 @@
       <div
         v-for="(folder, index) in folders"
         :key="folder.id"
-        class="group relative aspect-[4/3] rounded-2xl bg-zinc-900/40 backdrop-blur-md border border-white/5 p-6 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-[#FF4C00]/50 hover:bg-zinc-800/60 hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
+        class="group relative aspect-[4/3] rounded-2xl bg-white dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200 dark:border-white/5 p-6 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-[#FF4C00]/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:shadow-md dark:hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
         v-motion
         :initial="{ opacity: 0, scale: 0.9 }"
         :enter="{ opacity: 1, scale: 1, transition: { delay: index * 50 } }"
@@ -50,7 +45,7 @@
         <button
           v-if="!folder.isDefault"
           @click.stop="triggerDelete(folder)"
-          class="absolute top-3 right-3 p-2 rounded-lg text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+          class="absolute top-3 right-3 p-2 rounded-lg text-zinc-400 dark:text-zinc-600 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
           title="删除收藏夹"
         >
           <Trash2 class="w-4 h-4" />
@@ -67,7 +62,7 @@
         </div>
 
         <h3
-          class="text-lg font-bold text-white mb-1 group-hover:text-[#FF4C00] transition-colors truncate w-full text-center"
+          class="text-lg font-bold text-zinc-900 dark:text-white mb-1 group-hover:text-[#FF4C00] transition-colors truncate w-full text-center"
         >
           {{ folder.name }}
         </h3>
@@ -80,10 +75,10 @@
 
       <button
         @click="openCreateDialog"
-        class="aspect-[4/3] rounded-2xl border-2 border-dashed border-zinc-800 hover:border-[#FF4C00]/50 hover:bg-[#FF4C00]/5 flex flex-col items-center justify-center text-zinc-600 hover:text-[#FF4C00] transition-all duration-300 group"
+        class="aspect-[4/3] rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-800 hover:border-[#FF4C00]/50 hover:bg-[#FF4C00]/5 flex flex-col items-center justify-center text-zinc-600 hover:text-[#FF4C00] transition-all duration-300 group"
       >
         <div
-          class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-700 group-hover:border-[#FF4C00] flex items-center justify-center mb-3 transition-colors"
+          class="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 group-hover:border-[#FF4C00] flex items-center justify-center mb-3 transition-colors"
         >
           <Plus class="w-6 h-6" />
         </div>
@@ -112,7 +107,7 @@
             type="text"
             placeholder="请输入收藏夹名称"
             :disabled="isSubmitting"
-            class="w-full bg-zinc-900/50 border border-zinc-700 text-white rounded-xl py-3 px-4 focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all placeholder-zinc-600 disabled:opacity-50"
+            class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl py-3 px-4 focus:outline-none focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] transition-all placeholder-zinc-400 dark:placeholder-zinc-600 disabled:opacity-50"
             @keyup.enter="handleConfirm"
           />
         </div>
@@ -129,9 +124,12 @@
         <p v-if="errorMessage" class="text-xs text-red-500 font-bold animate-pulse mb-2">
           {{ errorMessage }}
         </p>
-        <p class="text-zinc-300 text-sm mb-2">
+        <p class="text-zinc-600 dark:text-zinc-300 text-sm mb-2">
           您确定要删除
-          <span class="text-white font-bold">"{{ dialogState.target?.name }}"</span> 吗？
+          <span class="text-zinc-900 dark:text-white font-bold"
+            >"{{ dialogState.target?.name }}"</span
+          >
+          吗？
         </p>
         <p class="text-red-500/80 text-xs bg-red-500/10 p-2 rounded-lg inline-block">
           注意：该操作不可恢复，且会移除其中所有题目的收藏状态。

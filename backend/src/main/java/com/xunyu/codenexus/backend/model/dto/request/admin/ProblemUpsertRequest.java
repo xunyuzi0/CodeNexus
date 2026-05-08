@@ -1,6 +1,7 @@
 package com.xunyu.codenexus.backend.model.dto.request.admin;
 
 import com.xunyu.codenexus.backend.model.dto.response.problem.ExampleVO;
+import com.xunyu.codenexus.backend.model.entity.ProblemTestcase;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -28,4 +29,7 @@ public class ProblemUpsertRequest {
 
     /** 题目状态: 0-草稿, 1-已上架, 2-已下架 */
     private Integer status = 0;
+
+    /** 判题检测点（创建题目时可选） */
+    private List<ProblemTestcase> testcases;
 }

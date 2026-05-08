@@ -1,7 +1,16 @@
 <template>
-  <div class="h-screen w-full bg-zinc-950 text-white flex flex-col overflow-hidden relative">
+  <div
+    class="h-screen w-full bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-white flex flex-col overflow-hidden relative"
+  >
     <div
-      class="absolute inset-0 pointer-events-none z-0 opacity-20"
+      class="absolute inset-0 pointer-events-none z-0 opacity-10 dark:opacity-0"
+      style="
+        background-image: radial-gradient(#a1a1aa 1px, transparent 1px);
+        background-size: 24px 24px;
+      "
+    ></div>
+    <div
+      class="absolute inset-0 pointer-events-none z-0 opacity-0 dark:opacity-20"
       style="
         background-image: radial-gradient(#3f3f46 1px, transparent 1px);
         background-size: 24px 24px;
@@ -13,28 +22,28 @@
     <div class="flex-1 min-h-0 relative z-10 w-full max-w-[1920px] mx-auto">
       <div v-if="loading" class="w-full h-full flex p-4 gap-4">
         <div
-          class="flex-1 bg-zinc-900/40 backdrop-blur-sm border border-white/5 rounded-2xl p-8 animate-pulse"
+          class="flex-1 bg-white dark:bg-zinc-900/40 backdrop-blur-sm border border-zinc-200 dark:border-white/5 rounded-2xl p-8 animate-pulse"
         >
-          <div class="h-8 bg-zinc-800 rounded-lg w-1/3 mb-6"></div>
+          <div class="h-8 bg-zinc-200 dark:bg-zinc-800 rounded-lg w-1/3 mb-6"></div>
           <div class="flex gap-2 mb-8">
-            <div class="h-6 bg-zinc-800 rounded-md w-16"></div>
-            <div class="h-6 bg-zinc-800 rounded-md w-20"></div>
+            <div class="h-6 bg-zinc-200 dark:bg-zinc-800 rounded-md w-16"></div>
+            <div class="h-6 bg-zinc-200 dark:bg-zinc-800 rounded-md w-20"></div>
           </div>
           <div class="space-y-3">
-            <div class="h-4 bg-zinc-800 rounded w-full"></div>
-            <div class="h-4 bg-zinc-800 rounded w-5/6"></div>
-            <div class="h-4 bg-zinc-800 rounded w-4/6"></div>
+            <div class="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-full"></div>
+            <div class="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-5/6"></div>
+            <div class="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-4/6"></div>
           </div>
         </div>
         <div
-          class="flex-1 bg-[#1e1e1e] border border-white/5 rounded-2xl p-8 animate-pulse hidden md:block"
+          class="flex-1 bg-zinc-200 dark:bg-[#1e1e1e] border border-zinc-200 dark:border-white/5 rounded-2xl p-8 animate-pulse hidden md:block"
         >
-          <div class="flex gap-2 mb-4 border-b border-white/5 pb-4">
-            <div class="h-6 bg-zinc-800 rounded-md w-24"></div>
+          <div class="flex gap-2 mb-4 border-b border-zinc-300 dark:border-white/5 pb-4">
+            <div class="h-6 bg-zinc-300 dark:bg-zinc-800 rounded-md w-24"></div>
           </div>
           <div class="space-y-2 mt-8">
-            <div class="h-4 bg-zinc-800 rounded w-1/2 ml-4"></div>
-            <div class="h-4 bg-zinc-800 rounded w-1/3 ml-8"></div>
+            <div class="h-4 bg-zinc-300 dark:bg-zinc-800 rounded w-1/2 ml-4"></div>
+            <div class="h-4 bg-zinc-300 dark:bg-zinc-800 rounded w-1/3 ml-8"></div>
           </div>
         </div>
       </div>
@@ -46,7 +55,7 @@
               v-show="paneSize.left > 0"
               :size="paneSize.left"
               :min-size="maximizedPane !== 'none' ? 0 : 20"
-              class="flex flex-col min-w-0 transition-[width] duration-300 ease-in-out bg-zinc-900/40 backdrop-blur-sm border-r border-white/5"
+              class="flex flex-col min-w-0 transition-[width] duration-300 ease-in-out bg-white dark:bg-zinc-900/40 backdrop-blur-sm border-r border-zinc-200 dark:border-white/5"
             >
               <ProblemDescription
                 v-if="problem"
@@ -60,7 +69,7 @@
               v-show="paneSize.right > 0"
               :size="paneSize.right"
               :min-size="maximizedPane !== 'none' ? 0 : 30"
-              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-[#1e1e1e]"
+              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-white dark:bg-[#1e1e1e]"
             >
               <CodeWorkspace
                 v-model="code"
@@ -87,6 +96,7 @@ import ProblemDescription from './components/ProblemDescription.vue'
 import CodeWorkspace from './components/CodeWorkspace.vue'
 
 import { getProblemDetail, type Problem } from '@/api/problem'
+import { JAVA_TEMPLATE } from '@/constants/code-templates'
 
 const route = useRoute()
 
@@ -154,7 +164,7 @@ const fetchProblemData = async () => {
     const data = await getProblemDetail(problemId)
     problem.value = data
     // 切换题目时，重置代码模板并恢复计时器状态
-    code.value = `import java.util.*;\nimport java.io.*;\n\npublic class Solution {\n\n    /**\n     * 核心算法逻辑写在这里\n     */\n    public void solve() {\n        // TODO: 在这里编写你的算法逻辑\n        \n    }\n\n    /**\n     * CodeNexus ACM 模式程序入口\n     * 请在此处解析标准输入 (Standard Input) 并打印标准输出 (Standard Output)\n     */\n    public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n        \n        // 示例：如果题目需要读取多行或特定格式的输入\n        /*\n        if (scanner.hasNextLine()) {\n            // 1. 读取并解析输入数据\n            String line = scanner.nextLine();\n            \n            // 2. 实例化并调用核心算法\n            Solution sol = new Solution();\n            // Object result = sol.solve(...);\n            \n            // 3. 按照题目要求的格式打印输出\n            // System.out.println(result);\n        }\n        */\n    }\n}`
+    code.value = JAVA_TEMPLATE
     isTimerPaused.value = false
   } catch (error) {
     console.error('获取题目详情失败:', error)
@@ -189,24 +199,25 @@ watch(
   overflow: hidden;
 }
 .zeekr-theme .splitpanes__splitter {
-  background-color: #09090b !important;
+  background-color: #e4e4e7 !important;
   border: none !important;
   box-sizing: border-box;
   position: relative;
   z-index: 20;
   transition: all 0.2s ease;
 }
+:root.dark .zeekr-theme .splitpanes__splitter {
+  background-color: #09090b !important;
+}
 .zeekr-theme.splitpanes--vertical > .splitpanes__splitter {
-  width: 6px !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-left: -1px;
+  width: 1px !important;
+  border-left: none !important;
+  border-right: none !important;
 }
 .zeekr-theme.splitpanes--horizontal > .splitpanes__splitter {
-  height: 6px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  margin-top: -1px;
+  height: 1px !important;
+  border-top: none !important;
+  border-bottom: none !important;
 }
 .zeekr-theme .splitpanes__splitter::after {
   content: '';

@@ -4,6 +4,7 @@ package com.xunyu.codenexus.backend.task;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xunyu.codenexus.backend.mapper.UserMapper;
 import com.xunyu.codenexus.backend.model.entity.User;
+import com.xunyu.codenexus.backend.model.enums.UserRoleEnum;
 import com.xunyu.codenexus.backend.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,9 @@ public class GlobalRankTask {
 
         // 1. 查询所有参与排行的用户，按照战力积分降序，ID升序(防止同分乱序)
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        // 排除管理员和封号用户，仅计算普通用户的排名
+        queryWrapper.ne(User::getRole, UserRoleEnum.ADMIN.getValue())
+                    .ne(User::getRole, UserRoleEnum.BAN.getValue());
         // 为了极致性能，仅 select 必要的字段 (ID, 当前排名, 积分)，不加载头像等大文本字段
         queryWrapper.select(User::getId, User::getGlobalRank, User::getRatingScore)
                 .orderByDesc(User::getRatingScore)

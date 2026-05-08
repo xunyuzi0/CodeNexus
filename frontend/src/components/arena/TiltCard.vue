@@ -7,11 +7,11 @@
   >
     <div
       v-if="type === 'MATCH'"
-      class="absolute inset-x-0 -top-[1px] h-[1px] bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+      class="absolute inset-x-0 -top-[1px] h-[1px] bg-gradient-to-r from-transparent via-[#FF4C00] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
     ></div>
     <div
       v-if="type === 'MATCH'"
-      class="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay"
+      class="absolute inset-0 bg-[#FF4C00]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay"
     ></div>
 
     <div
@@ -19,7 +19,7 @@
       :class="[
         iconBgClass,
         type === 'MATCH'
-          ? 'w-20 h-20 shadow-[0_0_15px_rgba(168,85,247,0.15)] group-hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]'
+          ? 'w-20 h-20 shadow-[0_0_15px_rgba(255,76,0,0.15)] group-hover:shadow-[0_0_30px_rgba(255,76,0,0.6)]'
           : 'bg-zinc-100/50 dark:bg-zinc-800/50 border-white/5 group-hover:bg-[#FF4C00]/10 group-hover:border-[#FF4C00]/30',
       ]"
     >
@@ -28,7 +28,7 @@
         class="w-8 h-8 transition-colors duration-300"
         :class="[
           iconClass,
-          type === 'MATCH' ? 'w-10 h-10 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]' : '',
+          type === 'MATCH' ? 'w-10 h-10 drop-shadow-[0_0_8px_rgba(255,76,0,0.8)]' : '',
         ]"
       />
     </div>
@@ -37,7 +37,7 @@
       class="text-xl font-bold text-zinc-900 dark:text-white mb-2 transition-colors"
       :class="[
         type === 'MATCH'
-          ? 'text-2xl font-black italic group-hover:text-purple-400'
+          ? 'text-2xl font-black italic group-hover:text-[#FF4C00]'
           : 'group-hover:text-[#FF4C00]',
       ]"
     >
@@ -53,12 +53,11 @@
 
     <div
       v-if="type === 'MATCH'"
-      class="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-purple-500/50 blur-[2px] opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"
+      class="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-[#FF4C00]/50 blur-[2px] opacity-50 group-hover:opacity-100 transition-opacity animate-pulse"
     ></div>
 
     <div
-      class="absolute bottom-6 text-xs font-bold font-mono opacity-0 group-hover:opacity-100 transition-all tracking-widest translate-y-2 group-hover:translate-y-0 duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]"
-      :class="type === 'MATCH' ? 'text-purple-500' : 'text-[#FF4C00]'"
+      class="absolute bottom-6 text-xs font-bold font-mono text-[#FF4C00] opacity-0 group-hover:opacity-100 transition-all tracking-widest translate-y-2 group-hover:translate-y-0 duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)]"
     >
       {{ footerText }}
     </div>

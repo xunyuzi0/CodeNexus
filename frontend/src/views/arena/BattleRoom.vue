@@ -1,13 +1,20 @@
 <template>
-  <div v-if="isLoading" class="h-screen w-full bg-black flex items-center justify-center font-sans">
+  <div
+    v-if="isLoading"
+    class="h-screen w-full bg-zinc-100 dark:bg-black flex items-center justify-center font-sans"
+  >
     <div class="flex flex-col items-center gap-6">
       <div class="relative w-16 h-16">
-        <div class="absolute inset-0 rounded-full border-4 border-zinc-800"></div>
+        <div
+          class="absolute inset-0 rounded-full border-4 border-zinc-200 dark:border-zinc-800"
+        ></div>
         <div class="absolute inset-0 rounded-full border-4 border-t-[#FF4C00] animate-spin"></div>
         <Loader2 class="absolute inset-0 m-auto w-6 h-6 text-[#FF4C00] animate-pulse" />
       </div>
       <div class="text-center space-y-2">
-        <h3 class="text-white font-bold tracking-wider text-lg">正在同步战场数据</h3>
+        <h3 class="text-zinc-900 dark:text-white font-bold tracking-wider text-lg">
+          正在同步战场数据
+        </h3>
         <p class="text-zinc-500 font-mono text-xs tracking-[0.2em] uppercase animate-pulse">
           Synchronizing Absolute Time...
         </p>
@@ -15,8 +22,13 @@
     </div>
   </div>
 
-  <div v-else class="h-screen w-full bg-zinc-950 text-white flex flex-col overflow-hidden relative">
-    <div class="absolute inset-0 bg-grid-white/[0.02] pointer-events-none"></div>
+  <div
+    v-else
+    class="h-screen w-full bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-white flex flex-col overflow-hidden relative"
+  >
+    <div
+      class="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] pointer-events-none"
+    ></div>
     <div
       class="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FF4C00]/10 blur-[120px] rounded-full pointer-events-none transition-opacity duration-1000"
       :class="battleStatus === 'FIGHTING' ? 'opacity-100' : 'opacity-0'"
@@ -26,7 +38,11 @@
       <div
         v-if="toast.show"
         class="fixed top-20 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl backdrop-blur-xl border border-white/10"
-        :class="toast.type === 'error' ? 'bg-red-500/20 text-red-100' : 'bg-zinc-800/80 text-white'"
+        :class="
+          toast.type === 'error'
+            ? 'bg-red-500/20 text-red-700 dark:text-red-100'
+            : 'bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-900 dark:text-white'
+        "
       >
         <component
           :is="toast.icon"
@@ -38,7 +54,7 @@
     </Transition>
 
     <header
-      class="h-14 shrink-0 flex items-center justify-between px-4 bg-zinc-950/80 backdrop-blur-md border-b border-white/5 z-50 relative select-none"
+      class="h-14 shrink-0 flex items-center justify-between px-4 bg-white dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 z-50 relative select-none"
     >
       <div class="flex items-center gap-4">
         <ArenaExitButton @click="handleExitClick" :disabled="isViewingOpponentCode" />
@@ -49,24 +65,38 @@
         :class="
           timer < 60 && battleStatus === 'FIGHTING'
             ? 'bg-red-500/10 border-red-500/50 shadow-red-500/20 animate-pulse'
-            : 'bg-zinc-900/80 border-white/10'
+            : 'bg-zinc-100/80 dark:bg-zinc-900/80 border-zinc-200 dark:border-white/10'
         "
       >
         <Timer class="w-4 h-4" :class="timer < 60 ? 'text-red-500' : 'text-[#FF4C00]'" />
         <span
           class="font-mono text-base font-bold tracking-widest tabular-nums"
-          :class="timer < 60 ? 'text-red-500' : 'text-white'"
+          :class="timer < 60 ? 'text-red-500' : 'text-zinc-900 dark:text-white'"
         >
           {{ formattedTime }}
         </span>
-        <div class="w-[1px] h-3 bg-white/20"></div>
+        <div class="w-[1px] h-3 bg-zinc-300 dark:bg-white/20"></div>
         <span class="text-xs font-bold tracking-wider" :class="statusColor">{{ statusText }}</span>
       </div>
 
       <div class="flex items-center gap-2">
+        <button
+          @click="toggleTheme"
+          class="p-2 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95"
+          :class="
+            isDark
+              ? 'bg-zinc-900/50 border-white/10 text-zinc-400 hover:text-white hover:border-white/20'
+              : 'bg-zinc-100 border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:border-zinc-300'
+          "
+          title="切换日间/夜间模式"
+        >
+          <Sun v-if="isDark" class="w-4 h-4" />
+          <Moon v-else class="w-4 h-4" />
+        </button>
+
         <div class="relative group cursor-pointer mr-2">
           <div
-            class="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden ring-2 ring-transparent group-hover:ring-[#FF4C00]/20 transition-all"
+            class="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-white/10 overflow-hidden ring-2 ring-transparent group-hover:ring-[#FF4C00]/20 transition-all"
           >
             <img
               :src="
@@ -80,7 +110,7 @@
             />
           </div>
           <div
-            class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-zinc-950 rounded-full"
+            class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-zinc-950 rounded-full"
           ></div>
         </div>
       </div>
@@ -94,7 +124,7 @@
               v-show="paneSize.left > 0"
               :size="paneSize.left"
               :min-size="maximizedPane !== 'none' ? 0 : 20"
-              class="flex flex-col min-w-0 transition-[width] duration-300 ease-in-out bg-zinc-900/40 backdrop-blur-sm border-r border-white/5"
+              class="flex flex-col min-w-0 transition-[width] duration-300 ease-in-out bg-white dark:bg-zinc-900/40 backdrop-blur-sm border-r border-zinc-200 dark:border-white/5"
             >
               <ProblemDescription
                 v-if="problem"
@@ -109,7 +139,7 @@
               v-show="paneSize.middle > 0"
               :size="paneSize.middle"
               :min-size="maximizedPane !== 'none' ? 0 : 30"
-              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-[#1e1e1e]"
+              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-white dark:bg-[#1e1e1e]"
             >
               <CodeWorkspace
                 v-model="editorCode"
@@ -132,7 +162,7 @@
               v-show="paneSize.right > 0"
               :size="paneSize.right"
               :min-size="15"
-              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-[#050505]"
+              class="flex flex-col relative min-w-0 transition-[width] duration-300 ease-in-out bg-zinc-200 dark:bg-[#050505]"
             >
               <BattleConsole
                 :players="battlePlayers"
@@ -154,7 +184,7 @@
       >
         <Button
           @click="backToSettlement"
-          class="bg-zinc-800/90 hover:bg-zinc-700 text-white border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md rounded-full px-6 py-6 font-bold flex items-center gap-2"
+          class="bg-zinc-100/90 dark:bg-zinc-800/90 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white border border-zinc-300 dark:border-white/10 shadow-md dark:shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md rounded-full px-6 py-6 font-bold flex items-center gap-2"
         >
           <RotateCcw class="w-4 h-4" /> 结束观摩，返回结算页面
         </Button>
@@ -170,8 +200,8 @@
           class="w-full max-w-[460px] rounded-3xl border p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden"
           :class="
             battleStatus === 'VICTORY'
-              ? 'bg-[#09090b] border-[#FF4C00]/30 shadow-[#FF4C00]/20'
-              : 'bg-[#09090b] border-zinc-800'
+              ? 'bg-white dark:bg-[#09090b] border-[#FF4C00]/30 shadow-[#FF4C00]/20'
+              : 'bg-white dark:bg-[#09090b] border-zinc-200 dark:border-zinc-800'
           "
         >
           <div
@@ -187,10 +217,12 @@
             <XCircle v-else class="w-20 h-20 text-zinc-600" />
           </div>
 
-          <h2 class="text-4xl font-black italic tracking-tighter text-white mb-2">
+          <h2
+            class="text-4xl font-black italic tracking-tighter text-zinc-900 dark:text-white mb-2"
+          >
             {{ battleStatus === 'VICTORY' ? 'VICTORY' : 'DEFEAT' }}
           </h2>
-          <p class="text-zinc-400 font-medium mb-4">
+          <p class="text-zinc-600 dark:text-zinc-400 font-medium mb-4">
             <template v-if="matchReason === 'ESCAPE'">
               {{
                 battleStatus === 'VICTORY'
@@ -231,13 +263,18 @@
             <Button
               v-if="isMatchMode"
               class="w-full bg-[#FF4C00] hover:bg-[#ff5f1f] text-white font-bold h-12 rounded-xl"
-              @click="router.replace('/battle/matchmaking')"
+              @click="
+                router.replace({
+                  path: '/battle/matchmaking',
+                  query: route.query.from === 'dashboard' ? { from: 'dashboard' } : {},
+                })
+              "
             >
               <Swords class="w-4 h-4 mr-2" /> 寻找新匹配
             </Button>
             <Button
               v-else
-              class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold h-12 rounded-xl border border-white/10"
+              class="w-full bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white font-bold h-12 rounded-xl border border-zinc-300 dark:border-white/10"
               @click="router.replace({ path: '/arena', query: { action: 'create' } })"
             >
               <RotateCcw class="w-4 h-4 mr-2" /> 重新创建房间
@@ -246,14 +283,14 @@
             <div class="grid grid-cols-2 gap-3 mt-1">
               <Button
                 variant="ghost"
-                class="w-full bg-zinc-800/50 hover:bg-zinc-700 text-zinc-300 h-11 rounded-xl"
+                class="w-full bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 h-11 rounded-xl"
                 @click="handlePractice"
               >
                 <ClipboardCopy class="w-4 h-4 mr-2" /> 单机研究
               </Button>
               <Button
                 variant="ghost"
-                class="w-full bg-zinc-800/50 hover:bg-zinc-700 text-zinc-300 h-11 rounded-xl transition-all"
+                class="w-full bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 h-11 rounded-xl transition-all"
                 @click="openCollectDialog"
               >
                 <Star
@@ -266,16 +303,17 @@
 
             <Button
               variant="ghost"
-              class="w-full text-zinc-400 hover:text-white hover:bg-white/5 h-11 rounded-xl mt-1"
-              @click="router.replace('/arena')"
+              class="w-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 h-11 rounded-xl mt-1"
+              @click="goBack"
             >
-              <Home class="w-4 h-4 mr-2" /> 返回竞技大厅
+              <Home class="w-4 h-4 mr-2" />
+              {{ route.query.from === 'dashboard' ? '返回仪表盘' : '返回竞技大厅' }}
             </Button>
 
             <Button
               v-if="battleStatus === 'DEFEAT' && matchReason !== 'ESCAPE'"
               variant="outline"
-              class="w-full border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 h-11 rounded-xl mt-2"
+              class="w-full border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11 rounded-xl mt-2"
               @click="handleViewOpponentCode"
             >
               <Loader2 v-if="isFetchingOpponent" class="w-4 h-4 mr-2 animate-spin" />
@@ -293,7 +331,7 @@
       @confirm="confirmForceExit"
     >
       <div class="text-center space-y-4">
-        <p class="text-zinc-400">
+        <p class="text-zinc-600 dark:text-zinc-400">
           现在离开将被视为<span class="text-red-500 font-bold">主动战败</span>。<br />
           <span class="text-sm text-zinc-500 mt-2 block">
             * 若当前为天梯排位模式，系统将额外扣除积分惩罚。
@@ -332,8 +370,8 @@
               class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all select-none group"
               :class="
                 collectDialog.selectedFolderIds.includes(folder.id)
-                  ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
-                  : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:bg-white/5 hover:border-white/10'
+                  ? 'bg-[#FF4C00]/10 border-[#FF4C00] text-zinc-900 dark:text-white shadow-[0_0_10px_rgba(255,76,0,0.1)]'
+                  : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 hover:border-zinc-300 dark:hover:border-white/10'
               "
             >
               <div class="flex items-center gap-3">
@@ -364,7 +402,7 @@
             </div>
             <div
               v-if="collectDialog.folders.length === 0"
-              class="text-center text-zinc-600 text-xs py-4"
+              class="text-center text-zinc-400 dark:text-zinc-600 text-xs py-4"
             >
               暂无收藏夹，请在下方新建一个
             </div>
@@ -382,14 +420,14 @@
                   type="text"
                   :disabled="isSubmitting"
                   placeholder="例如：竞技场复盘录 (回车创建)"
-                  class="w-full bg-zinc-900/50 border border-zinc-700 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-600 disabled:opacity-50"
+                  class="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-300 dark:border-zinc-700 rounded-xl py-2 pl-9 pr-4 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-[#FF4C00] transition-colors placeholder-zinc-400 dark:placeholder-zinc-600 disabled:opacity-50"
                   @keyup.enter="handleCreateFolder"
                 />
               </div>
               <button
                 @click="handleCreateFolder"
                 :disabled="!collectDialog.newFolderName.trim() || isSubmitting"
-                class="px-3 py-2 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-400 hover:text-white hover:bg-[#FF4C00] transition-all disabled:opacity-50 disabled:hover:bg-zinc-800 disabled:hover:text-zinc-400"
+                class="px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-white hover:bg-[#FF4C00] transition-all disabled:opacity-50 disabled:hover:bg-zinc-100 dark:disabled:hover:bg-zinc-800 disabled:hover:text-zinc-600 dark:disabled:hover:text-zinc-400"
               >
                 创建
               </button>
@@ -426,6 +464,8 @@ import {
   Folder,
   Plus,
   Check,
+  Sun,
+  Moon,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import ArenaExitButton from '@/components/arena/ArenaExitButton.vue'
@@ -436,6 +476,7 @@ import ProblemDescription from '@/views/problem/components/ProblemDescription.vu
 import BattleConsole from '@/components/arena/BattleConsole.vue'
 
 import { useUserStore } from '@/stores/user'
+import { isDark, toggleTheme } from '@/composables/useTheme'
 import { getProblemDetail } from '@/api/problem'
 import {
   getFolders,
@@ -451,6 +492,14 @@ import { BattleWebSocket } from '@/utils/battle-ws'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+
+const goBack = () => {
+  if (route.query.from === 'dashboard') {
+    router.replace('/dashboard')
+  } else {
+    router.replace('/arena')
+  }
+}
 
 const toast = reactive({
   show: false,
@@ -634,7 +683,7 @@ const confirmCollect = async () => {
 const initBattleField = async () => {
   if (!roomCode.value || !problemId.value) {
     showToast('对局参数缺失，正在撤离...', 'error')
-    router.replace('/arena')
+    goBack()
     return
   }
   try {
@@ -646,7 +695,7 @@ const initBattleField = async () => {
     isLoading.value = false
   } catch (err) {
     showToast('加载战局失败，可能网络波动', 'error')
-    router.replace('/arena')
+    goBack()
   }
 }
 
@@ -924,7 +973,7 @@ onBeforeRouteLeave((to, from, next) => {
 
 const handleExitClick = () => {
   if (battleStatus.value === 'FIGHTING') showExitDialog.value = true
-  else router.replace('/arena')
+  else goBack()
 }
 
 const confirmForceExit = () => {
@@ -941,7 +990,8 @@ const handlePractice = async () => {
   } catch (e) {
     showToast('浏览器限制了剪贴板权限，请手动复制', 'error')
   }
-  setTimeout(() => router.replace(`/problems/${problemId.value}`), 1000)
+  const query = route.query.from === 'dashboard' ? '?from=dashboard' : ''
+  setTimeout(() => router.replace(`/problems/${problemId.value}${query}`), 1000)
 }
 
 const handleViewOpponentCode = async () => {
@@ -975,6 +1025,12 @@ const toggleMaximizeMiddle = () => {}
 </script>
 
 <style scoped>
+.bg-grid-black {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgba(0, 0, 0, 0.05)'%3e%3cpath d='M0 .5H31.5V32' stroke-width='1' /%3e%3c/svg%3e");
+}
+.dark .bg-grid-white {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgba(255, 255, 255, 0.05)'%3e%3cpath d='M0 .5H31.5V32' stroke-width='1' /%3e%3c/svg%3e");
+}
 :deep(.splitpanes__pane) {
   overflow: hidden;
 }

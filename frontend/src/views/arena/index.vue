@@ -13,7 +13,7 @@
       <h1
         class="text-4xl md:text-5xl font-black italic tracking-tighter text-zinc-900 dark:text-white mb-3"
       >
-        零号竞技场 <span class="text-[#FF4C00]">ZERO</span>
+        Code<span class="text-[#FF4C00]">Nexus</span>
       </h1>
       <p class="text-zinc-500 font-medium tracking-wide">打破孤岛 · 实时代码竞技场</p>
     </div>
@@ -70,7 +70,7 @@
             v-model="otpCode[index]"
             type="text"
             maxlength="1"
-            class="w-10 h-12 md:w-12 md:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl md:text-2xl font-mono font-bold text-white focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] outline-none transition-all caret-[#FF4C00] shadow-inner"
+            class="w-10 h-12 md:w-12 md:h-14 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center text-xl md:text-2xl font-mono font-bold text-zinc-900 dark:text-white focus:border-[#FF4C00] focus:ring-1 focus:ring-[#FF4C00] outline-none transition-all caret-[#FF4C00] shadow-inner"
             @input="handleInput($event, index)"
             @keydown.delete="handleDelete($event, index)"
             @paste="handlePaste"
@@ -104,7 +104,7 @@ const cards = [
     icon: Swords,
     footerText: '立即创建',
     containerClass:
-      'bg-gradient-to-b from-white/[0.03] to-transparent border-white/10 hover:border-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
+      'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-white/10 hover:border-[#FF4C00]/50 shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-md dark:hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
     iconBgClass: '',
     iconClass: 'text-zinc-400 group-hover:text-[#FF4C00]',
   },
@@ -115,9 +115,9 @@ const cards = [
     icon: Zap,
     footerText: '开始匹配',
     containerClass:
-      'bg-gradient-to-b from-purple-500/[0.05] to-transparent border-purple-500/30 hover:border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.1)] hover:shadow-[0_0_60px_rgba(168,85,247,0.4)]',
-    iconBgClass: 'bg-purple-500/10 border-purple-500/20',
-    iconClass: 'text-purple-500',
+      'bg-[#FF4C00]/5 dark:bg-[#FF4C00]/10 border-[#FF4C00]/20 dark:border-[#FF4C00]/30 hover:border-[#FF4C00] shadow-sm dark:shadow-[0_0_20px_rgba(255,76,0,0.1)] hover:shadow-md dark:hover:shadow-[0_0_60px_rgba(255,76,0,0.3)]',
+    iconBgClass: 'bg-[#FF4C00]/10 border-[#FF4C00]/20',
+    iconClass: 'text-[#FF4C00]',
   },
   {
     type: 'JOIN',
@@ -126,7 +126,7 @@ const cards = [
     icon: Ticket,
     footerText: '立即加入',
     containerClass:
-      'bg-gradient-to-b from-white/[0.03] to-transparent border-white/10 hover:border-[#FF4C00]/50 shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
+      'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-white/10 hover:border-[#FF4C00]/50 shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.03)] hover:shadow-md dark:hover:shadow-[0_0_50px_rgba(255,76,0,0.3)]',
     iconBgClass: '',
     iconClass: 'text-zinc-400 group-hover:text-[#FF4C00]',
   },

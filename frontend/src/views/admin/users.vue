@@ -1,5 +1,7 @@
 <template>
-  <div class="min-h-[calc(100vh-80px)] bg-zinc-950 bg-grid-white/[0.02] p-8">
+  <div
+    class="min-h-[calc(100vh-80px)] bg-zinc-50 dark:bg-zinc-950 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] p-8"
+  >
     <div class="relative z-10 space-y-6">
       <!-- 页面标题 -->
       <div
@@ -9,19 +11,19 @@
         :visible="{ opacity: 1, y: 0, transition: { duration: 400 } }"
       >
         <div
-          class="p-2 bg-zinc-900/50 rounded-xl border border-white/10 shadow-sm backdrop-blur-sm"
+          class="p-2 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm backdrop-blur-sm"
         >
           <Users class="w-6 h-6 text-[#FF4C00]" />
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-white">用户管理</h1>
-          <p class="text-zinc-500 text-sm mt-0.5">查看、搜索与管理平台用户</p>
+          <h1 class="text-2xl font-bold text-zinc-900 dark:text-white">用户管理</h1>
+          <p class="text-zinc-500 dark:text-zinc-500 text-sm mt-0.5">查看、搜索与管理平台用户</p>
         </div>
       </div>
 
       <!-- 搜索栏 -->
       <div
-        class="relative z-20 bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-lg shadow-black/20 group/search hover:border-[#FF4C00]/30 transition-colors duration-500"
+        class="relative z-20 bg-white dark:bg-zinc-900/40 backdrop-blur-md border border-zinc-200 dark:border-white/5 rounded-2xl p-1.5 flex flex-col md:flex-row items-center gap-2 shadow-sm dark:shadow-lg dark:shadow-black/20 group/search hover:border-[#FF4C00]/30 transition-colors duration-500"
         v-motion
         :initial="{ opacity: 0, y: -10 }"
         :visible="{ opacity: 1, y: 0, transition: { duration: 400, delay: 100 } }"
@@ -36,13 +38,13 @@
             v-model="searchKeyword"
             type="text"
             placeholder="搜索用户名 / 昵称..."
-            class="w-full bg-transparent text-white pl-11 pr-4 py-3 outline-none placeholder-zinc-600 text-sm font-medium transition-all"
+            class="w-full bg-transparent text-zinc-900 dark:text-white pl-11 pr-4 py-3 outline-none placeholder-zinc-400 dark:placeholder-zinc-600 text-sm font-medium transition-all"
             @input="handleSearchDebounced"
           />
         </div>
 
         <div
-          class="flex items-center gap-2 p-1 border-t md:border-t-0 md:border-l border-white/5 w-full md:w-auto"
+          class="flex items-center gap-2 p-1 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-white/5 w-full md:w-auto"
         >
           <Filter class="w-4 h-4 text-zinc-500 ml-3 shrink-0 hidden md:block" />
           <div class="relative" ref="roleDropdownRef">
@@ -52,7 +54,7 @@
               :class="
                 searchRole
                   ? roleOptions.find((r) => r.value === searchRole)?.activeClass
-                  : 'bg-white/5 border-white/10 text-zinc-400 hover:border-white/20'
+                  : 'bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20'
               "
             >
               <component
@@ -68,7 +70,7 @@
             <Transition name="dropdown">
               <div
                 v-if="showRoleDropdown"
-                class="absolute right-0 top-full mt-2 w-40 bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-1.5 shadow-2xl shadow-black/50 z-50"
+                class="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-xl p-1.5 shadow-lg dark:shadow-2xl dark:shadow-black/50 z-50"
               >
                 <button
                   v-for="role in roleOptions"
@@ -78,7 +80,7 @@
                   :class="
                     searchRole === role.value
                       ? role.activeClass
-                      : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200'
                   "
                 >
                   <component :is="role.icon" class="w-3.5 h-3.5" />
@@ -108,14 +110,14 @@
         >
           <!-- 积分列（管理员显示 -） -->
           <template #cell-ratingScore="{ row }">
-            <span class="text-zinc-300 font-mono text-sm">
+            <span class="text-zinc-700 dark:text-zinc-300 font-mono text-sm">
               {{ row.role === 'admin' ? '-' : (row.ratingScore ?? 0) }}
             </span>
           </template>
 
           <!-- 排名列（管理员显示 -） -->
           <template #cell-globalRank="{ row }">
-            <span class="text-zinc-300 font-mono text-sm">
+            <span class="text-zinc-700 dark:text-zinc-300 font-mono text-sm">
               {{ row.role === 'admin' ? '-' : (row.globalRank ?? '-') }}
             </span>
           </template>
@@ -134,7 +136,7 @@
             <div class="flex items-center gap-2">
               <button
                 @click="openDetail(row)"
-                class="px-3 py-1.5 text-xs font-medium text-zinc-300 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                class="px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-white/5 rounded-lg hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors"
               >
                 详情
               </button>
@@ -174,9 +176,9 @@
         @confirm="confirmRoleChange"
       >
         <div class="space-y-4">
-          <p class="text-zinc-400 text-sm">
+          <p class="text-zinc-500 dark:text-zinc-400 text-sm">
             当前用户:
-            <span class="text-white font-medium">{{
+            <span class="text-zinc-900 dark:text-white font-medium">{{
               roleChangeTarget?.nickname || roleChangeTarget?.username
             }}</span>
           </p>
@@ -190,7 +192,7 @@
                   'flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all',
                   newRole === role
                     ? 'bg-[#FF4C00]/20 border-[#FF4C00]/50 text-[#FF4C00]'
-                    : 'bg-black/30 border-white/10 text-zinc-400 hover:border-white/20',
+                    : 'bg-zinc-100 dark:bg-black/30 border-zinc-200 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/20',
                 )
               "
             >
@@ -207,9 +209,9 @@
         confirm-text="确认封禁"
         @confirm="confirmBan"
       >
-        <p class="text-zinc-400 text-sm text-center">
+        <p class="text-zinc-500 dark:text-zinc-400 text-sm text-center">
           确定要封禁用户
-          <span class="text-white font-medium">{{
+          <span class="text-zinc-900 dark:text-white font-medium">{{
             banTarget?.nickname || banTarget?.username
           }}</span>
           吗？封禁后该用户将无法登录平台。
